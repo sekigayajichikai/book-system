@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, Clock, FileText, CheckCircle, Calculator, X, MonitorPlay } from 'lucide-react';
-import { ROOMS, USAGE_CATEGORIES, EQUIPMENT_ITEMS, getPrice } from '../constants';
-import { RoomType, BookingRequest } from '../types';
+import { ROOMS, USAGE_CATEGORIES, EQUIPMENT_ITEMS, TIME_SLOTS, getPrice } from '../constants';
+import { RoomType, BookingRequest, OrgEntry } from '../types';
+import OrgSelector from './OrgSelector';
 
 interface BookingFormProps {
   selectedDate: Date;
@@ -11,23 +12,22 @@ interface BookingFormProps {
   onCancel: () => void;
   onSubmit: (data: BookingRequest) => void;
   submitting?: boolean;
+  orgsByCategory?: Record<string, OrgEntry[]>;
 }
 
 const BookingForm: React.FC<BookingFormProps> = ({
   selectedDate, initialRoom, initialStartTime, initialEndTime,
-  onCancel, onSubmit, submitting,
+  onCancel, onSubmit, submitting, orgsByCategory,
 }) => {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
+    orgName: '',
+    memo: '',
     room: initialRoom,
     startTime: initialStartTime,
     endTime: initialEndTime,
     category: USAGE_CATEGORIES[0].id,
-    purpose: '',
     equipment: [] as string[],
-    agreed: false,
   });
   const [useEquipment, setUseEquipment] = useState(false);
   const [price, setPrice] = useState(0);
@@ -41,6 +41,19 @@ const BookingForm: React.FC<BookingFormProps> = ({
   useEffect(() => {
     setPrice(getPrice(formData.category, formData.room, formData.equipment));
   }, [formData.category, formData.room, formData.equipment]);
+
+  const handleOrgSelect = (orgName: string, tier: string, defaultEquipment: string[]) => {
+    const matchedCategory = USAGE_CATEGORIES.find(c => c.tier === tier);
+    setFormData(prev => ({
+      ...prev,
+      orgName,
+      category: matchedCategory?.id || prev.category,
+      equipment: defaultEquipment.length > 0 ? defaultEquipment : prev.equipment,
+    }));
+    if (defaultEquipment.length > 0) {
+      setUseEquipment(true);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -56,20 +69,32 @@ const BookingForm: React.FC<BookingFormProps> = ({
     }));
   };
 
+  // 時間帯からGASのスロットキーを取得
+  const getSlotKey = (startTime: string): string => {
+    const slot = TIME_SLOTS.find(s => s.startTime === startTime);
+    return slot?.gasKey || '午前';
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (step === 1) {
+      if (!formData.orgName) {
+        alert('団体名を選択してください');
+        return;
+      }
       setStep(2);
     } else {
       const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+      const title = formData.memo
+        ? `${formData.orgName}「${formData.memo}」`
+        : formData.orgName;
+
       onSubmit({
         date: dateStr,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
+        slot: getSlotKey(formData.startTime),
         room: formData.room,
-        name: formData.name,
-        phone: formData.phone,
-        purpose: formData.purpose,
+        title,
+        org: formData.orgName,
         category: formData.category,
         equipment: formData.equipment,
         price,
@@ -87,7 +112,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
         <div className="p-5 border-b border-gray-100 bg-white sticky top-0 z-10 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             <FileText className="text-emerald-600" />
-            予約申請
+            予約入力
           </h2>
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
             <X size={24} />
@@ -97,7 +122,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto">
           {step === 1 ? (
             <>
-              {/* Summary of Selection */}
+              {/* 日時・部屋サマリ */}
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 space-y-2">
                 <div className="flex items-center gap-2 text-blue-800 font-bold">
                   <CalendarIcon size={18} />
@@ -112,7 +137,32 @@ const BookingForm: React.FC<BookingFormProps> = ({
                 </div>
               </div>
 
-              {/* Usage Category */}
+              {/* 団体マスタ選択 */}
+              {orgsByCategory && Object.keys(orgsByCategory).length > 0 ? (
+                <OrgSelector
+                  orgsByCategory={orgsByCategory}
+                  selectedOrg={formData.orgName}
+                  memo={formData.memo}
+                  onSelect={handleOrgSelect}
+                  onMemoChange={(memo) => setFormData(prev => ({ ...prev, memo }))}
+                />
+              ) : (
+                /* マスタがない場合はフリー入力 */
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">団体名・イベント名</label>
+                  <input
+                    type="text"
+                    name="orgName"
+                    required
+                    placeholder="例：DX委員会"
+                    value={formData.orgName}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base"
+                  />
+                </div>
+              )}
+
+              {/* 利用区分 */}
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">利用区分（料金プラン）</label>
                 <div className="space-y-2">
@@ -142,7 +192,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
                 </div>
               </div>
 
-              {/* Equipment Rental Toggle */}
+              {/* 用具 */}
               <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -184,27 +234,11 @@ const BookingForm: React.FC<BookingFormProps> = ({
                 )}
               </div>
 
-              {/* Applicant Info */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">代表者氏名</label>
-                  <input type="text" name="name" required placeholder="例：山田 太郎" value={formData.name} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">電話番号</label>
-                  <input type="tel" name="phone" required placeholder="例：090-1234-5678" value={formData.phone} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">具体的な利用内容</label>
-                  <input type="text" name="purpose" required placeholder="例：卓球の練習" value={formData.purpose} onChange={handleChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none text-base" />
-                </div>
-              </div>
-
-              {/* Price Display */}
+              {/* 料金 */}
               <div className="bg-gray-800 text-white p-4 rounded-xl flex items-center justify-between shadow-lg">
                 <div className="flex items-center gap-2">
                   <Calculator className="text-emerald-400" />
-                  <span className="font-medium">概算利用料金</span>
+                  <span className="font-medium">利用料金</span>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-emerald-400">
@@ -219,14 +253,14 @@ const BookingForm: React.FC<BookingFormProps> = ({
               </div>
             </>
           ) : (
+            /* Step 2: 確認画面 */
             <div className="space-y-6 text-center py-2">
               <div className="flex justify-center mb-4">
                 <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
                   <CheckCircle size={32} />
                 </div>
               </div>
-              <h3 className="text-lg font-bold">この内容で予約リクエストを送信しますか？</h3>
-              <p className="text-sm text-gray-500">事務局へLINEで通知されます。確認後に折り返しご連絡します。</p>
+              <h3 className="text-lg font-bold">この内容で保存しますか？</h3>
 
               <div className="bg-gray-50 p-5 rounded-xl text-left space-y-3 text-sm border border-gray-100">
                 <div className="grid grid-cols-[80px_1fr] gap-2">
@@ -234,6 +268,14 @@ const BookingForm: React.FC<BookingFormProps> = ({
                   <span className="font-bold">{selectedDate.getFullYear()}/{selectedDate.getMonth() + 1}/{selectedDate.getDate()} {formData.startTime}〜{formData.endTime}</span>
                   <span className="text-gray-500">部屋</span>
                   <span className="font-bold">{selectedRoomData?.name}</span>
+                  <span className="text-gray-500">団体名</span>
+                  <span className="font-bold">{formData.orgName}</span>
+                  {formData.memo && (
+                    <>
+                      <span className="text-gray-500">活動内容</span>
+                      <span className="font-medium text-gray-700">{formData.memo}</span>
+                    </>
+                  )}
                   <span className="text-gray-500">利用区分</span>
                   <span className="font-medium">{selectedCategoryData?.name}</span>
                   {selectedEquipmentNames.length > 0 && (
@@ -244,26 +286,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
                   )}
                   <span className="text-gray-500">料金</span>
                   <span className="font-bold text-emerald-600">¥{price.toLocaleString()}</span>
-                  <span className="text-gray-500">氏名</span>
-                  <span className="font-medium">{formData.name}</span>
-                  <span className="text-gray-500">電話番号</span>
-                  <span className="font-medium">{formData.phone}</span>
-                  <span className="text-gray-500">内容</span>
-                  <span className="font-medium">{formData.purpose}</span>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-center gap-2 mt-4 bg-emerald-50 p-3 rounded-lg border border-emerald-100">
-                <input
-                  type="checkbox"
-                  id="agreed"
-                  checked={formData.agreed}
-                  onChange={(e) => setFormData(prev => ({ ...prev, agreed: e.target.checked }))}
-                  className="w-5 h-5 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
-                />
-                <label htmlFor="agreed" className="text-sm text-gray-700 font-medium select-none cursor-pointer">
-                  利用規約に同意し、近隣へ配慮します
-                </label>
               </div>
             </div>
           )}
@@ -278,10 +301,10 @@ const BookingForm: React.FC<BookingFormProps> = ({
             </button>
             <button
               type="submit"
-              disabled={(step === 2 && !formData.agreed) || submitting}
+              disabled={submitting}
               className="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
             >
-              {submitting ? '送信中...' : step === 1 ? '確認へ進む' : '予約リクエストを送信'}
+              {submitting ? '保存中...' : step === 1 ? '確認へ進む' : '保存'}
             </button>
           </div>
         </form>

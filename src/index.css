@@ -2,7 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Material Design 3 ベースカラー */
+  --md-on-surface: #1c1b1d;
+  --md-on-surface-variant: #4d4256;
+  --md-surface: #fff;
+  --md-surface-1: #f8f1f6;
+  --md-outline: #dadce0;
+
+  /* 部屋カラー（背景のみ。文字は常に黒） */
+  --room-kaigi: #fef9c3;
+  --room-kaigi-strong: #fef08a;
+  --room-washi: #e0f2fe;
+  --room-washi-strong: #bae6fd;
+  --room-tosho: #fce7f3;
+  --room-tosho-strong: #fbcfe8;
+}
+
 body {
-  font-family: 'Noto Sans JP', sans-serif;
-  background-color: #f8fafc;
+  font-family: 'Noto Sans JP', 'Roboto', sans-serif;
+  background-color: var(--md-surface);
+  color: var(--md-on-surface);
 }

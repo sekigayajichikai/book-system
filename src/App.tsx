@@ -1,10 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Menu, MapPin, Phone, Calendar as CalendarIcon, Info, Users, X } from 'lucide-react';
+import { CalendarDays, ClipboardList, DoorOpen, Info, Users, X } from 'lucide-react';
 import Calendar from './components/Calendar';
 import DailyScheduleGrid from './components/DailyScheduleGrid';
+import WeeklyView from './components/WeeklyView';
 import BookingForm from './components/BookingForm';
-import { Booking, BookingStatus, RoomType, BookingRequest, CalendarEvent } from './types';
-import { TIME_SLOTS } from './constants';
+import RoomMonthView from './components/RoomMonthView';
+import RoomMonthWeekly from './components/RoomMonthWeekly';
+import BookingDetailModal from './components/BookingDetailModal';
+import { Booking, BookingStatus, RoomType, BookingRequest, CalendarEvent, OrgEntry } from './types';
+import { ROOMS, TIME_SLOTS } from './constants';
 
 /** 日付文字列を YYYY-MM-DD で返す */
 function formatDate(d: Date): string {
@@ -22,16 +26,78 @@ function App() {
   const [selectedSlot, setSelectedSlot] = useState<{ room: RoomType; start: string; end: string } | null>(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
 
-  const [currentView, setCurrentView] = useState('home');
+  const [calendarMode, setCalendarModeState] = useState<'calendar' | 'booking'>(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash === 'calendar' || hash === 'monthly') return 'calendar';
+    return 'booking';
+  });
+  const [bookingSubView, setBookingSubViewState] = useState<'weekly' | 'monthly'>(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash === 'weekly') return 'weekly';
+    return 'monthly';
+  });
+  const [roomFilter, setRoomFilterState] = useState<boolean>(() => {
+    const hash = window.location.hash.replace('#', '');
+    return hash === 'room';
+  });
 
-  /** Googleカレンダーからイベントを取得 */
+  const updateHash = (mode: 'calendar' | 'booking', sub: 'weekly' | 'monthly', rf: boolean) => {
+    if (mode === 'calendar') { window.location.hash = 'calendar'; return; }
+    if (rf) { window.location.hash = 'room'; return; }
+    window.location.hash = sub;
+  };
+  const setCalendarMode = (mode: 'calendar' | 'booking') => {
+    setCalendarModeState(mode);
+    if (mode === 'booking') {
+      setBookingSubViewState('monthly');
+      setRoomFilterState(false);
+      setSelectedRoom(null);
+      updateHash(mode, 'monthly', false);
+    } else {
+      updateHash(mode, bookingSubView, roomFilter);
+    }
+  };
+  const setBookingSubView = (sub: 'weekly' | 'monthly') => {
+    setBookingSubViewState(sub);
+    updateHash('booking', sub, roomFilter);
+  };
+  const setRoomFilter = (rf: boolean) => {
+    setRoomFilterState(rf);
+    if (rf && !selectedRoom) setSelectedRoom(ROOMS[0]);
+    updateHash('booking', bookingSubView, rf);
+  };
+
+  const [selectedRoom, setSelectedRoom] = useState<typeof ROOMS[0] | null>(() => {
+    const hash = window.location.hash.replace('#', '');
+    return hash === 'room' ? ROOMS[0] : null;
+  });
+  const [roomMonth, setRoomMonth] = useState(new Date());
+  const [weekStart, setWeekStart] = useState(() => {
+    const d = new Date();
+    const dow = d.getDay();
+    d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1)); // 今週の月曜
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
+  const [orgsByCategory, setOrgsByCategory] = useState<Record<string, OrgEntry[]>>({});
+
+  /** 団体マスタを取得 */
+  useEffect(() => {
+    fetch('/api/masters')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data?.orgs) setOrgsByCategory(data.orgs);
+      })
+      .catch(err => console.error('マスタ取得エラー:', err));
+  }, []);
+
+  /** スプレッドシートからイベントを取得（GAS API経由） */
   const fetchEvents = useCallback(async (year: number, month: number) => {
     setLoading(true);
     try {
-      const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-      const endDate = `${year}-${String(month + 2 > 12 ? 1 : month + 2).padStart(2, '0')}-01`;
-      const res = await fetch(`/api/calendar?start=${startDate}&end=${endDate}`);
+      const res = await fetch(`/api/calendar?year=${year}&month=${month + 1}`);
       if (!res.ok) throw new Error('API error');
       const events: CalendarEvent[] = await res.json();
       setBookings(events.map(evt => ({
@@ -43,8 +109,8 @@ function App() {
         title: evt.summary,
         status: BookingStatus.CONFIRMED,
       })));
-    } catch {
-      console.error('カレンダーの取得に失敗しました');
+    } catch (err) {
+      console.error('カレンダーの取得に失敗しました', err);
     } finally {
       setLoading(false);
     }
@@ -52,6 +118,11 @@ function App() {
 
   useEffect(() => {
     fetchEvents(currentDate.getFullYear(), currentDate.getMonth());
+    // 30秒ポーリング
+    const interval = setInterval(() => {
+      fetchEvents(currentDate.getFullYear(), currentDate.getMonth());
+    }, 30000);
+    return () => clearInterval(interval);
   }, [currentDate, fetchEvents]);
 
   const handlePrevMonth = () => {
@@ -72,65 +143,96 @@ function App() {
     setShowBookingForm(true);
   };
 
+  const handleWeeklySlotClick = (date: Date, room: RoomType, _slotId: string, startTime: string, endTime: string) => {
+    setSelectedDate(date);
+    setSelectedSlot({ room, start: startTime, end: endTime });
+    setShowBookingForm(true);
+  };
+
+  const handlePrevWeek = () => {
+    setWeekStart(prev => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() - 7);
+      return d;
+    });
+  };
+
+  const handleNextWeek = () => {
+    setWeekStart(prev => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() + 7);
+      return d;
+    });
+  };
+
   const handleBookingSubmit = async (data: BookingRequest) => {
-    setSubmitting(true);
+    // 楽観的更新: 先に画面に反映
+    const newBooking: Booking = {
+      id: 'temp_' + Date.now(),
+      date: data.date,
+      startTime: TIME_SLOTS.find(s => s.gasKey === data.slot)?.startTime || '09:00',
+      endTime: TIME_SLOTS.find(s => s.gasKey === data.slot)?.endTime || '12:00',
+      room: (data.room as RoomType) || RoomType.KAIGISHITSU,
+      title: data.title,
+      status: BookingStatus.CONFIRMED,
+    };
+    setBookings(prev => [...prev, newBooking]);
+    setShowBookingForm(false);
+    setShowSuccessMessage(true);
+    setTimeout(() => setShowSuccessMessage(false), 5000);
+
+    // 裏でAPI保存
     try {
       const res = await fetch('/api/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!res.ok) throw new Error('送信エラー');
-      setShowBookingForm(false);
-      setShowSuccessMessage(true);
-      setTimeout(() => setShowSuccessMessage(false), 8000);
-    } catch {
-      alert('送信に失敗しました。お手数ですが事務局へ直接お電話ください。');
-    } finally {
-      setSubmitting(false);
+      if (!res.ok) throw new Error('保存エラー');
+    } catch (err) {
+      console.error('保存エラー:', err);
+      // 失敗したら楽観的更新を巻き戻す
+      setBookings(prev => prev.filter(b => b.id !== newBooking.id));
+      alert('保存に失敗しました。もう一度お試しください。');
     }
   };
 
-  const NavItem = ({ view, label, icon: Icon }: { view: string; label: string; icon: React.FC<{ size?: number }> }) => (
-    <button
-      onClick={() => setCurrentView(view)}
-      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
-        currentView === view
-          ? 'bg-emerald-600 text-white shadow-md'
-          : 'text-gray-600 hover:bg-emerald-50'
-      }`}
-    >
-      <Icon size={18} />
-      <span className="font-medium">{label}</span>
-    </button>
-  );
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-gray-800">
-      {/* Header */}
+      {/* Header: タイトル右寄せ + ビュー切替ボタンを同一行に */}
       <header className="bg-white shadow-sm sticky top-0 z-30">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentView('home')}>
-            <div className="bg-emerald-600 p-1.5 rounded-lg">
-              <Users className="text-white" size={24} />
-            </div>
-            <h1 className="text-lg md:text-xl font-bold text-gray-800 tracking-tight">
-              関ヶ谷自治会館<span className="text-emerald-600">予約</span>
-            </h1>
+        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+          {/* ビュー切替ボタン */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCalendarMode('calendar')}
+              className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
+                calendarMode === 'calendar'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />カレンダー
+            </button>
+            <button
+              onClick={() => setCalendarMode('booking')}
+              className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
+                calendarMode === 'booking'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <ClipboardList size={16} className="inline-block mr-1 -mt-0.5" />予約
+            </button>
           </div>
-          <nav className="hidden md:flex gap-2">
-            <NavItem view="home" label="ホーム" icon={Menu} />
-            <NavItem view="calendar" label="空き状況・予約" icon={CalendarIcon} />
-            <NavItem view="access" label="アクセス" icon={MapPin} />
-          </nav>
-          {/* Mobile nav */}
-          <div className="flex md:hidden gap-1">
-            <button onClick={() => setCurrentView('calendar')} className={`p-2 rounded-lg ${currentView === 'calendar' ? 'bg-emerald-100 text-emerald-700' : 'text-gray-500'}`}>
-              <CalendarIcon size={22} />
-            </button>
-            <button onClick={() => setCurrentView('access')} className={`p-2 rounded-lg ${currentView === 'access' ? 'bg-emerald-100 text-emerald-700' : 'text-gray-500'}`}>
-              <MapPin size={22} />
-            </button>
+          {/* タイトル右寄せ */}
+          <div className="flex items-center gap-2">
+            <div className="bg-emerald-600 p-1.5 rounded-lg">
+              <Users className="text-white" size={20} />
+            </div>
+            <h1 className="text-lg font-bold text-gray-800 tracking-tight">
+              関ヶ谷自治会
+            </h1>
           </div>
         </div>
       </header>
@@ -141,71 +243,81 @@ function App() {
           <div className="mb-6 p-4 bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl flex items-start gap-3 shadow-sm relative">
             <div className="bg-white p-1 rounded-full mt-0.5"><Info size={20} className="text-emerald-500" /></div>
             <div className="flex-1">
-              <p className="font-bold">予約リクエストを送信しました！</p>
-              <p className="text-sm">事務局へLINEで通知済みです。確認後に折り返しご連絡いたします。</p>
+              <p className="font-bold">保存しました</p>
+              <p className="text-sm">スプレッドシートの確定シートに登録されました。</p>
             </div>
             <button onClick={() => setShowSuccessMessage(false)} className="text-emerald-400 hover:text-emerald-600"><X size={18} /></button>
           </div>
         )}
 
-        {currentView === 'home' && (
-          <div className="space-y-8">
-            <div className="relative rounded-3xl overflow-hidden shadow-xl h-64 md:h-80 bg-emerald-800">
-              <div className="absolute inset-0 flex flex-col justify-center items-center text-center text-white p-6">
-                <h2 className="text-3xl md:text-5xl font-bold mb-4">関ヶ谷自治会館</h2>
-                <p className="text-lg md:text-xl mb-8 text-emerald-100 max-w-xl">
-                  会議、サークル活動、レクリエーションなど。<br />
-                  どなたでも気軽にご利用いただけます。
-                </p>
+        <div className="space-y-6">
+            {/* 予約モード: 部屋フィルタ + 月/週トグル + 部屋別（1行） */}
+            {calendarMode === 'booking' && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-gray-400">部屋:</span>
                 <button
-                  onClick={() => setCurrentView('calendar')}
-                  className="bg-white text-emerald-700 hover:bg-emerald-50 font-bold py-3 px-8 rounded-full shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 text-lg"
+                  onClick={() => { setSelectedRoom(null); setRoomFilter(false); }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    selectedRoom === null
+                      ? 'bg-gray-700 text-white'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
                 >
-                  <CalendarIcon />
-                  空き状況を確認
+                  全部屋
                 </button>
+                {ROOMS.map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => setSelectedRoom(r)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      selectedRoom?.id === r.id
+                        ? 'bg-gray-700 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {r.name.replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}
+                  </button>
+                ))}
+                {/* 右寄せ: 部屋別 + 月/週トグル */}
+                <div className="flex items-center gap-2 ml-auto">
+                  <button
+                    onClick={() => {
+                      setRoomFilter(!roomFilter);
+                      if (!roomFilter && !selectedRoom) setSelectedRoom(ROOMS[0]);
+                    }}
+                    className={`px-1.5 py-0.5 rounded text-[10px] transition-all ${
+                      roomFilter
+                        ? 'bg-emerald-600 text-white'
+                        : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                    title="部屋を選択すると、その部屋だけの月間カレンダーを表示"
+                  >
+                    <DoorOpen size={12} className="inline-block -mt-0.5" /> 月間別ver
+                  </button>
+                  <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+                    <button
+                      onClick={() => setBookingSubView('monthly')}
+                      className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                        bookingSubView === 'monthly' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      月
+                    </button>
+                    <button
+                      onClick={() => setBookingSubView('weekly')}
+                      className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                        bookingSubView === 'weekly' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      週
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Users size={24} />
-                </div>
-                <h3 className="font-bold text-lg mb-2">誰でも利用可能</h3>
-                <p className="text-gray-600 text-sm">自治会員の方はもちろん、地域の方どなたでも。</p>
-              </div>
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CalendarIcon size={24} />
-                </div>
-                <h3 className="font-bold text-lg mb-2">Webで空き確認</h3>
-                <p className="text-gray-600 text-sm">24時間いつでも空き状況を確認し、予約リクエストを送れます。</p>
-              </div>
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center hover:shadow-md transition-shadow">
-                <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Phone size={24} />
-                </div>
-                <h3 className="font-bold text-lg mb-2">事務局サポート</h3>
-                <p className="text-gray-600 text-sm">ご不明点は事務局までお気軽にお問い合わせください。</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {currentView === 'calendar' && (
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="bg-emerald-100 p-2 rounded-lg text-emerald-600">
-                  <CalendarIcon size={24} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-800">予約状況カレンダー</h2>
-                  <p className="text-gray-500 text-sm">日付をクリックすると時間割が表示されます。</p>
-                </div>
-              </div>
-
+            {/* ビュー表示 */}
+            {calendarMode === 'calendar' ? (
               <Calendar
                 currentDate={currentDate}
                 onPrevMonth={handlePrevMonth}
@@ -214,49 +326,46 @@ function App() {
                 onDateClick={handleDateClick}
                 loading={loading}
               />
-
-              <div className="mt-6 flex flex-wrap gap-4 text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
-                <div className="flex items-center gap-2"><span className="w-3 h-3 bg-white border border-gray-300 rounded-full" />空きあり</div>
-                <div className="flex items-center gap-2"><span className="w-3 h-3 bg-orange-100 border border-orange-300 rounded-full" />混雑</div>
-                <div className="flex items-center gap-2"><span className="w-3 h-3 bg-red-100 border border-red-300 rounded-full" />満室</div>
+            ) : bookingSubView === 'weekly' ? (
+              <WeeklyView
+                weekStart={weekStart}
+                bookings={bookings}
+                onPrevWeek={handlePrevWeek}
+                onNextWeek={handleNextWeek}
+                onSlotClick={handleWeeklySlotClick}
+                onBookingClick={setDetailBooking}
+                filterRoom={roomFilter ? (selectedRoom?.id || null) : (selectedRoom?.id || null)}
+              />
+            ) : !roomFilter ? (
+              <RoomMonthWeekly
+                bookings={bookings}
+                year={roomMonth.getFullYear()}
+                month={roomMonth.getMonth()}
+                onPrevMonth={() => setRoomMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                onNextMonth={() => setRoomMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                onSlotClick={handleWeeklySlotClick}
+                onBookingClick={setDetailBooking}
+                filterRoom={selectedRoom?.id || null}
+              />
+            ) : selectedRoom ? (
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                <RoomMonthView
+                  room={selectedRoom}
+                  bookings={bookings.filter(b => b.room === selectedRoom.id)}
+                  year={roomMonth.getFullYear()}
+                  month={roomMonth.getMonth()}
+                  onPrevMonth={() => setRoomMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                  onNextMonth={() => setRoomMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                  onBookingClick={() => {}}
+                  onSlotClick={(date, slot) => {
+                    setSelectedDate(date);
+                    setSelectedSlot({ room: selectedRoom.id, start: slot.startTime, end: slot.endTime });
+                    setShowBookingForm(true);
+                  }}
+                />
               </div>
-            </div>
+            ) : null}
           </div>
-        )}
-
-        {currentView === 'access' && (
-          <div className="space-y-6">
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 max-w-3xl mx-auto">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <MapPin className="text-emerald-600" />
-                アクセス・お問い合わせ
-              </h2>
-              <div className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-8">
-                  <div>
-                    <h3 className="font-bold text-lg mb-2 text-gray-700">所在地</h3>
-                    <p className="text-gray-600 leading-relaxed">
-                      〒236-0042<br />
-                      横浜市金沢区釜利谷東4-41-10<br />
-                      関ヶ谷自治会館
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-2 text-gray-700">連絡先</h3>
-                    <div className="flex items-center gap-2 text-gray-600 mb-2">
-                      <Phone size={18} />
-                      <span>事務局へお問い合わせください</span>
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      ※予約の追加・変更・キャンセルは<br />
-                      このサイトまたは事務局へ直接ご連絡ください。
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
 
       {/* Footer */}
@@ -285,7 +394,15 @@ function App() {
           initialEndTime={selectedSlot.end}
           onCancel={() => setShowBookingForm(false)}
           onSubmit={handleBookingSubmit}
+          orgsByCategory={orgsByCategory}
           submitting={submitting}
+        />
+      )}
+
+      {detailBooking && (
+        <BookingDetailModal
+          booking={detailBooking}
+          onClose={() => setDetailBooking(null)}
         />
       )}
     </div>

@@ -1,41 +1,55 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import type { BookingRequest, RoomType } from '../src/types';
-import { sendLineNotification } from '../src/lib/line-notify';
-
-const VALID_ROOMS: RoomType[] = ['会議室', '和室（畳側）', '和室（椅子側）', '図書室'] as RoomType[];
 
 /**
  * POST /api/booking
  *
- * 予約リクエストを受け付け、LINEで事務局に通知する。
+ * GAS Web App 経由でスプレッドシートの確定シートに予約を保存する。
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
-  const targetId = process.env.LINE_NOTIFY_TARGET_ID;
-
-  if (!token || !targetId) {
-    return res.status(500).json({ error: 'Missing LINE env vars' });
+  const gasUrl = process.env.GAS_WEBAPP_URL;
+  if (!gasUrl) {
+    return res.status(500).json({ error: 'Missing GAS_WEBAPP_URL' });
   }
 
-  const body = req.body as BookingRequest;
+  const body = req.body;
 
   // バリデーション
-  if (!body.date || !body.startTime || !body.endTime || !body.room || !body.name || !body.phone || !body.purpose) {
-    return res.status(400).json({ error: '必須項目が不足しています' });
-  }
-  if (!VALID_ROOMS.includes(body.room)) {
-    return res.status(400).json({ error: '無効な部屋名です' });
+  if (!body.date || !body.slot || !body.room || !body.title) {
+    return res.status(400).json({ error: '必須項目が不足しています (date, slot, room, title)' });
   }
 
+  // 日付をパース
+  const dateParts = String(body.date).split('-');
+  const year = parseInt(dateParts[0], 10);
+  const month = parseInt(dateParts[1], 10);
+  const day = parseInt(dateParts[2], 10);
+
   try {
-    await sendLineNotification(token, targetId, body);
-    return res.status(200).json({ ok: true });
+    const gasRes = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'save',
+        year,
+        month,
+        day,
+        slot: body.slot,
+        room: body.room,
+        title: body.title,
+        org: body.org || '',
+      }),
+      redirect: 'follow',
+    });
+
+    if (!gasRes.ok) throw new Error(`GAS API error ${gasRes.status}`);
+    const result = await gasRes.json();
+    return res.status(200).json(result);
   } catch (err) {
-    console.error('LINE notification error:', err);
-    return res.status(502).json({ error: 'LINE通知の送信に失敗しました' });
+    console.error('GAS API save error:', err);
+    return res.status(502).json({ error: 'スプレッドシートへの保存に失敗しました' });
   }
 }

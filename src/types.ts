@@ -48,16 +48,29 @@ export interface CalendarEvent {
   endTime: string; // HH:mm
 }
 
-/** 予約リクエスト（LINE通知用） */
+/** 予約保存リクエスト（GAS API用） */
 export interface BookingRequest {
   date: string;
-  startTime: string;
-  endTime: string;
-  room: RoomType;
+  slot: string;       // 午前/午後/夜間
+  room: string;       // 部屋名
+  title: string;      // 団体名 or イベント名
+  org?: string;       // 主催団体
+  category?: string;  // 利用区分
+  equipment?: string[];
+  price?: number;
+}
+
+/** 団体マスタ（1団体分） */
+export interface OrgEntry {
   name: string;
-  phone: string;
-  purpose: string;
-  category: string;
+  tier: string;
+  presets: string[];
   equipment: string[];
-  price: number;
+}
+
+/** 団体マスタ全体（カテゴリ→団体リスト） */
+export interface OrgMaster {
+  orgs: Record<string, OrgEntry[]>;
+  rooms: string[];
+  slots: Record<string, { start: string; end: string }>;
 }
