@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CalendarDays, Settings, LogOut, Plus, Trash2, X, Users } from 'lucide-react';
 import Calendar from '../Calendar';
-import BookingForm from '../BookingForm';
-import { Booking, BookingStatus, RoomType, BookingRequest, CalendarEvent, OrgEntry } from '../../types';
+import AdminDayPanel from './AdminDayPanel';
+import { Booking, BookingStatus, RoomType, CalendarEvent, OrgEntry } from '../../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../../constants';
 
 type Tab = 'calendar' | 'organizations' | 'settings';
@@ -60,9 +60,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [holidays, setHolidays] = useState<Record<string, string>>({});
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [showBookingForm, setShowBookingForm] = useState(false);
-  const [selectedSlot, setSelectedSlot] = useState<{ room: RoomType; start: string; end: string } | null>(null);
-  const [orgsByCategory, setOrgsByCategory] = useState<Record<string, OrgEntry[]>>({});
 
   const fetchEvents = useCallback(async (year: number, month: number) => {
     setLoading(true);
@@ -94,31 +91,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setHolidays(map);
       }).catch(() => {});
 
-    fetch('/api/masters').then(r => r.ok ? r.json() : null).then(data => {
-      if (data?.orgs) setOrgsByCategory(data.orgs);
-    }).catch(() => {});
   }, []);
+
+  const [showDayPanel, setShowDayPanel] = useState(false);
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
-    setSelectedSlot({ room: RoomType.KAIGISHITSU, start: '09:00', end: '12:00' });
-    setShowBookingForm(true);
+    setShowDayPanel(true);
   };
 
-  const handleBookingSubmit = async (data: BookingRequest) => {
-    try {
-      const res = await fetch('/api/booking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error('保存エラー');
-      setShowBookingForm(false);
-      fetchEvents(currentDate.getFullYear(), currentDate.getMonth());
-    } catch (err) {
-      console.error('保存エラー:', err);
-      alert('保存に失敗しました');
-    }
+  const handleDayPanelRefresh = () => {
+    fetchEvents(currentDate.getFullYear(), currentDate.getMonth());
   };
 
   // === 団体マスタ ===
@@ -322,17 +305,13 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         )}
       </main>
 
-      {/* 予約フォームモーダル */}
-      {showBookingForm && selectedDate && selectedSlot && (
-        <BookingForm
-          selectedDate={selectedDate}
-          initialRoom={selectedSlot.room}
-          initialStartTime={selectedSlot.start}
-          initialEndTime={selectedSlot.end}
-          onCancel={() => setShowBookingForm(false)}
-          onSubmit={handleBookingSubmit}
-          orgsByCategory={orgsByCategory}
-          submitting={false}
+      {/* 日付パネル（予約一覧+追加+削除） */}
+      {showDayPanel && selectedDate && (
+        <AdminDayPanel
+          date={selectedDate}
+          bookings={bookings}
+          onClose={() => setShowDayPanel(false)}
+          onRefresh={handleDayPanelRefresh}
         />
       )}
     </div>
