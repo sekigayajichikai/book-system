@@ -61,8 +61,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=30');
     return res.status(200).json(events);
-  } catch (err) {
+  } catch (err: any) {
     console.error('Supabase calendar fetch error:', err);
-    return res.status(500).json({ error: '予約データの取得に失敗しました' });
+    return res.status(500).json({ error: '予約データの取得に失敗しました', detail: err?.message || String(err) });
   }
 }
