@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabase } from './_supabase';
+import { getSupabase } from './lib-supabase';
 
 /**
  * POST /api/booking
