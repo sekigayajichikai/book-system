@@ -61,10 +61,10 @@ export default function MobileCalendarView({
       </div>
 
       {/* 凡例 */}
-      <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400" />会議室</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-sky-400" />和室</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-pink-400" />図書室</span>
+      <div className="flex items-center justify-center gap-5 text-sm text-gray-500">
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />会議室</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sky-400" />和室</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-pink-400" />図書室</span>
       </div>
 
       {loading && <div className="text-center text-sm text-gray-400 py-4">読み込み中...</div>}

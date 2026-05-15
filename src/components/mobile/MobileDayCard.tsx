@@ -34,28 +34,28 @@ export default function MobileDayCard({ date, bookings, isToday }: MobileDayCard
     <div className={`rounded-xl border ${isToday ? 'border-blue-400 bg-blue-50/50 ring-2 ring-blue-200' : 'border-gray-200 bg-white'}`}>
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-baseline gap-2">
-          <span className={`text-lg font-bold ${isToday ? 'text-blue-600' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-800'}`}>
+          <span className={`text-xl font-bold ${isToday ? 'text-blue-600' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-800'}`}>
             {date.getMonth() + 1}/{date.getDate()}
           </span>
-          <span className={`text-sm ${isToday ? 'text-blue-500' : dow === 0 ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
+          <span className={`text-base ${isToday ? 'text-blue-500' : dow === 0 ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
             ({DOW[dow]})
           </span>
-          {isToday && <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full font-bold">TODAY</span>}
+          {isToday && <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
         </div>
       </div>
 
       {slotGroups.length === 0 ? (
-        <div className="px-4 pb-3 text-sm text-gray-300">予定なし</div>
+        <div className="px-4 pb-3 text-base text-gray-300">予定なし</div>
       ) : (
         <div className="px-4 pb-3 space-y-2">
           {slotGroups.map(({ slot, items }) => (
             <div key={slot.id}>
-              <div className="text-gray-600 mb-0.5"><span className="text-sm font-bold">{slot.gasKey}</span> <span className="text-xs">{slot.startTime}〜{slot.endTime}</span></div>
+              <div className="text-gray-600 mb-1"><span className="text-base font-bold">{slot.gasKey}</span> <span className="text-sm">{slot.startTime}〜{slot.endTime}</span></div>
               {items.map(b => (
-                <div key={b.id} className="flex items-center gap-2 py-0.5">
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${ROOM_DOT[b.room] || 'bg-gray-300'}`} />
-                  <span className="text-sm text-gray-800 truncate">{b.title}</span>
-                  <span className="text-xs text-gray-500 shrink-0">{String(b.room).replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}</span>
+                <div key={b.id} className="flex items-center gap-2 py-1">
+                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${ROOM_DOT[b.room] || 'bg-gray-300'}`} />
+                  <span className="text-base text-gray-800 truncate">{b.title}</span>
+                  <span className="text-sm text-gray-500 shrink-0">{String(b.room).replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}</span>
                 </div>
               ))}
             </div>

@@ -67,10 +67,10 @@ export default function MobileBookingView({
       </div>
 
       {/* 凡例 */}
-      <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-400" />会議室</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-sky-400" />和室</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-pink-400" />図書室</span>
+      <div className="flex items-center justify-center gap-5 text-sm text-gray-500">
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />会議室</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sky-400" />和室</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-pink-400" />図書室</span>
       </div>
 
       {/* Day blocks */}
@@ -87,13 +87,13 @@ export default function MobileBookingView({
           >
             {/* Date header */}
             <div className="flex items-baseline gap-2 px-4 py-2.5 border-b border-gray-100">
-              <span className={`text-lg font-bold ${today ? 'text-blue-600' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-800'}`}>
+              <span className={`text-xl font-bold ${today ? 'text-blue-600' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-800'}`}>
                 {date.getMonth() + 1}/{date.getDate()}
               </span>
-              <span className={`text-sm ${today ? 'text-blue-500' : dow === 0 ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
+              <span className={`text-base ${today ? 'text-blue-500' : dow === 0 ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
                 ({DOW[dow]})
               </span>
-              {today && <span className="text-[10px] bg-blue-600 text-white px-1.5 py-0.5 rounded-full font-bold">TODAY</span>}
+              {today && <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
             </div>
 
             {/* Time slots */}
@@ -104,21 +104,21 @@ export default function MobileBookingView({
                 return (
                   <div key={slot.id}>
                     <div className="text-gray-600 mb-1">
-                      <span className="text-sm font-bold">{slot.gasKey}</span> <span className="text-xs">{slot.startTime}〜{slot.endTime}</span>
+                      <span className="text-base font-bold">{slot.gasKey}</span> <span className="text-sm">{slot.startTime}〜{slot.endTime}</span>
                     </div>
                     <div className="space-y-0.5">
                       {rooms.map(room => {
                         const booking = slotBookings.find(b => b.room === room.id);
                         return (
-                          <div key={room.id} className="flex items-center gap-2 py-0.5 pl-2">
-                            <span className={`w-2 h-2 rounded-full shrink-0 ${ROOM_DOT[room.id] || 'bg-gray-300'}`} />
-                            <span className="text-xs text-gray-600 w-16 shrink-0 truncate">
+                          <div key={room.id} className="flex items-center gap-2 py-1 pl-2">
+                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${ROOM_DOT[room.id] || 'bg-gray-300'}`} />
+                            <span className="text-sm text-gray-600 w-20 shrink-0 truncate">
                               {room.name.replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}
                             </span>
                             {booking ? (
-                              <span className="text-sm text-gray-800 truncate">{booking.title}</span>
+                              <span className="text-base text-gray-800 truncate">{booking.title}</span>
                             ) : (
-                              <span className="text-sm text-gray-200">─</span>
+                              <span className="text-base text-gray-200">─</span>
                             )}
                           </div>
                         );
