@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabase } from './lib-supabase';
+import { getSupabase } from '../src/lib/supabase';
 
 /**
  * GET /api/calendar?year=2026&month=5
