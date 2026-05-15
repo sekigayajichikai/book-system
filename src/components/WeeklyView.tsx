@@ -98,7 +98,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
               key={date.toISOString()}
               className={`text-center py-1.5 rounded-lg ${today ? 'bg-emerald-600 text-white' : ''}`}
             >
-              <div className={`text-[11px] font-medium ${
+              <div className={`text-xs font-medium ${
                 today ? 'text-emerald-100' : (isH || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-[var(--md-on-surface-variant)]'
               }`}>
                 {DOW_NAMES[dow]}
@@ -108,7 +108,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
               }`}>
                 {date.getDate()}
               </div>
-              {hName && !today && <div className="text-[7px] text-red-400 truncate">{hName}</div>}
+              {hName && !today && <div className="text-[9px] text-red-400 truncate">{hName}</div>}
             </div>
           );
         })}
@@ -119,7 +119,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         <div key={slot.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
           <div className={`${SLOT_LABEL_COLOR} px-4 py-1.5 flex items-center gap-3 border-b border-[var(--md-outline)]`}>
             <span className="font-medium text-sm text-[var(--md-on-surface)]">{slot.gasKey}</span>
-            <span className="text-[11px] text-[var(--md-on-surface-variant)]">{slot.startTime} 〜 {slot.endTime}</span>
+            <span className="text-xs text-[var(--md-on-surface-variant)]">{slot.startTime} 〜 {slot.endTime}</span>
           </div>
           <div className="divide-y divide-gray-100">
             {displayRooms.map(room => {

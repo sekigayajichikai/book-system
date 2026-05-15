@@ -95,7 +95,7 @@ const RoomMonthWeekly: React.FC<RoomMonthWeeklyProps> = ({
                   key={date.toISOString()}
                   className={`text-center py-1.5 rounded-lg ${today ? 'bg-emerald-600 text-white' : 'bg-white border border-gray-200'}`}
                 >
-                  <div className={`text-[10px] font-medium ${
+                  <div className={`text-xs font-medium ${
                     today ? 'text-emerald-100' : (!!holidays[formatDate(date)] || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-400'
                   }`}>
                     {DOW_NAMES[dow]}
@@ -128,7 +128,7 @@ const RoomMonthWeekly: React.FC<RoomMonthWeeklyProps> = ({
                     <div key={`${slot.id}-${room.id}`} className="grid grid-cols-8 gap-1 p-0.5">
                       {/* 部屋名 */}
                       <div className={`flex items-center justify-center rounded-lg ${roomColor.bgBooked}`}>
-                        <span className={`text-[10px] font-bold ${roomColor.text} whitespace-nowrap`}>
+                        <span className={`text-xs font-bold ${roomColor.text} whitespace-nowrap`}>
                           {room.name.replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}
                         </span>
                       </div>
@@ -147,7 +147,7 @@ const RoomMonthWeekly: React.FC<RoomMonthWeeklyProps> = ({
                               onClick={() => onBookingClick?.(booking)}
                               className={`${roomColor.bgBooked} rounded-lg p-1 min-h-[2.5rem] flex items-center justify-center text-center hover:opacity-80`}
                             >
-                              <span className={`${roomColor.text} text-[10px] font-bold leading-tight line-clamp-2`}>
+                              <span className={`${roomColor.text} text-xs font-bold leading-tight line-clamp-2`}>
                                 {booking.title}
                               </span>
                             </button>

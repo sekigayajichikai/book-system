@@ -64,7 +64,7 @@ const DayDetailModal: React.FC<{
                       <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
                         <span className={`${colors.bar} w-2.5 h-2.5 rounded-full shrink-0`} />
                         <span className="text-sm font-medium text-gray-800 flex-1">{b.title}</span>
-                        <span className="text-[11px] text-gray-400">{b.room.replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}</span>
+                        <span className="text-xs text-gray-400">{b.room.replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}</span>
                       </div>
                     );
                   })}
@@ -120,7 +120,7 @@ const CalendarWeeklyView: React.FC<{
           const isH = !!hName;
           return (
             <div key={i} className={`text-center py-1.5 rounded-lg ${today ? 'bg-emerald-600 text-white' : ''}`}>
-              <div className={`text-[11px] font-medium ${
+              <div className={`text-xs font-medium ${
                 today ? 'text-emerald-100' : (isH || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-500'
               }`}>
                 {dowNames[dow]}
@@ -128,7 +128,7 @@ const CalendarWeeklyView: React.FC<{
               <div className={`text-sm font-bold ${today ? 'text-white' : (isH || dow === 0) ? 'text-red-500' : 'text-gray-800'}`}>
                 {date.getDate()}
               </div>
-              {hName && !today && <div className="text-[7px] text-red-400 truncate">{hName}</div>}
+              {hName && !today && <div className="text-xs text-red-400 truncate">{hName}</div>}
             </div>
           );
         })}
@@ -154,18 +154,18 @@ const CalendarWeeklyView: React.FC<{
               } ${dow === 0 || dow === 6 ? 'bg-gray-50/50' : ''}`}
             >
               {slotGroups.length === 0 ? (
-                <div className="text-[10px] text-gray-300 text-center mt-4">-</div>
+                <div className="text-xs text-gray-300 text-center mt-4">-</div>
               ) : (
                 <div className="space-y-1.5">
                   {slotGroups.map(({ slot, items }) => (
                     <div key={slot.id}>
-                      <div className="text-[9px] font-bold text-gray-400 px-0.5">{slot.gasKey}</div>
+                      <div className="text-xs font-bold text-gray-400 px-0.5">{slot.gasKey}</div>
                       {items.map((b, j) => {
                         const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
                         return (
                           <div key={j} className="flex items-start gap-1 px-0.5 py-px">
                             <span className={`${colors.bar} w-1.5 h-1.5 rounded-full shrink-0 mt-1`} />
-                            <span className="text-[11px] leading-tight text-gray-700">{b.title}</span>
+                            <span className="text-xs leading-tight text-gray-700">{b.title}</span>
                           </div>
                         );
                       })}
@@ -179,7 +179,7 @@ const CalendarWeeklyView: React.FC<{
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 mt-3 text-[10px] text-gray-500 items-center">
+      <div className="flex flex-wrap gap-3 mt-3 text-xs text-gray-500 items-center">
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-yellow-400 rounded-full" />会議室</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-sky-400 rounded-full" />和室</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-pink-400 rounded-full" />図書室</span>
@@ -249,7 +249,7 @@ const Calendar: React.FC<CalendarProps> = ({
             }`}>
               {day}
             </span>
-            {holidayName && <span className="text-[8px] text-red-400 truncate">{holidayName}</span>}
+            {holidayName && <span className="text-xs text-red-400 truncate">{holidayName}</span>}
           </div>
 
           <div className="flex flex-col flex-1 min-h-0">
@@ -258,14 +258,14 @@ const Calendar: React.FC<CalendarProps> = ({
               {amBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
-                  <div key={i} className="text-[10px] font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden">
+                  <div key={i} className="text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden">
                     <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
                     <span className="truncate">{b.title}</span>
                   </div>
                 );
               })}
               {amBookings.length > 2 && (
-                <div className="text-[8px] text-gray-400 pl-1">+{amBookings.length - 2}</div>
+                <div className="text-xs text-gray-400 pl-1">+{amBookings.length - 2}</div>
               )}
             </div>
 
@@ -274,14 +274,14 @@ const Calendar: React.FC<CalendarProps> = ({
               {pmBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
-                  <div key={i} className="text-[10px] font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden">
+                  <div key={i} className="text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden">
                     <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
                     <span className="truncate">{b.title}</span>
                   </div>
                 );
               })}
               {pmBookings.length > 2 && (
-                <div className="text-[8px] text-gray-400 pl-1">+{pmBookings.length - 2}</div>
+                <div className="text-xs text-gray-400 pl-1">+{pmBookings.length - 2}</div>
               )}
             </div>
           </div>
@@ -352,7 +352,7 @@ const Calendar: React.FC<CalendarProps> = ({
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-3 p-3 border-t border-gray-100 text-[10px] text-gray-500 items-center">
+            <div className="flex flex-wrap gap-3 p-3 border-t border-gray-100 text-xs text-gray-500 items-center">
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-white border border-gray-200 rounded" />午前</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-gray-100 rounded" />午後</span>
               <span className="text-gray-300">|</span>
