@@ -11,6 +11,10 @@ function isToday(d: Date): boolean {
   return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
 }
 
+function formatDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function formatShort(d: Date): string {
   return `${d.getMonth() + 1}/${d.getDate()}(${DOW[d.getDay()]})`;
 }
@@ -20,11 +24,12 @@ interface MobileCalendarViewProps {
   bookings: Booking[];
   onPrevWeek: () => void;
   onNextWeek: () => void;
+  holidays?: Record<string, string>;
   loading?: boolean;
 }
 
 export default function MobileCalendarView({
-  weekStart, bookings, onPrevWeek, onNextWeek, loading,
+  weekStart, bookings, onPrevWeek, onNextWeek, holidays = {}, loading,
 }: MobileCalendarViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const todayRef = useRef<HTMLDivElement>(null);
@@ -78,6 +83,7 @@ export default function MobileCalendarView({
               date={date}
               bookings={bookings}
               isToday={today}
+              holidayName={holidays[formatDate(date)]}
             />
           </div>
         );

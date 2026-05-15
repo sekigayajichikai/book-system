@@ -14,16 +14,18 @@ interface MobileDayCardProps {
   date: Date;
   bookings: Booking[];
   isToday?: boolean;
+  holidayName?: string;
 }
 
 function formatDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-export default function MobileDayCard({ date, bookings, isToday }: MobileDayCardProps) {
+export default function MobileDayCard({ date, bookings, isToday, holidayName }: MobileDayCardProps) {
   const dow = date.getDay();
   const dateStr = formatDate(date);
   const dayBookings = bookings.filter(b => b.date === dateStr);
+  const isHoliday = !!holidayName;
 
   const slotGroups = TIME_SLOTS.map(slot => ({
     slot,
@@ -31,16 +33,17 @@ export default function MobileDayCard({ date, bookings, isToday }: MobileDayCard
   })).filter(g => g.items.length > 0);
 
   return (
-    <div className={`rounded-xl border ${isToday ? 'border-blue-400 bg-blue-50/50 ring-2 ring-blue-200' : 'border-gray-200 bg-white'}`}>
+    <div className={`rounded-xl border ${isToday ? 'border-emerald-400 bg-emerald-50/50 ring-2 ring-emerald-200' : 'border-gray-200 bg-white'}`}>
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-baseline gap-2">
-          <span className={`text-xl font-bold ${isToday ? 'text-blue-600' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-800'}`}>
+          <span className={`text-xl font-bold ${isToday ? 'text-emerald-600' : (isHoliday || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-800'}`}>
             {date.getMonth() + 1}/{date.getDate()}
           </span>
-          <span className={`text-base ${isToday ? 'text-blue-500' : dow === 0 ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
+          <span className={`text-base ${isToday ? 'text-emerald-500' : (isHoliday || dow === 0) ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
             ({DOW[dow]})
           </span>
-          {isToday && <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
+          {holidayName && <span className="text-xs text-red-500 font-bold">{holidayName}</span>}
+          {isToday && <span className="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
         </div>
       </div>
 

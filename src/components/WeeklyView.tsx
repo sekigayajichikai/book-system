@@ -93,10 +93,10 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
           return (
             <div
               key={date.toISOString()}
-              className={`text-center py-1.5 rounded-lg ${today ? 'bg-blue-600 text-white' : ''}`}
+              className={`text-center py-1.5 rounded-lg ${today ? 'bg-emerald-600 text-white' : ''}`}
             >
               <div className={`text-[11px] font-medium ${
-                today ? 'text-blue-100' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-[var(--md-on-surface-variant)]'
+                today ? 'text-emerald-100' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-[var(--md-on-surface-variant)]'
               }`}>
                 {DOW_NAMES[dow]}
               </div>

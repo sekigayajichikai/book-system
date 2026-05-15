@@ -86,8 +86,9 @@ function App() {
     return d;
   });
   const [orgsByCategory, setOrgsByCategory] = useState<Record<string, OrgEntry[]>>({});
+  const [holidays, setHolidays] = useState<Record<string, string>>({});
 
-  /** 団体マスタを取得 */
+  /** 団体マスタ + 祝日を取得 */
   useEffect(() => {
     fetch('/api/masters')
       .then(res => res.ok ? res.json() : null)
@@ -95,6 +96,15 @@ function App() {
         if (data?.orgs) setOrgsByCategory(data.orgs);
       })
       .catch(err => console.error('マスタ取得エラー:', err));
+
+    fetch(`/api/holidays?year=${new Date().getFullYear()}`)
+      .then(res => res.ok ? res.json() : [])
+      .then((data: { date: string; name: string }[]) => {
+        const map: Record<string, string> = {};
+        data.forEach(h => { map[h.date] = h.name; });
+        setHolidays(map);
+      })
+      .catch(err => console.error('祝日取得エラー:', err));
   }, []);
 
   /** スプレッドシートからイベントを取得（GAS API経由） */
@@ -344,6 +354,7 @@ function App() {
                   bookings={bookings}
                   onPrevWeek={handlePrevWeek}
                   onNextWeek={handleNextWeek}
+                  holidays={holidays}
                   loading={loading}
                 />
               ) : (
@@ -353,6 +364,7 @@ function App() {
                   onPrevWeek={handlePrevWeek}
                   onNextWeek={handleNextWeek}
                   filterRoom={selectedRoom?.id || null}
+                  holidays={holidays}
                   readOnly
                 />
               )

@@ -32,11 +32,12 @@ interface MobileBookingViewProps {
   onPrevWeek: () => void;
   onNextWeek: () => void;
   filterRoom: RoomType | null;
+  holidays?: Record<string, string>;
   readOnly?: boolean;
 }
 
 export default function MobileBookingView({
-  weekStart, bookings, onPrevWeek, onNextWeek, filterRoom,
+  weekStart, bookings, onPrevWeek, onNextWeek, filterRoom, holidays = {},
 }: MobileBookingViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   useSwipe(containerRef, { onSwipeLeft: onNextWeek, onSwipeRight: onPrevWeek });
@@ -79,21 +80,24 @@ export default function MobileBookingView({
         const dateStr = formatDate(date);
         const dow = date.getDay();
         const dayBookings = bookings.filter(b => b.date === dateStr);
+        const holidayName = holidays[dateStr];
+        const isHoliday = !!holidayName;
 
         return (
           <div
             key={dateStr}
-            className={`rounded-xl border ${today ? 'border-blue-400 bg-blue-50/50 ring-2 ring-blue-200' : 'border-gray-200 bg-white'}`}
+            className={`rounded-xl border ${today ? 'border-emerald-400 bg-emerald-50/50 ring-2 ring-emerald-200' : 'border-gray-200 bg-white'}`}
           >
             {/* Date header */}
             <div className="flex items-baseline gap-2 px-4 py-2.5 border-b border-gray-100">
-              <span className={`text-xl font-bold ${today ? 'text-blue-600' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-800'}`}>
+              <span className={`text-xl font-bold ${today ? 'text-emerald-600' : (isHoliday || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-800'}`}>
                 {date.getMonth() + 1}/{date.getDate()}
               </span>
-              <span className={`text-base ${today ? 'text-blue-500' : dow === 0 ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
+              <span className={`text-base ${today ? 'text-emerald-500' : (isHoliday || dow === 0) ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
                 ({DOW[dow]})
               </span>
-              {today && <span className="text-xs bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
+              {holidayName && <span className="text-xs text-red-500 font-bold">{holidayName}</span>}
+              {today && <span className="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
             </div>
 
             {/* Time slots */}

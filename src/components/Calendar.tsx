@@ -115,9 +115,9 @@ const CalendarWeeklyView: React.FC<{
           const dow = date.getDay();
           const today = new Date().toDateString() === date.toDateString();
           return (
-            <div key={i} className={`text-center py-1.5 rounded-lg ${today ? 'bg-blue-600 text-white' : ''}`}>
+            <div key={i} className={`text-center py-1.5 rounded-lg ${today ? 'bg-emerald-600 text-white' : ''}`}>
               <div className={`text-[11px] font-medium ${
-                today ? 'text-blue-100' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-500'
+                today ? 'text-emerald-100' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-500'
               }`}>
                 {dowNames[dow]}
               </div>
@@ -145,7 +145,7 @@ const CalendarWeeklyView: React.FC<{
             <div
               key={i}
               className={`min-h-[10rem] border border-gray-200 rounded-lg p-1 ${
-                today ? 'outline outline-2 outline-blue-400 -outline-offset-1' : ''
+                today ? 'outline outline-2 outline-emerald-400 -outline-offset-1' : ''
               } ${dow === 0 || dow === 6 ? 'bg-gray-50/50' : ''}`}
             >
               {slotGroups.length === 0 ? (
@@ -233,12 +233,12 @@ const Calendar: React.FC<CalendarProps> = ({
         <div
           key={day}
           onClick={() => handleCellClick(day)}
-          className={`min-h-[6.5rem] border border-gray-200 relative cursor-pointer hover:bg-blue-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-blue-400 -outline-offset-1 z-10' : ''}`}
+          className={`min-h-[6.5rem] border border-gray-200 relative cursor-pointer hover:bg-emerald-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''}`}
         >
           {/* Date number */}
           <div className="px-1 pt-0.5 shrink-0">
             <span className={`text-xs font-bold ${
-              isToday ? 'bg-blue-600 text-white px-1 rounded' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-600'
+              isToday ? 'bg-emerald-600 text-white px-1 rounded' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-600'
             }`}>
               {day}
             </span>
