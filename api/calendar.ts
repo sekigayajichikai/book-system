@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSupabase } from '../src/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * GET /api/calendar?year=2026&month=5
@@ -22,7 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const endDate = `${y}-${String(m + 1 > 12 ? 1 : m + 1).padStart(2, '0')}-01`;
 
   try {
-    const supabase = getSupabase();
+    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
 
     // 予約データ取得
     const { data: bookings, error } = await supabase
