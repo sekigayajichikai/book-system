@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabase } from './_supabase';
+import { getSupabase } from './_supabase';
 
 /**
  * GET /api/masters
@@ -12,6 +12,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const supabase = getSupabase();
     const [orgsRes, roomsRes, slotsRes, equipRes, categoriesRes] = await Promise.all([
       supabase.from('booking_organizations').select('*').order('category').order('name'),
       supabase.from('booking_rooms').select('*').order('sort_order'),

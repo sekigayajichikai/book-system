@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { supabase } from './_supabase';
+import { getSupabase } from './_supabase';
 
 /**
  * POST /api/booking
@@ -18,6 +18,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('bookings')
       .insert({
