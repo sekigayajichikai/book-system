@@ -9,6 +9,8 @@ import RoomMonthWeekly from './components/RoomMonthWeekly';
 import BookingDetailModal from './components/BookingDetailModal';
 import MobileCalendarView from './components/mobile/MobileCalendarView';
 import MobileBookingView from './components/mobile/MobileBookingView';
+import AdminLogin from './components/admin/AdminLogin';
+import AdminDashboard from './components/admin/AdminDashboard';
 import { useIsMobile } from './hooks/useIsMobile';
 import { Booking, BookingStatus, RoomType, BookingRequest, CalendarEvent, OrgEntry } from './types';
 import { ROOMS, TIME_SLOTS } from './constants';
@@ -19,6 +21,17 @@ function formatDate(d: Date): string {
 }
 
 function App() {
+  // 管理画面ルーティング（#admin）
+  const [isAdminRoute] = useState(() => window.location.hash === '#admin');
+  const [adminToken, setAdminToken] = useState<string | null>(() => localStorage.getItem('admin_token'));
+
+  if (isAdminRoute) {
+    if (!adminToken) {
+      return <AdminLogin onLogin={(token) => setAdminToken(token)} />;
+    }
+    return <AdminDashboard onLogout={() => { localStorage.removeItem('admin_token'); setAdminToken(null); }} />;
+  }
+
   const isMobile = useIsMobile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
