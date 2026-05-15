@@ -1,32 +1,59 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { supabase } from './_supabase';
 
 /**
  * GET /api/masters
  *
- * GAS Web App 経由でスプレッドシートの団体マスタを取得する。
+ * Supabase から各種マスタデータを取得する。
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const gasUrl = process.env.GAS_WEBAPP_URL;
-  if (!gasUrl) {
-    return res.status(500).json({ error: 'Missing GAS_WEBAPP_URL' });
-  }
-
   try {
-    const url = `${gasUrl}?action=masters`;
-    const gasRes = await fetch(url, { redirect: 'follow' });
-    if (!gasRes.ok) throw new Error(`GAS API error ${gasRes.status}`);
+    const [orgsRes, roomsRes, slotsRes, equipRes, categoriesRes] = await Promise.all([
+      supabase.from('booking_organizations').select('*').order('category').order('name'),
+      supabase.from('booking_rooms').select('*').order('sort_order'),
+      supabase.from('booking_time_slots').select('*').order('sort_order'),
+      supabase.from('booking_equipment').select('*').order('sort_order'),
+      supabase.from('booking_usage_categories').select('*').order('sort_order'),
+    ]);
 
-    const data = await gasRes.json();
+    // 団体をカテゴリ別にグルーピング（フロントの既存形式に合わせる）
+    const orgsByCategory: Record<string, Array<{
+      name: string;
+      tier: string;
+      presets: string[];
+      equipment: string[];
+    }>> = {};
 
-    // 長めにキャッシュ（マスタは頻繁に変わらない）
+    (orgsRes.data || []).forEach(org => {
+      if (!orgsByCategory[org.category]) orgsByCategory[org.category] = [];
+      orgsByCategory[org.category].push({
+        name: org.name,
+        tier: org.category,
+        presets: org.presets || [],
+        equipment: org.default_equipment || [],
+      });
+    });
+
+    // 時間帯をslots形式に変換
+    const slots: Record<string, { start: string; end: string }> = {};
+    (slotsRes.data || []).forEach(s => {
+      slots[s.slot_key] = { start: s.start_time.slice(0, 5), end: s.end_time.slice(0, 5) };
+    });
+
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=600');
-    return res.status(200).json(data);
+    return res.status(200).json({
+      orgs: orgsByCategory,
+      rooms: (roomsRes.data || []).map(r => r.name),
+      slots,
+      equipment: equipRes.data || [],
+      categories: categoriesRes.data || [],
+    });
   } catch (err) {
-    console.error('GAS API masters error:', err);
-    return res.status(502).json({ error: 'Failed to fetch masters from spreadsheet' });
+    console.error('Supabase masters fetch error:', err);
+    return res.status(500).json({ error: 'マスタデータの取得に失敗しました' });
   }
 }
