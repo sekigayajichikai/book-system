@@ -304,7 +304,7 @@ function App() {
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
-                    {r.name.replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}
+                    {r.shortName}
                   </button>
                 ))}
                 {/* 右寄せ: 部屋別 + 月/週トグル */}

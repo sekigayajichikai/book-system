@@ -1,11 +1,17 @@
 import { RoomType } from './types';
 
 export const ROOMS = [
-  { id: RoomType.KAIGISHITSU, name: '会議室', capacity: 40, description: '大会議や集会に。' },
-  { id: RoomType.WASHITSU_TATAMI, name: '和室（畳側）', capacity: 15, description: '床の間付き。' },
-  { id: RoomType.WASHITSU_ISU, name: '和室（椅子側）', capacity: 15, description: '' },
-  { id: RoomType.TOSHOSHITSU, name: '図書室', capacity: 10, description: '少人数の打ち合わせに。' },
+  { id: RoomType.KAIGISHITSU, name: '会議室', shortName: '会議室', capacity: 40, description: '大会議や集会に。' },
+  { id: RoomType.WASHITSU_TATAMI, name: '和室（畳側）', shortName: '和室(畳)', capacity: 15, description: '床の間付き。' },
+  { id: RoomType.WASHITSU_ISU, name: '和室（椅子側）', shortName: '和室(椅子)', capacity: 15, description: '' },
+  { id: RoomType.TOSHOSHITSU, name: '図書室', shortName: '図書室', capacity: 10, description: '少人数の打ち合わせに。' },
 ];
+
+/** 部屋名の短縮表示（一元管理） */
+export function shortRoomName(name: string): string {
+  const room = ROOMS.find(r => r.id === name || r.name === name);
+  return room?.shortName ?? name;
+}
 
 export const TIME_SLOTS = [
   { id: 'morning', label: '午前 9:00〜12:00', startTime: '09:00', endTime: '12:00', gasKey: '午前' },

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Booking } from '../types';
-import { ROOMS, TIME_SLOTS } from '../constants';
+import { ROOMS, TIME_SLOTS, shortRoomName } from '../constants';
 
 interface CalendarProps {
   currentDate: Date;
@@ -64,7 +64,7 @@ const DayDetailModal: React.FC<{
                       <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
                         <span className={`${colors.bar} w-2.5 h-2.5 rounded-full shrink-0`} />
                         <span className="text-sm font-medium text-gray-800 flex-1">{b.title}</span>
-                        <span className="text-xs text-gray-400">{b.room.replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}</span>
+                        <span className="text-xs text-gray-400">{shortRoomName(b.room)}</span>
                       </div>
                     );
                   })}

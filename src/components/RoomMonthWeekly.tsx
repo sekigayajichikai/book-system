@@ -129,7 +129,7 @@ const RoomMonthWeekly: React.FC<RoomMonthWeeklyProps> = ({
                       {/* 部屋名 */}
                       <div className={`flex items-center justify-center rounded-lg ${roomColor.bgBooked}`}>
                         <span className={`text-xs font-bold ${roomColor.text} whitespace-nowrap`}>
-                          {room.name.replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}
+                          {room.shortName}
                         </span>
                       </div>
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, ChevronUp } from 'lucide-react';
-import { ROOMS, TIME_SLOTS } from '../constants';
+import { ROOMS, TIME_SLOTS, shortRoomName } from '../constants';
 import { Booking, RoomType } from '../types';
 
 interface WeeklyViewProps {
@@ -128,7 +128,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                 <div key={`${slot.id}-${room.id}`} className="grid grid-cols-8 gap-1 p-1">
                   <div className={`flex items-center justify-center rounded-lg ${roomColor.bgBooked}`}>
                     <span className="text-[12px] font-medium text-[var(--md-on-surface)] px-2 py-1 whitespace-nowrap">
-                      {room.name.replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}
+                      {room.shortName}
                     </span>
                   </div>
                   {weekDates.map(date => {
@@ -179,7 +179,7 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
                     <div key={`night-${room.id}`} className="grid grid-cols-8 gap-1 p-1">
                       <div className={`flex items-center justify-center rounded-lg ${roomColor.bgBooked}`}>
                         <span className={`text-sm font-bold ${roomColor.text} px-2 py-1 whitespace-nowrap`}>
-                          {room.name.replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}
+                          {room.shortName}
                         </span>
                       </div>
                       {weekDates.map(date => {

@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Booking, RoomType } from '../../types';
-import { ROOMS, TIME_SLOTS } from '../../constants';
+import { ROOMS, TIME_SLOTS, shortRoomName } from '../../constants';
 import { useSwipe } from '../../hooks/useSwipe';
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
@@ -117,7 +117,7 @@ export default function MobileBookingView({
                           <div key={room.id} className="flex items-center gap-2 py-1 pl-2">
                             <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${ROOM_DOT[room.id] || 'bg-gray-300'}`} />
                             <span className="text-sm text-gray-600 w-20 shrink-0 truncate">
-                              {room.name.replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}
+                              {room.shortName}
                             </span>
                             {booking ? (
                               <span className="text-base text-gray-800 truncate">{booking.title}</span>

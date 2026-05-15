@@ -1,5 +1,5 @@
 import { Booking } from '../../types';
-import { TIME_SLOTS } from '../../constants';
+import { TIME_SLOTS, shortRoomName } from '../../constants';
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -58,7 +58,7 @@ export default function MobileDayCard({ date, bookings, isToday, holidayName }: 
                 <div key={b.id} className="flex items-center gap-2 py-1">
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${ROOM_DOT[b.room] || 'bg-gray-300'}`} />
                   <span className="text-base text-gray-800 truncate">{b.title}</span>
-                  <span className="text-sm text-gray-500 shrink-0">{String(b.room).replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}</span>
+                  <span className="text-sm text-gray-500 shrink-0">{shortRoomName(b.room)}</span>
                 </div>
               ))}
             </div>

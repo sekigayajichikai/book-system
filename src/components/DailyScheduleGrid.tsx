@@ -49,7 +49,7 @@ const DailyScheduleGrid: React.FC<DailyScheduleGridProps> = ({ date, bookings, o
                 const colors = ROOM_COLORS[room.name] || { header: 'bg-gray-200 text-gray-700' };
                 return (
                   <div key={room.id} className={`${colors.header} p-3 rounded-lg text-center`}>
-                    <div className="font-bold text-sm md:text-base">{room.name.replace('（畳側）', '(畳)').replace('（椅子側）', '(椅子)')}</div>
+                    <div className="font-bold text-sm md:text-base">{room.shortName}</div>
                     <div className="text-[10px] md:text-xs opacity-70 mt-1">{room.capacity}名</div>
                   </div>
                 );
