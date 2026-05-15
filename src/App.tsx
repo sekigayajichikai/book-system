@@ -7,6 +7,9 @@ import BookingForm from './components/BookingForm';
 import RoomMonthView from './components/RoomMonthView';
 import RoomMonthWeekly from './components/RoomMonthWeekly';
 import BookingDetailModal from './components/BookingDetailModal';
+import MobileCalendarView from './components/mobile/MobileCalendarView';
+import MobileBookingView from './components/mobile/MobileBookingView';
+import { useIsMobile } from './hooks/useIsMobile';
 import { Booking, BookingStatus, RoomType, BookingRequest, CalendarEvent, OrgEntry } from './types';
 import { ROOMS, TIME_SLOTS } from './constants';
 
@@ -16,6 +19,7 @@ function formatDate(d: Date): string {
 }
 
 function App() {
+  const isMobile = useIsMobile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
@@ -137,6 +141,19 @@ function App() {
     setShowDailyGrid(true);
   };
 
+  /** カレンダーの日付タップ → 予約ビューの週間表示にジャンプ */
+  const handleDateTapToBooking = (date: Date) => {
+    const d = new Date(date);
+    const dow = d.getDay();
+    d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1)); // その週の月曜
+    d.setHours(0, 0, 0, 0);
+    setWeekStart(d);
+    setCalendarModeState('booking');
+    setBookingSubViewState('weekly');
+    setRoomFilterState(false);
+    window.location.hash = 'weekly';
+  };
+
   const handleSlotClick = (room: RoomType, _slotId: string, startTime: string, endTime: string) => {
     setSelectedSlot({ room, start: startTime, end: endTime });
     setShowDailyGrid(false);
@@ -201,12 +218,12 @@ function App() {
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-gray-800">
       {/* Header: タイトル右寄せ + ビュー切替ボタンを同一行に */}
       <header className="bg-white shadow-sm sticky top-0 z-30">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className={`max-w-5xl mx-auto px-4 ${isMobile ? 'h-12' : 'h-14'} flex items-center justify-between`}>
           {/* ビュー切替ボタン */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCalendarMode('calendar')}
-              className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
+              className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
                 calendarMode === 'calendar'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -225,14 +242,16 @@ function App() {
               <ClipboardList size={16} className="inline-block mr-1 -mt-0.5" />予約
             </button>
           </div>
-          {/* タイトル右寄せ */}
+          {/* タイトル右寄せ（スマホではアイコンのみ） */}
           <div className="flex items-center gap-2">
             <div className="bg-emerald-600 p-1.5 rounded-lg">
-              <Users className="text-white" size={20} />
+              <Users className="text-white" size={isMobile ? 16 : 20} />
             </div>
-            <h1 className="text-lg font-bold text-gray-800 tracking-tight">
-              関ヶ谷自治会
-            </h1>
+            {!isMobile && (
+              <h1 className="text-lg font-bold text-gray-800 tracking-tight">
+                関ヶ谷自治会
+              </h1>
+            )}
           </div>
         </div>
       </header>
@@ -317,62 +336,84 @@ function App() {
             )}
 
             {/* ビュー表示 */}
-            {calendarMode === 'calendar' ? (
-              <Calendar
-                currentDate={currentDate}
-                onPrevMonth={handlePrevMonth}
-                onNextMonth={handleNextMonth}
-                bookings={bookings}
-                onDateClick={handleDateClick}
-                loading={loading}
-              />
-            ) : bookingSubView === 'weekly' ? (
-              <WeeklyView
-                weekStart={weekStart}
-                bookings={bookings}
-                onPrevWeek={handlePrevWeek}
-                onNextWeek={handleNextWeek}
-                onSlotClick={handleWeeklySlotClick}
-                onBookingClick={setDetailBooking}
-                filterRoom={roomFilter ? (selectedRoom?.id || null) : (selectedRoom?.id || null)}
-              />
-            ) : !roomFilter ? (
-              <RoomMonthWeekly
-                bookings={bookings}
-                year={roomMonth.getFullYear()}
-                month={roomMonth.getMonth()}
-                onPrevMonth={() => setRoomMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-                onNextMonth={() => setRoomMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                onSlotClick={handleWeeklySlotClick}
-                onBookingClick={setDetailBooking}
-                filterRoom={selectedRoom?.id || null}
-              />
-            ) : selectedRoom ? (
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                <RoomMonthView
-                  room={selectedRoom}
-                  bookings={bookings.filter(b => b.room === selectedRoom.id)}
+            {isMobile ? (
+              /* === モバイル版 === */
+              calendarMode === 'calendar' ? (
+                <MobileCalendarView
+                  weekStart={weekStart}
+                  bookings={bookings}
+                  onPrevWeek={handlePrevWeek}
+                  onNextWeek={handleNextWeek}
+                  loading={loading}
+                />
+              ) : (
+                <MobileBookingView
+                  weekStart={weekStart}
+                  bookings={bookings}
+                  onPrevWeek={handlePrevWeek}
+                  onNextWeek={handleNextWeek}
+                  filterRoom={selectedRoom?.id || null}
+                  readOnly
+                />
+              )
+            ) : (
+              /* === PC版（既存） === */
+              calendarMode === 'calendar' ? (
+                <Calendar
+                  currentDate={currentDate}
+                  onPrevMonth={handlePrevMonth}
+                  onNextMonth={handleNextMonth}
+                  bookings={bookings}
+                  onDateClick={handleDateClick}
+                  loading={loading}
+                />
+              ) : bookingSubView === 'weekly' ? (
+                <WeeklyView
+                  weekStart={weekStart}
+                  bookings={bookings}
+                  onPrevWeek={handlePrevWeek}
+                  onNextWeek={handleNextWeek}
+                  onSlotClick={handleWeeklySlotClick}
+                  onBookingClick={setDetailBooking}
+                  filterRoom={roomFilter ? (selectedRoom?.id || null) : (selectedRoom?.id || null)}
+                />
+              ) : !roomFilter ? (
+                <RoomMonthWeekly
+                  bookings={bookings}
                   year={roomMonth.getFullYear()}
                   month={roomMonth.getMonth()}
                   onPrevMonth={() => setRoomMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
                   onNextMonth={() => setRoomMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                  onBookingClick={() => {}}
-                  onSlotClick={(date, slot) => {
-                    setSelectedDate(date);
-                    setSelectedSlot({ room: selectedRoom.id, start: slot.startTime, end: slot.endTime });
-                    setShowBookingForm(true);
-                  }}
+                  onSlotClick={handleWeeklySlotClick}
+                  onBookingClick={setDetailBooking}
+                  filterRoom={selectedRoom?.id || null}
                 />
-              </div>
-            ) : null}
+              ) : selectedRoom ? (
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+                  <RoomMonthView
+                    room={selectedRoom}
+                    bookings={bookings.filter(b => b.room === selectedRoom.id)}
+                    year={roomMonth.getFullYear()}
+                    month={roomMonth.getMonth()}
+                    onPrevMonth={() => setRoomMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                    onNextMonth={() => setRoomMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                    onBookingClick={() => {}}
+                    onSlotClick={(date, slot) => {
+                      setSelectedDate(date);
+                      setSelectedSlot({ room: selectedRoom.id, start: slot.startTime, end: slot.endTime });
+                      setShowBookingForm(true);
+                    }}
+                  />
+                </div>
+              ) : null
+            )}
           </div>
       </main>
 
       {/* Footer */}
-      <footer className="bg-slate-800 text-slate-400 py-8 text-center text-sm">
+      <footer className={`bg-slate-800 text-slate-400 ${isMobile ? 'py-4 text-xs' : 'py-8 text-sm'} text-center`}>
         <div className="max-w-5xl mx-auto px-4">
-          <p className="mb-2">&copy; {new Date().getFullYear()} 関ヶ谷自治会</p>
-          <p>このサイトは住民の利便性向上のために運営されています。</p>
+          <p>&copy; {new Date().getFullYear()} 関ヶ谷自治会</p>
         </div>
       </footer>
 
