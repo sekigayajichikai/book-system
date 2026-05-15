@@ -10,6 +10,16 @@ interface Org {
   category: string;
   passcode: string | null;
   contact_email: string | null;
+  registration_no: string | null;
+  furigana: string | null;
+  representative: string | null;
+  han_ko: string | null;
+  phone: string | null;
+  activity_description: string | null;
+  has_monthly_fee: boolean;
+  registration_date: string | null;
+  default_equipment: string[];
+  presets: string[];
 }
 
 interface AdminDashboardProps {
@@ -32,28 +42,34 @@ async function supaFetch(path: string, options?: RequestInit) {
   });
 }
 
-const CATEGORIES = [
-  { id: '1', name: '① 自治会運営' },
-  { id: '2', name: '② 趣味・同好会' },
-  { id: '3', name: '③ 混成団体・教室' },
-  { id: '4', name: '④ 弔事' },
-  { id: '5', name: '⑤ その他' },
-];
+interface Category {
+  id: string;
+  name: string;
+  tier: string;
+  price_type: string;
+  sort_order: number;
+}
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [tab, setTab] = useState<Tab>('bookings');
   const [bookings, setBookings] = useState<any[]>([]);
   const [orgs, setOrgs] = useState<Org[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [monthFilter, setMonthFilter] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  // 団体編集モーダル
+  // 団体編集パネル
   const [editOrg, setEditOrg] = useState<Org | null>(null);
-  const [orgForm, setOrgForm] = useState({ name: '', category: '2', passcode: '', contact_email: '' });
-  const [showOrgForm, setShowOrgForm] = useState(false);
+  const [orgForm, setOrgForm] = useState({
+    name: '', furigana: '', category: '2', passcode: '', contact_email: '',
+    registration_no: '', representative: '', han_ko: '', phone: '',
+    activity_description: '', has_monthly_fee: false, registration_date: '',
+    default_equipment: [] as string[], presets: [] as string[],
+  });
+  const [showOrgPanel, setShowOrgPanel] = useState(false);
 
   // 予約一覧取得
   useEffect(() => {
@@ -67,6 +83,13 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       .then(data => setBookings(data || []))
       .finally(() => setLoading(false));
   }, [tab, monthFilter]);
+
+  // カテゴリ取得
+  useEffect(() => {
+    supaFetch('booking_usage_categories?order=sort_order.asc&select=*')
+      .then(r => r.json())
+      .then(data => setCategories(data || []));
+  }, []);
 
   // 団体一覧取得
   const fetchOrgs = () => {
@@ -89,12 +112,27 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const openOrgForm = (org?: Org) => {
     if (org) {
       setEditOrg(org);
-      setOrgForm({ name: org.name, category: org.category, passcode: org.passcode || '', contact_email: org.contact_email || '' });
+      setOrgForm({
+        name: org.name, furigana: org.furigana || '', category: org.category,
+        passcode: org.passcode || '', contact_email: org.contact_email || '',
+        registration_no: org.registration_no || '', representative: org.representative || '',
+        han_ko: org.han_ko || '', phone: org.phone || '',
+        activity_description: org.activity_description || '',
+        has_monthly_fee: org.has_monthly_fee || false,
+        registration_date: org.registration_date || '',
+        default_equipment: org.default_equipment || [],
+        presets: org.presets || [],
+      });
     } else {
       setEditOrg(null);
-      setOrgForm({ name: '', category: '2', passcode: '', contact_email: '' });
+      setOrgForm({
+        name: '', furigana: '', category: '2', passcode: '', contact_email: '',
+        registration_no: '', representative: '', han_ko: '', phone: '',
+        activity_description: '', has_monthly_fee: false, registration_date: '',
+        default_equipment: [], presets: [],
+      });
     }
-    setShowOrgForm(true);
+    setShowOrgPanel(true);
   };
 
   // 団体保存
@@ -102,16 +140,26 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     if (!orgForm.name.trim()) return alert('団体名を入力してください');
     const body = {
       name: orgForm.name.trim(),
+      furigana: orgForm.furigana || null,
       category: orgForm.category,
       passcode: orgForm.passcode || null,
       contact_email: orgForm.contact_email || null,
+      registration_no: orgForm.registration_no || null,
+      representative: orgForm.representative || null,
+      han_ko: orgForm.han_ko || null,
+      phone: orgForm.phone || null,
+      activity_description: orgForm.activity_description || null,
+      has_monthly_fee: orgForm.has_monthly_fee,
+      registration_date: orgForm.registration_date || null,
+      default_equipment: orgForm.default_equipment,
+      presets: orgForm.presets,
     };
     if (editOrg) {
       await supaFetch(`booking_organizations?id=eq.${editOrg.id}`, { method: 'PATCH', body: JSON.stringify(body) });
     } else {
       await supaFetch('booking_organizations', { method: 'POST', body: JSON.stringify(body) });
     }
-    setShowOrgForm(false);
+    setShowOrgPanel(false);
     fetchOrgs();
   };
 
@@ -204,40 +252,112 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
         {/* === 団体マスタ === */}
         {tab === 'organizations' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-gray-800">団体マスタ</h2>
-              <button onClick={() => openOrgForm()} className="flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors">
-                <Plus size={16} /> 新規登録
-              </button>
-            </div>
-            {loading ? <p className="text-gray-400 text-sm">読み込み中...</p> : orgs.length === 0 ? <p className="text-gray-400 text-sm">登録されている団体はありません</p> : (
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="text-left px-4 py-2 font-medium text-gray-500">団体名</th>
-                      <th className="text-left px-4 py-2 font-medium text-gray-500">区分</th>
-                      <th className="text-left px-4 py-2 font-medium text-gray-500">パスコード</th>
-                      <th className="text-left px-4 py-2 font-medium text-gray-500">メール</th>
-                      <th className="px-4 py-2"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {orgs.map(o => (
-                      <tr key={o.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2 font-medium">{o.name}</td>
-                        <td className="px-4 py-2">{CATEGORIES.find(c => c.id === o.category)?.name || o.category}</td>
-                        <td className="px-4 py-2 font-mono text-gray-500">{o.passcode || '—'}</td>
-                        <td className="px-4 py-2 text-gray-500">{o.contact_email || '—'}</td>
-                        <td className="px-4 py-2 text-right space-x-2">
-                          <button onClick={() => openOrgForm(o)} className="text-xs text-blue-500 hover:text-blue-700"><Pencil size={14} className="inline" /></button>
-                          <button onClick={() => handleDeleteOrg(o.id, o.name)} className="text-xs text-red-400 hover:text-red-600"><Trash2 size={14} className="inline" /></button>
-                        </td>
+          <div className="flex gap-4">
+            {/* 左: 一覧 */}
+            <div className={`space-y-4 ${showOrgPanel ? 'w-1/2' : 'w-full'} transition-all`}>
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-gray-800">団体マスタ</h2>
+                <button onClick={() => openOrgForm()} className="flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 transition-colors">
+                  <Plus size={16} /> 新規登録
+                </button>
+              </div>
+              {loading ? <p className="text-gray-400 text-sm">読み込み中...</p> : orgs.length === 0 ? <p className="text-gray-400 text-sm">登録されている団体はありません</p> : (
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="text-left px-3 py-2 font-medium text-gray-500">団体名</th>
+                        <th className="text-left px-3 py-2 font-medium text-gray-500">代表者</th>
+                        <th className="text-left px-3 py-2 font-medium text-gray-500">区分</th>
+                        <th className="px-3 py-2"></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {orgs.map(o => (
+                        <tr key={o.id} className={`cursor-pointer transition-colors ${editOrg?.id === o.id ? 'bg-emerald-50' : 'hover:bg-gray-50'}`} onClick={() => openOrgForm(o)}>
+                          <td className="px-3 py-2 font-medium">{o.name}</td>
+                          <td className="px-3 py-2 text-gray-500">{o.representative || '—'}</td>
+                          <td className="px-3 py-2 text-xs">{categories.find(c => c.tier === o.category)?.name || o.category}</td>
+                          <td className="px-3 py-2 text-right">
+                            <button onClick={e => { e.stopPropagation(); handleDeleteOrg(o.id, o.name); }} className="text-xs text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* 右: 編集パネル */}
+            {showOrgPanel && (
+              <div className="w-1/2 bg-white rounded-xl border border-gray-200 p-5 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-base font-bold">{editOrg ? '団体を編集' : '新規団体登録'}</h3>
+                  <button onClick={() => setShowOrgPanel(false)} className="p-1 hover:bg-gray-100 rounded-full"><X size={18} className="text-gray-400" /></button>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">登録No.</label>
+                      <input value={orgForm.registration_no} onChange={e => setOrgForm(f => ({ ...f, registration_no: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">登録年月日</label>
+                      <input type="date" value={orgForm.registration_date} onChange={e => setOrgForm(f => ({ ...f, registration_date: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">団体名 *</label>
+                    <input value={orgForm.name} onChange={e => setOrgForm(f => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">フリガナ</label>
+                    <input value={orgForm.furigana} onChange={e => setOrgForm(f => ({ ...f, furigana: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">代表者名</label>
+                      <input value={orgForm.representative} onChange={e => setOrgForm(f => ({ ...f, representative: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">班－戸番</label>
+                      <input value={orgForm.han_ko} onChange={e => setOrgForm(f => ({ ...f, han_ko: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="例: 3-12" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">電話番号</label>
+                      <input value={orgForm.phone} onChange={e => setOrgForm(f => ({ ...f, phone: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">メールアドレス</label>
+                      <input type="email" value={orgForm.contact_email} onChange={e => setOrgForm(f => ({ ...f, contact_email: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">利用区分（構成メンバー）</label>
+                    <select value={orgForm.category} onChange={e => setOrgForm(f => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                      {categories.map(c => <option key={c.tier} value={c.tier}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">活動内容</label>
+                    <textarea value={orgForm.activity_description} onChange={e => setOrgForm(f => ({ ...f, activity_description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" id="monthly_fee" checked={orgForm.has_monthly_fee} onChange={e => setOrgForm(f => ({ ...f, has_monthly_fee: e.target.checked }))} className="rounded" />
+                    <label htmlFor="monthly_fee" className="text-xs text-gray-600">月謝あり</label>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">パスコード（予約申請用）</label>
+                    <input value={orgForm.passcode} onChange={e => setOrgForm(f => ({ ...f, passcode: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono" placeholder="4桁の数字など" />
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-5">
+                  <button onClick={() => setShowOrgPanel(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">キャンセル</button>
+                  <button onClick={handleSaveOrg} className="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700">{editOrg ? '更新' : '登録'}</button>
+                </div>
               </div>
             )}
           </div>
@@ -252,41 +372,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         )}
       </main>
 
-      {/* === 団体フォームモーダル === */}
-      {showOrgForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowOrgForm(false)}>
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold">{editOrg ? '団体を編集' : '新規団体登録'}</h3>
-              <button onClick={() => setShowOrgForm(false)} className="p-1 hover:bg-gray-100 rounded-full"><X size={20} className="text-gray-400" /></button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">団体名 *</label>
-                <input value={orgForm.name} onChange={e => setOrgForm(f => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base focus:ring-2 focus:ring-emerald-500 focus:outline-none" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">利用区分</label>
-                <select value={orgForm.category} onChange={e => setOrgForm(f => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base">
-                  {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">パスコード</label>
-                <input value={orgForm.passcode} onChange={e => setOrgForm(f => ({ ...f, passcode: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base font-mono" placeholder="4桁の数字など" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">連絡先メール</label>
-                <input type="email" value={orgForm.contact_email} onChange={e => setOrgForm(f => ({ ...f, contact_email: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base" placeholder="example@mail.com" />
-              </div>
-            </div>
-            <div className="flex gap-2 mt-6">
-              <button onClick={() => setShowOrgForm(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">キャンセル</button>
-              <button onClick={handleSaveOrg} className="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700">{editOrg ? '更新' : '登録'}</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
