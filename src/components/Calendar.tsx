@@ -9,6 +9,7 @@ interface CalendarProps {
   onNextMonth: () => void;
   bookings: Booking[];
   onDateClick: (date: Date) => void;
+  holidays?: Record<string, string>;
   loading?: boolean;
 }
 
@@ -83,7 +84,8 @@ const CalendarWeeklyView: React.FC<{
   bookings: Booking[];
   onPrevWeek: () => void;
   onNextWeek: () => void;
-}> = ({ weekStart, bookings, onPrevWeek, onNextWeek }) => {
+  holidays?: Record<string, string>;
+}> = ({ weekStart, bookings, onPrevWeek, onNextWeek, holidays = {} }) => {
   const weekDates: Date[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(weekStart);
@@ -114,16 +116,19 @@ const CalendarWeeklyView: React.FC<{
         {weekDates.map((date, i) => {
           const dow = date.getDay();
           const today = new Date().toDateString() === date.toDateString();
+          const hName = holidays[formatDate(date)];
+          const isH = !!hName;
           return (
             <div key={i} className={`text-center py-1.5 rounded-lg ${today ? 'bg-emerald-600 text-white' : ''}`}>
               <div className={`text-[11px] font-medium ${
-                today ? 'text-emerald-100' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-500'
+                today ? 'text-emerald-100' : (isH || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-500'
               }`}>
                 {dowNames[dow]}
               </div>
-              <div className={`text-sm font-bold ${today ? 'text-white' : 'text-gray-800'}`}>
+              <div className={`text-sm font-bold ${today ? 'text-white' : (isH || dow === 0) ? 'text-red-500' : 'text-gray-800'}`}>
                 {date.getDate()}
               </div>
+              {hName && !today && <div className="text-[7px] text-red-400 truncate">{hName}</div>}
             </div>
           );
         })}
@@ -185,7 +190,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const Calendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, loading,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, holidays = {}, loading,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week'>('month');
   const [modalDate, setModalDate] = useState<Date | null>(null);
@@ -225,6 +230,8 @@ const Calendar: React.FC<CalendarProps> = ({
       const dayBookings = bookings.filter(b => b.date === dateStr);
       const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
       const dow = new Date(year, month, day).getDay();
+      const holidayName = holidays[dateStr];
+      const isHoliday = !!holidayName;
 
       const amBookings = dayBookings.filter(b => amSlot && b.startTime === amSlot.startTime);
       const pmBookings = dayBookings.filter(b => pmSlot && b.startTime === pmSlot.startTime);
@@ -236,12 +243,13 @@ const Calendar: React.FC<CalendarProps> = ({
           className={`min-h-[6.5rem] border border-gray-200 relative cursor-pointer hover:bg-emerald-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''}`}
         >
           {/* Date number */}
-          <div className="px-1 pt-0.5 shrink-0">
+          <div className="px-1 pt-0.5 shrink-0 flex items-center gap-1">
             <span className={`text-xs font-bold ${
-              isToday ? 'bg-emerald-600 text-white px-1 rounded' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-600'
+              isToday ? 'bg-emerald-600 text-white px-1 rounded' : (isHoliday || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-600'
             }`}>
               {day}
             </span>
+            {holidayName && <span className="text-[8px] text-red-400 truncate">{holidayName}</span>}
           </div>
 
           <div className="flex flex-col flex-1 min-h-0">
@@ -368,6 +376,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 d.setDate(d.getDate() + 7);
                 return d;
               })}
+              holidays={holidays}
             />
           </div>
         )}

@@ -11,6 +11,7 @@ interface WeeklyViewProps {
   onSlotClick: (date: Date, room: RoomType, slotId: string, startTime: string, endTime: string) => void;
   onBookingClick?: (booking: Booking) => void;
   filterRoom?: RoomType | null;
+  holidays?: Record<string, string>;
 }
 
 const DOW_NAMES: Record<number, string> = { 0: '日', 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土' };
@@ -44,7 +45,7 @@ const ROOM_COLORS: Record<string, { bg: string; bgBooked: string; text: string; 
 };
 
 const WeeklyView: React.FC<WeeklyViewProps> = ({
-  weekStart, bookings, onPrevWeek, onNextWeek, onSlotClick, onBookingClick, filterRoom,
+  weekStart, bookings, onPrevWeek, onNextWeek, onSlotClick, onBookingClick, filterRoom, holidays = {},
 }) => {
   const weekDates = getWeekDates(weekStart);
   const displayRooms = filterRoom ? ROOMS.filter(r => r.id === filterRoom) : ROOMS;
@@ -90,21 +91,24 @@ const WeeklyView: React.FC<WeeklyViewProps> = ({
         {weekDates.map(date => {
           const dow = date.getDay();
           const today = isToday(date);
+          const hName = holidays[formatDate(date)];
+          const isH = !!hName;
           return (
             <div
               key={date.toISOString()}
               className={`text-center py-1.5 rounded-lg ${today ? 'bg-emerald-600 text-white' : ''}`}
             >
               <div className={`text-[11px] font-medium ${
-                today ? 'text-emerald-100' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-[var(--md-on-surface-variant)]'
+                today ? 'text-emerald-100' : (isH || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-[var(--md-on-surface-variant)]'
               }`}>
                 {DOW_NAMES[dow]}
               </div>
               <div className={`text-sm font-medium ${
-                today ? 'text-white' : 'text-[var(--md-on-surface)]'
+                today ? 'text-white' : (isH || dow === 0) ? 'text-red-500' : 'text-[var(--md-on-surface)]'
               }`}>
                 {date.getDate()}
               </div>
+              {hName && !today && <div className="text-[7px] text-red-400 truncate">{hName}</div>}
             </div>
           );
         })}

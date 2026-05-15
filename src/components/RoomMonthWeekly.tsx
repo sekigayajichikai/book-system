@@ -11,6 +11,7 @@ interface RoomMonthWeeklyProps {
   onSlotClick: (date: Date, room: RoomType, slotId: string, startTime: string, endTime: string) => void;
   onBookingClick?: (booking: Booking) => void;
   filterRoom: RoomType | null;
+  holidays?: Record<string, string>;
 }
 
 const DOW_NAMES: Record<number, string> = { 0: '日', 1: '月', 2: '火', 3: '水', 4: '木', 5: '金', 6: '土' };
@@ -54,7 +55,7 @@ function getMonthWeeks(year: number, month: number): (Date | null)[][] {
 }
 
 const RoomMonthWeekly: React.FC<RoomMonthWeeklyProps> = ({
-  bookings, year, month, onPrevMonth, onNextMonth, onSlotClick, onBookingClick, filterRoom,
+  bookings, year, month, onPrevMonth, onNextMonth, onSlotClick, onBookingClick, filterRoom, holidays = {},
 }) => {
   const weeks = getMonthWeeks(year, month);
   const displayRooms = filterRoom ? ROOMS.filter(r => r.id === filterRoom) : ROOMS;
@@ -95,12 +96,12 @@ const RoomMonthWeekly: React.FC<RoomMonthWeeklyProps> = ({
                   className={`text-center py-1.5 rounded-lg ${today ? 'bg-emerald-600 text-white' : 'bg-white border border-gray-200'}`}
                 >
                   <div className={`text-[10px] font-medium ${
-                    today ? 'text-emerald-100' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-400'
+                    today ? 'text-emerald-100' : (!!holidays[formatDate(date)] || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-400'
                   }`}>
                     {DOW_NAMES[dow]}
                   </div>
                   <div className={`text-sm font-bold ${
-                    today ? 'text-white' : dow === 0 ? 'text-red-600' : dow === 6 ? 'text-blue-600' : 'text-gray-800'
+                    today ? 'text-white' : (!!holidays[formatDate(date)] || dow === 0) ? 'text-red-600' : dow === 6 ? 'text-blue-600' : 'text-gray-800'
                   }`}>
                     {date.getDate()}
                   </div>

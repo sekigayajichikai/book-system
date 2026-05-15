@@ -377,6 +377,7 @@ function App() {
                   onNextMonth={handleNextMonth}
                   bookings={bookings}
                   onDateClick={handleDateClick}
+                  holidays={holidays}
                   loading={loading}
                 />
               ) : bookingSubView === 'weekly' ? (
@@ -388,6 +389,7 @@ function App() {
                   onSlotClick={handleWeeklySlotClick}
                   onBookingClick={setDetailBooking}
                   filterRoom={roomFilter ? (selectedRoom?.id || null) : (selectedRoom?.id || null)}
+                  holidays={holidays}
                 />
               ) : !roomFilter ? (
                 <RoomMonthWeekly
@@ -399,6 +401,7 @@ function App() {
                   onSlotClick={handleWeeklySlotClick}
                   onBookingClick={setDetailBooking}
                   filterRoom={selectedRoom?.id || null}
+                  holidays={holidays}
                 />
               ) : selectedRoom ? (
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
