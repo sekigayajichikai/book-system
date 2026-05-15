@@ -219,6 +219,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             bookings={bookings}
             onDateClick={handleDateClick}
             holidays={holidays}
+            disableModal
             loading={loading}
           />
         )}

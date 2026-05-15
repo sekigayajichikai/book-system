@@ -10,6 +10,7 @@ interface CalendarProps {
   bookings: Booking[];
   onDateClick: (date: Date) => void;
   holidays?: Record<string, string>;
+  disableModal?: boolean;
   loading?: boolean;
 }
 
@@ -190,7 +191,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const Calendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, holidays = {}, loading,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, holidays = {}, disableModal, loading,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week'>('month');
   const [modalDate, setModalDate] = useState<Date | null>(null);
@@ -214,7 +215,11 @@ const Calendar: React.FC<CalendarProps> = ({
 
   const handleCellClick = (day: number) => {
     const date = new Date(year, month, day);
-    setModalDate(date);
+    if (disableModal) {
+      onDateClick(date);
+    } else {
+      setModalDate(date);
+    }
   };
 
   const generateCalendarDays = () => {
