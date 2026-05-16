@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { CalendarDays, Settings, LogOut, Plus, Trash2, X, Users } from 'lucide-react';
 import Calendar from '../Calendar';
 import AdminDayPanel from './AdminDayPanel';
+import SettingsTab from './SettingsTab';
 import { Booking, BookingStatus, RoomType, CalendarEvent, OrgEntry } from '../../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../../constants';
 
@@ -299,10 +300,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
         {/* === 設定 === */}
         {tab === 'settings' && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800">設定</h2>
-            <p className="text-gray-400 text-sm">部屋マスタ・設備マスタ・時間帯設定は今後実装予定です。</p>
-          </div>
+          <SettingsTab categories={categories} onCategoriesChange={setCategories} />
         )}
       </main>
 
