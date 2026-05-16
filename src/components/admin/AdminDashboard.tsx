@@ -24,6 +24,7 @@ interface Org {
   registration_date: string | null;
   default_equipment: string[];
   presets: string[];
+  group_name: string | null;
 }
 
 interface Category {
@@ -115,6 +116,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     registration_no: '', representative: '', han_ko: '', phone: '',
     activity_description: '', has_monthly_fee: false, registration_date: '',
     default_equipment: [] as string[], presets: [] as string[],
+    group_name: '',
   });
 
   useEffect(() => {
@@ -142,6 +144,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         has_monthly_fee: org.has_monthly_fee || false,
         registration_date: org.registration_date || '',
         default_equipment: org.default_equipment || [], presets: org.presets || [],
+        group_name: org.group_name || '',
       });
     } else {
       setEditOrg(null);
@@ -149,7 +152,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         name: '', furigana: '', category: '2', passcode: '', contact_email: '',
         registration_no: '', representative: '', han_ko: '', phone: '',
         activity_description: '', has_monthly_fee: false, registration_date: '',
-        default_equipment: [], presets: [],
+        default_equipment: [], presets: [], group_name: '',
       });
     }
     setShowOrgPanel(true);
@@ -168,6 +171,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       has_monthly_fee: orgForm.has_monthly_fee,
       registration_date: orgForm.registration_date || null,
       default_equipment: orgForm.default_equipment, presets: orgForm.presets,
+      group_name: orgForm.group_name || null,
     };
     if (editOrg) {
       await supaFetch(`booking_organizations?id=eq.${editOrg.id}`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -328,8 +332,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="text-left px-3 py-2 font-medium text-gray-500">団体名</th>
+                        <th className="text-left px-3 py-2 font-medium text-gray-500">カテゴリ</th>
                         <th className="text-left px-3 py-2 font-medium text-gray-500">代表者</th>
-                        <th className="text-left px-3 py-2 font-medium text-gray-500">区分</th>
+                        <th className="text-left px-3 py-2 font-medium text-gray-500">利用区分</th>
                         <th className="px-3 py-2"></th>
                       </tr>
                     </thead>
@@ -337,6 +342,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       {orgs.map(o => (
                         <tr key={o.id} className={`cursor-pointer transition-colors ${editOrg?.id === o.id ? 'bg-emerald-50' : 'hover:bg-gray-50'}`} onClick={() => openOrgForm(o)}>
                           <td className="px-3 py-2 font-medium">{o.name}</td>
+                          <td className="px-3 py-2 text-xs text-gray-500">{o.group_name || '—'}</td>
                           <td className="px-3 py-2 text-gray-500">{o.representative || '—'}</td>
                           <td className="px-3 py-2 text-xs">{categories.find(c => c.tier === o.category)?.name || o.category}</td>
                           <td className="px-3 py-2 text-right">
@@ -360,6 +366,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className="block text-xs font-medium text-gray-500 mb-1">登録No.</label><input value={orgForm.registration_no} onChange={e => setOrgForm(f => ({ ...f, registration_no: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                     <div><label className="block text-xs font-medium text-gray-500 mb-1">登録年月日</label><input type="date" value={orgForm.registration_date} onChange={e => setOrgForm(f => ({ ...f, registration_date: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">大カテゴリ</label>
+                    <select value={orgForm.group_name} onChange={e => setOrgForm(f => ({ ...f, group_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                      <option value="">未分類</option>
+                      <option value="自治会">自治会</option>
+                      <option value="委員会">委員会</option>
+                      <option value="一般">一般</option>
+                      <option value="その他/外部">その他/外部</option>
+                    </select>
                   </div>
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">団体名 *</label><input value={orgForm.name} onChange={e => setOrgForm(f => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">フリガナ</label><input value={orgForm.furigana} onChange={e => setOrgForm(f => ({ ...f, furigana: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
