@@ -93,14 +93,14 @@ function MasterSection<T extends MasterItem>({
           <Plus size={12} /> 追加
         </button>
       </div>
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="bg-white rounded-lg border border-gray-200 overflow-x-auto">
+        <table className="w-full text-sm table-auto">
           <thead className="bg-gray-50">
             <tr>
               {columns.map(c => (
-                <th key={c.key} className="text-left px-3 py-1.5 font-medium text-gray-500 text-xs" style={c.width ? { width: c.width } : {}}>{c.label}</th>
+                <th key={c.key} className="text-left px-3 py-2 font-medium text-gray-500 text-xs whitespace-nowrap" style={c.width ? { minWidth: c.width } : { minWidth: '120px' }}>{c.label}</th>
               ))}
-              <th className="px-3 py-1.5 w-16"></th>
+              <th className="px-3 py-2 w-20"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -109,16 +109,16 @@ function MasterSection<T extends MasterItem>({
                 {editId === item.id ? (
                   <>
                     {columns.map(c => (
-                      <td key={c.key} className="px-3 py-1">
+                      <td key={c.key} className="px-3 py-1.5">
                         <input
                           value={form[c.key] ?? ''}
                           onChange={e => setForm(f => ({ ...f, [c.key]: e.target.value }))}
-                          className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm min-w-[60px]"
                           type={c.type === 'number' ? 'number' : 'text'}
                         />
                       </td>
                     ))}
-                    <td className="px-3 py-1 text-right space-x-1">
+                    <td className="px-3 py-1.5 text-right space-x-1 whitespace-nowrap">
                       <button onClick={handleSave} className="text-emerald-600 hover:text-emerald-800"><Check size={14} /></button>
                       <button onClick={() => setEditId(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
                     </td>
@@ -126,11 +126,11 @@ function MasterSection<T extends MasterItem>({
                 ) : (
                   <>
                     {columns.map(c => (
-                      <td key={c.key} className="px-3 py-1.5">{String(item[c.key] ?? '')}</td>
+                      <td key={c.key} className="px-3 py-2">{String(item[c.key] ?? '')}</td>
                     ))}
-                    <td className="px-3 py-1.5 text-right space-x-1">
-                      <button onClick={() => startEdit(item)} className="text-blue-400 hover:text-blue-600"><Pencil size={12} /></button>
-                      <button onClick={() => handleDelete(item.id)} className="text-red-400 hover:text-red-600"><Trash2 size={12} /></button>
+                    <td className="px-3 py-2 text-right space-x-2 whitespace-nowrap">
+                      <button onClick={() => startEdit(item)} className="text-blue-400 hover:text-blue-600"><Pencil size={14} /></button>
+                      <button onClick={() => handleDelete(item.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
                     </td>
                   </>
                 )}
@@ -139,16 +139,16 @@ function MasterSection<T extends MasterItem>({
             {editId === 'new' && (
               <tr className="bg-emerald-50">
                 {columns.map(c => (
-                  <td key={c.key} className="px-3 py-1">
+                  <td key={c.key} className="px-3 py-1.5">
                     <input
                       value={form[c.key] ?? ''}
                       onChange={e => setForm(f => ({ ...f, [c.key]: e.target.value }))}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm min-w-[60px]"
                       type={c.type === 'number' ? 'number' : 'text'}
                     />
                   </td>
                 ))}
-                <td className="px-3 py-1 text-right space-x-1">
+                <td className="px-3 py-1.5 text-right space-x-1 whitespace-nowrap">
                   <button onClick={handleSave} className="text-emerald-600 hover:text-emerald-800"><Check size={14} /></button>
                   <button onClick={() => setEditId(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
                 </td>
