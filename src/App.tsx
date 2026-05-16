@@ -275,18 +275,20 @@ function App() {
       {/* Header: タイトル右寄せ + ビュー切替ボタンを同一行に */}
       <header className="bg-white shadow-sm sticky top-0 z-30">
         <div className={`max-w-5xl mx-auto px-4 ${isMobile ? 'h-12' : 'h-14'} flex items-center justify-between`}>
-          {/* ビュー切替ボタン */}
+          {/* ビュー切替ボタン（ログイン時のみ表示） */}
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => { setCalendarMode('calendar'); setShowMyPage(false); }}
-              className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
-                !showMyPage && calendarMode === 'calendar'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />カレンダー
-            </button>
+            {isOrgLoggedIn && (
+              <button
+                onClick={() => { setCalendarMode('calendar'); setShowMyPage(false); }}
+                className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
+                  !showMyPage && calendarMode === 'calendar'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />カレンダー
+              </button>
+            )}
             {isOrgLoggedIn && (
               <button
                 onClick={() => { setCalendarMode('booking'); setShowMyPage(false); }}
