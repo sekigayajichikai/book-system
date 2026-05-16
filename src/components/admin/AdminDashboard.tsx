@@ -127,13 +127,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       .then(r => r.json()).then(data => setOrgGroups(data || []));
   }, []);
 
-  const fetchOrgs = () => {
+  const fetchOrgs = (autoSelect?: boolean) => {
     setLoading(true);
     supaFetch('booking_organizations?order=category.asc,name.asc&select=*')
-      .then(r => r.json()).then(data => setOrgs(data || []))
+      .then(r => r.json()).then(data => {
+        setOrgs(data || []);
+        if (autoSelect && data?.length > 0) openOrgForm(data[0]);
+      })
       .finally(() => setLoading(false));
   };
-  useEffect(() => { if (tab === 'organizations') fetchOrgs(); }, [tab]);
+  useEffect(() => { if (tab === 'organizations') fetchOrgs(true); }, [tab]);
 
   const openOrgForm = (org?: Org) => {
     if (org) {
@@ -181,7 +184,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     } else {
       await supaFetch('booking_organizations', { method: 'POST', body: JSON.stringify(body) });
     }
-    setShowOrgPanel(false);
     fetchOrgs();
   };
 
