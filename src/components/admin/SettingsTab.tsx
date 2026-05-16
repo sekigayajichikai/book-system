@@ -167,6 +167,7 @@ interface SettingsTabProps {
 }
 
 export default function SettingsTab({ categories, onCategoriesChange }: SettingsTabProps) {
+  const [orgGroups, setOrgGroups] = useState<MasterItem[]>([]);
   const [rooms, setRooms] = useState<MasterItem[]>([]);
   const [equipment, setEquipment] = useState<MasterItem[]>([]);
   const [timeSlots, setTimeSlots] = useState<MasterItem[]>([]);
@@ -180,6 +181,18 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
   return (
     <div className="space-y-8">
       <h2 className="text-lg font-bold text-gray-800">設定</h2>
+
+      <MasterSection
+        title="団体カテゴリ"
+        table="booking_org_groups"
+        items={orgGroups}
+        setItems={setOrgGroups}
+        columns={[
+          { key: 'name', label: 'カテゴリ名' },
+          { key: 'sort_order', label: '順', type: 'number', width: '50px' },
+        ]}
+        defaultRow={{ name: '', sort_order: 0 }}
+      />
 
       <MasterSection
         title="部屋マスタ"

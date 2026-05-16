@@ -109,6 +109,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   // === 団体マスタ ===
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [orgGroups, setOrgGroups] = useState<{ id: string; name: string }[]>([]);
   const [editOrg, setEditOrg] = useState<Org | null>(null);
   const [showOrgPanel, setShowOrgPanel] = useState(false);
   const [orgForm, setOrgForm] = useState({
@@ -122,6 +123,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   useEffect(() => {
     supaFetch('booking_usage_categories?order=sort_order.asc&select=*')
       .then(r => r.json()).then(data => setCategories(data || []));
+    supaFetch('booking_org_groups?order=sort_order.asc&select=*')
+      .then(r => r.json()).then(data => setOrgGroups(data || []));
   }, []);
 
   const fetchOrgs = () => {
@@ -371,10 +374,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <label className="block text-xs font-medium text-gray-500 mb-1">大カテゴリ</label>
                     <select value={orgForm.group_name} onChange={e => setOrgForm(f => ({ ...f, group_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                       <option value="">未分類</option>
-                      <option value="自治会">自治会</option>
-                      <option value="委員会">委員会</option>
-                      <option value="一般">一般</option>
-                      <option value="その他/外部">その他/外部</option>
+                      {orgGroups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
                     </select>
                   </div>
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">団体名 *</label><input value={orgForm.name} onChange={e => setOrgForm(f => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
