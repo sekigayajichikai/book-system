@@ -245,7 +245,7 @@ const Calendar: React.FC<CalendarProps> = ({
         <div
           key={day}
           onClick={() => handleCellClick(day)}
-          className={`min-h-[6.5rem] border border-gray-200 relative cursor-pointer hover:bg-emerald-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''}`}
+          className={`min-h-[8rem] border border-gray-200 relative cursor-pointer hover:bg-emerald-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''}`}
         >
           {/* Date number */}
           <div className="px-1 pt-0.5 shrink-0 flex items-center gap-1">
