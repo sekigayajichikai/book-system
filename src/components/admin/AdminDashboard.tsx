@@ -116,6 +116,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [orgGroups, setOrgGroups] = useState<{ id: string; name: string; default_tier: string }[]>([]);
   const [equipmentList, setEquipmentList] = useState<{ id: string; name: string }[]>([]);
   const [editOrg, setEditOrg] = useState<Org | null>(null);
+  const [orgSaved, setOrgSaved] = useState(false);
   const [showOrgPanel, setShowOrgPanel] = useState(false);
   const [orgForm, setOrgForm] = useState({
     name: '', furigana: '', category: '2', passcode: '', contact_email: '',
@@ -207,6 +208,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     } else {
       await supaFetch('booking_organizations', { method: 'POST', body: JSON.stringify(body) });
     }
+    setOrgSaved(true);
+    setTimeout(() => setOrgSaved(false), 2000);
     fetchOrgs();
   };
 
@@ -449,7 +452,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </div>
                 <div className="flex gap-2 mt-5">
                   <button onClick={() => setShowOrgPanel(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">キャンセル</button>
-                  <button onClick={handleSaveOrg} className="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700">{editOrg ? '更新' : '登録'}</button>
+                  <button onClick={handleSaveOrg} disabled={orgSaved} className={`flex-1 py-2 rounded-lg text-sm font-bold ${orgSaved ? 'bg-emerald-400 text-white' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}>{orgSaved ? '✓ 保存しました' : editOrg ? '更新' : '登録'}</button>
                 </div>
               </div>
             )}
