@@ -110,6 +110,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [orgGroups, setOrgGroups] = useState<{ id: string; name: string; default_tier: string }[]>([]);
+  const [equipmentList, setEquipmentList] = useState<{ id: string; name: string }[]>([]);
   const [editOrg, setEditOrg] = useState<Org | null>(null);
   const [showOrgPanel, setShowOrgPanel] = useState(false);
   const [orgForm, setOrgForm] = useState({
@@ -125,6 +126,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       .then(r => r.json()).then(data => setCategories(data || []));
     supaFetch('booking_org_groups?order=sort_order.asc&select=*')
       .then(r => r.json()).then(data => setOrgGroups(data || []));
+    supaFetch('booking_equipment?order=sort_order.asc&select=id,name')
+      .then(r => r.json()).then(data => setEquipmentList(data || []));
   }, []);
 
   const fetchOrgs = (autoSelect?: boolean) => {
@@ -164,16 +167,26 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setShowOrgPanel(true);
   };
 
+  // 全角→半角変換
+  const toHalf = (s: string) => s.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/[Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/ー/g, '-').replace(/　/g, ' ');
+  // ひらがな→カタカナ
+  const toKatakana = (s: string) => s.replace(/[\u3041-\u3096]/g, c => String.fromCharCode(c.charCodeAt(0) + 96));
+
   const handleSaveOrg = async () => {
     if (!orgForm.name.trim()) return alert('団体名を入力してください');
     const body = {
-      name: orgForm.name.trim(), furigana: orgForm.furigana || null,
-      category: orgForm.category, passcode: orgForm.passcode || null,
-      contact_email: orgForm.contact_email || null,
-      registration_no: orgForm.registration_no || null,
-      representative: orgForm.representative || null,
-      han_ko: orgForm.han_ko || null, phone: orgForm.phone || null,
-      activity_description: orgForm.activity_description || null,
+      name: orgForm.name.trim(),
+      furigana: orgForm.furigana ? toKatakana(orgForm.furigana.trim()) : null,
+      category: orgForm.category,
+      passcode: orgForm.passcode ? toHalf(orgForm.passcode.trim()) : null,
+      contact_email: orgForm.contact_email ? orgForm.contact_email.trim().toLowerCase() : null,
+      registration_no: orgForm.registration_no ? toHalf(orgForm.registration_no.trim()) : null,
+      representative: orgForm.representative?.trim() || null,
+      han_ko: orgForm.han_ko ? toHalf(orgForm.han_ko.trim()) : null,
+      phone: orgForm.phone ? toHalf(orgForm.phone.trim()).replace(/[-\s]/g, '') : null,
+      activity_description: orgForm.activity_description?.trim() || null,
       has_monthly_fee: orgForm.has_monthly_fee,
       registration_date: orgForm.registration_date || null,
       default_equipment: orgForm.default_equipment, presets: orgForm.presets,
@@ -385,6 +398,27 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">活動内容</label><textarea value={orgForm.activity_description} onChange={e => setOrgForm(f => ({ ...f, activity_description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} /></div>
                   <div className="flex items-center gap-2"><input type="checkbox" id="monthly_fee" checked={orgForm.has_monthly_fee} onChange={e => setOrgForm(f => ({ ...f, has_monthly_fee: e.target.checked }))} className="rounded" /><label htmlFor="monthly_fee" className="text-xs text-gray-600">月謝あり</label></div>
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">パスコード</label><input value={orgForm.passcode} onChange={e => setOrgForm(f => ({ ...f, passcode: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono" placeholder="4桁の数字など" /></div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">デフォルト設備</label>
+                    <div className="flex flex-wrap gap-2">
+                      {equipmentList.map(eq => {
+                        const checked = orgForm.default_equipment.includes(eq.name);
+                        return (
+                          <label key={eq.id} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs cursor-pointer border transition-colors ${checked ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
+                            <input type="checkbox" checked={checked} onChange={() => {
+                              setOrgForm(f => ({
+                                ...f,
+                                default_equipment: checked
+                                  ? f.default_equipment.filter(e => e !== eq.name)
+                                  : [...f.default_equipment, eq.name],
+                              }));
+                            }} className="sr-only" />
+                            {eq.name}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
                 <div className="flex gap-2 mt-5">
                   <button onClick={() => setShowOrgPanel(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">キャンセル</button>
