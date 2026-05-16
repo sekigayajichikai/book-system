@@ -230,7 +230,7 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
         setItems={setCats}
         columns={[
           { key: 'name', label: '区分名' },
-          { key: 'tier', label: 'ティア', width: '50px' },
+          { key: 'tier', label: '順', width: '50px' },
           { key: 'price_large', label: '会議室(円)', type: 'number', width: '80px' },
           { key: 'price_small', label: '和室等(円)', type: 'number', width: '80px' },
           { key: 'sort_order', label: '順', type: 'number', width: '50px' },
