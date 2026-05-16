@@ -313,10 +313,7 @@ function App() {
                 </button>
               </>
             ) : (
-              <button onClick={() => setShowOrgLogin(true)} className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-full text-sm font-bold text-gray-600 hover:bg-gray-200">
-                <User size={16} />
-                {!isMobile && 'ログイン'}
-              </button>
+              null /* ログインボタンは Phase 3 パイロット時に表示 */
             )}
           </div>
         </div>
