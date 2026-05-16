@@ -73,11 +73,15 @@ export default function AdminDayPanel({ date, bookings, onClose, onRefresh }: Ad
 
   const handleSaveEdit = async () => {
     if (!editId || !form.title.trim()) return;
-    const slot = TIME_SLOTS.find(s => s.gasKey === form.slot);
-    await supaFetch(`bookings?id=eq.${editId}`, {
+    const res = await supaFetch(`bookings?id=eq.${editId}`, {
       method: 'PATCH',
       body: JSON.stringify({ slot: form.slot, room: form.room, title: form.title.trim() }),
     });
+    if (!res.ok) {
+      const err = await res.text();
+      alert('保存に失敗しました: ' + (err.includes('23505') ? 'この時間帯・部屋は既に予約されています' : err));
+      return;
+    }
     resetForm();
     onRefresh();
   };
