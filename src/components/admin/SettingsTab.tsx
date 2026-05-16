@@ -128,7 +128,7 @@ function MasterSection<T extends MasterItem>({
                     {columns.map(c => (
                       <td key={c.key} className="px-3 py-2">{String(item[c.key] ?? '')}</td>
                     ))}
-                    <td className="px-3 py-2 text-right space-x-2 whitespace-nowrap">
+                    <td className="px-3 py-2 text-right whitespace-nowrap flex items-center justify-end gap-3">
                       <button onClick={() => startEdit(item)} className="text-blue-400 hover:text-blue-600"><Pencil size={14} /></button>
                       <button onClick={() => handleDelete(item.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
                     </td>
@@ -188,7 +188,7 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
         items={orgGroups}
         setItems={setOrgGroups}
         columns={[
-          { key: 'name', label: 'カテゴリ名', width: '200px' },
+          { key: 'name', label: 'カテゴリ名' },
           { key: 'sort_order', label: '順', type: 'number', width: '80px' },
         ]}
         defaultRow={{ name: '', sort_order: 0 }}
