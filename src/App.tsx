@@ -170,11 +170,6 @@ function App() {
 
   useEffect(() => {
     fetchEvents(currentDate.getFullYear(), currentDate.getMonth());
-    // 30秒ポーリング
-    const interval = setInterval(() => {
-      fetchEvents(currentDate.getFullYear(), currentDate.getMonth());
-    }, 30000);
-    return () => clearInterval(interval);
   }, [currentDate, fetchEvents]);
 
   const handlePrevMonth = () => {
