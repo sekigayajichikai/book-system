@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarDays, ClipboardList, DoorOpen, Info, Users, X } from 'lucide-react';
+import { CalendarDays, ClipboardList, DoorOpen, Info, Users, User, X, LogOut } from 'lucide-react';
 import Calendar from './components/Calendar';
 import DailyScheduleGrid from './components/DailyScheduleGrid';
 import WeeklyView from './components/WeeklyView';
@@ -11,6 +11,8 @@ import MobileCalendarView from './components/mobile/MobileCalendarView';
 import MobileBookingView from './components/mobile/MobileBookingView';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
+import OrgLogin from './components/OrgLogin';
+import MyPage from './components/MyPage';
 import { useIsMobile } from './hooks/useIsMobile';
 import { Booking, BookingStatus, RoomType, BookingRequest, CalendarEvent, OrgEntry } from './types';
 import { ROOMS, TIME_SLOTS } from './constants';
@@ -33,6 +35,29 @@ function App() {
   }
 
   const isMobile = useIsMobile();
+
+  // 団体ログイン状態
+  const [orgId, setOrgId] = useState<string | null>(() => localStorage.getItem('org_id'));
+  const [orgName, setOrgName] = useState<string | null>(() => localStorage.getItem('org_name'));
+  const [showOrgLogin, setShowOrgLogin] = useState(false);
+  const [showMyPage, setShowMyPage] = useState(false);
+  const isOrgLoggedIn = !!orgId;
+
+  const handleOrgLogin = (id: string, name: string) => {
+    setOrgId(id);
+    setOrgName(name);
+    setShowOrgLogin(false);
+  };
+
+  const handleOrgLogout = () => {
+    setOrgId(null);
+    setOrgName(null);
+    setShowMyPage(false);
+    localStorage.removeItem('org_token');
+    localStorage.removeItem('org_id');
+    localStorage.removeItem('org_name');
+  };
+
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
@@ -206,7 +231,9 @@ function App() {
   };
 
   const handleBookingSubmit = async (data: BookingRequest) => {
-    // 楽観的更新: 先に画面に反映
+    const isPending = isOrgLoggedIn;
+    const status = isPending ? BookingStatus.PENDING : BookingStatus.CONFIRMED;
+
     const newBooking: Booking = {
       id: 'temp_' + Date.now(),
       date: data.date,
@@ -214,19 +241,18 @@ function App() {
       endTime: TIME_SLOTS.find(s => s.gasKey === data.slot)?.endTime || '12:00',
       room: (data.room as RoomType) || RoomType.KAIGISHITSU,
       title: data.title,
-      status: BookingStatus.CONFIRMED,
+      status,
     };
     setBookings(prev => [...prev, newBooking]);
     setShowBookingForm(false);
     setShowSuccessMessage(true);
     setTimeout(() => setShowSuccessMessage(false), 5000);
 
-    // 裏でAPI保存
     try {
       const res = await fetch('/api/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, status, org_id: orgId || undefined }),
       });
       if (!res.ok) throw new Error('保存エラー');
     } catch (err) {
@@ -245,9 +271,9 @@ function App() {
           {/* ビュー切替ボタン */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setCalendarMode('calendar')}
+              onClick={() => { setCalendarMode('calendar'); setShowMyPage(false); }}
               className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
-                calendarMode === 'calendar'
+                !showMyPage && calendarMode === 'calendar'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
@@ -255,25 +281,40 @@ function App() {
               <CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />カレンダー
             </button>
             <button
-              onClick={() => setCalendarMode('booking')}
+              onClick={() => { setCalendarMode('booking'); setShowMyPage(false); }}
               className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
-                calendarMode === 'booking'
+                !showMyPage && calendarMode === 'booking'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
               <ClipboardList size={16} className="inline-block mr-1 -mt-0.5" />予約
             </button>
+            {isOrgLoggedIn && (
+              <button
+                onClick={() => { setShowMyPage(true); setCalendarModeState('booking'); }}
+                className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
+                  showMyPage ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <User size={16} className="inline-block mr-1 -mt-0.5" />マイページ
+              </button>
+            )}
           </div>
-          {/* タイトル右寄せ（スマホではアイコンのみ） */}
+          {/* 右: アカウント */}
           <div className="flex items-center gap-2">
-            <div className="bg-emerald-600 p-1.5 rounded-lg">
-              <Users className="text-white" size={isMobile ? 16 : 20} />
-            </div>
-            {!isMobile && (
-              <h1 className="text-lg font-bold text-gray-800 tracking-tight">
-                関ヶ谷自治会
-              </h1>
+            {isOrgLoggedIn ? (
+              <>
+                {!isMobile && <span className="text-xs text-gray-500">{orgName}</span>}
+                <button onClick={handleOrgLogout} className="p-1.5 hover:bg-gray-100 rounded-full" title="ログアウト">
+                  <LogOut size={18} className="text-gray-400" />
+                </button>
+              </>
+            ) : (
+              <button onClick={() => setShowOrgLogin(true)} className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 rounded-full text-sm font-bold text-gray-600 hover:bg-gray-200">
+                <User size={16} />
+                {!isMobile && 'ログイン'}
+              </button>
             )}
           </div>
         </div>
@@ -358,8 +399,13 @@ function App() {
               </div>
             )}
 
-            {/* ビュー表示 */}
-            {isMobile ? (
+            {/* マイページ */}
+            {showMyPage && isOrgLoggedIn ? (
+              <MyPage orgId={orgId!} orgName={orgName!} />
+            ) :
+
+            /* ビュー表示 */
+            isMobile ? (
               /* === モバイル版 === */
               calendarMode === 'calendar' ? (
                 <MobileCalendarView
@@ -473,6 +519,11 @@ function App() {
           booking={detailBooking}
           onClose={() => setDetailBooking(null)}
         />
+      )}
+
+      {/* 団体ログインモーダル */}
+      {showOrgLogin && (
+        <OrgLogin onLogin={handleOrgLogin} onClose={() => setShowOrgLogin(false)} />
       )}
     </div>
   );

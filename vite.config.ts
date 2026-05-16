@@ -136,18 +136,43 @@ function supabaseProxyPlugin(supabaseUrl: string, supabaseKey: string): Plugin {
           } else if (req.url.startsWith('/api/auth') && req.method === 'POST') {
             let body = '';
             req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
-            req.on('end', () => {
+            req.on('end', async () => {
               const parsed = JSON.parse(body);
-              const adminPw = loadEnv('development', process.cwd(), '').ADMIN_PASSWORD;
-              if (parsed.password === adminPw) {
-                const token = Buffer.from(`admin:${Date.now()}`).toString('base64');
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({ ok: true, role: 'admin', token }));
-              } else {
-                res.statusCode = 401;
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({ error: 'パスワードが正しくありません' }));
+              res.setHeader('Content-Type', 'application/json');
+
+              // 事務局認証
+              if (parsed.type === 'admin' || (!parsed.type && parsed.password)) {
+                const adminPw = loadEnv('development', process.cwd(), '').ADMIN_PASSWORD;
+                if (parsed.password === adminPw) {
+                  const token = Buffer.from(JSON.stringify({ role: 'admin', t: Date.now() })).toString('base64');
+                  res.end(JSON.stringify({ ok: true, role: 'admin', token }));
+                } else {
+                  res.statusCode = 401;
+                  res.end(JSON.stringify({ error: 'パスワードが正しくありません' }));
+                }
+                return;
               }
+
+              // 団体認証
+              if (parsed.type === 'org') {
+                const { data: org } = await supabase
+                  .from('booking_organizations')
+                  .select('id, name, category, passcode')
+                  .eq('name', parsed.org_name)
+                  .single();
+
+                if (!org || org.passcode !== parsed.passcode) {
+                  res.statusCode = 401;
+                  res.end(JSON.stringify({ error: org ? 'パスコードが正しくありません' : '団体が見つかりません' }));
+                  return;
+                }
+                const token = Buffer.from(JSON.stringify({ role: 'org', org_id: org.id, org_name: org.name, t: Date.now() })).toString('base64');
+                res.end(JSON.stringify({ ok: true, role: 'org', token, org_id: org.id, org_name: org.name }));
+                return;
+              }
+
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'type パラメータが必要です' }));
             });
             return;
 

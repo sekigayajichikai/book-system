@@ -10,6 +10,7 @@ export enum BookingStatus {
   CONFIRMED = 'CONFIRMED',
   PENDING = 'PENDING',
   CANCELLED = 'CANCELLED',
+  REJECTED = 'REJECTED',
 }
 
 export interface Booking {

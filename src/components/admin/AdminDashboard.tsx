@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarDays, Settings, LogOut, Plus, Trash2, X, Users } from 'lucide-react';
+import { CalendarDays, ClipboardList, Settings, LogOut, Plus, Trash2, X, Users, Check } from 'lucide-react';
 import Calendar from '../Calendar';
 import AdminDayPanel from './AdminDayPanel';
 import SettingsTab from './SettingsTab';
 import { Booking, BookingStatus, RoomType, CalendarEvent, OrgEntry } from '../../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../../constants';
 
-type Tab = 'calendar' | 'organizations' | 'settings';
+type Tab = 'calendar' | 'approvals' | 'organizations' | 'settings';
 
 interface Org {
   id: string;
@@ -184,8 +184,42 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setOrgs(prev => prev.filter(o => o.id !== id));
   };
 
+  // === 申請管理 ===
+  const [pendingBookings, setPendingBookings] = useState<any[]>([]);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (tab !== 'approvals') return;
+    setLoading(true);
+    supaFetch('bookings?status=eq.PENDING&order=date.asc&select=*')
+      .then(r => r.json())
+      .then(data => setPendingBookings(data || []))
+      .finally(() => setLoading(false));
+  }, [tab]);
+
+  const handleApprove = async (id: string) => {
+    await supaFetch(`bookings?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'CONFIRMED', approved_at: new Date().toISOString() }),
+    });
+    setPendingBookings(prev => prev.filter(b => b.id !== id));
+  };
+
+  const handleReject = async (id: string) => {
+    if (!rejectReason.trim()) return alert('却下理由を入力してください');
+    await supaFetch(`bookings?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'REJECTED', reject_reason: rejectReason.trim() }),
+    });
+    setPendingBookings(prev => prev.filter(b => b.id !== id));
+    setRejectingId(null);
+    setRejectReason('');
+  };
+
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'calendar', label: 'カレンダー', icon: <CalendarDays size={18} /> },
+    { id: 'approvals', label: `申請管理${pendingBookings.length > 0 ? ` (${pendingBookings.length})` : ''}`, icon: <ClipboardList size={18} /> },
     { id: 'organizations', label: '団体マスタ', icon: <Users size={18} /> },
     { id: 'settings', label: '設定', icon: <Settings size={18} /> },
   ];
@@ -223,6 +257,59 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             disableModal
             loading={loading}
           />
+        )}
+
+        {/* === 申請管理 === */}
+        {tab === 'approvals' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-gray-800">申請管理</h2>
+            {loading ? <p className="text-gray-400 text-sm">読み込み中...</p> : pendingBookings.length === 0 ? (
+              <p className="text-gray-400 text-sm">承認待ちの申請はありません</p>
+            ) : (
+              <div className="space-y-3">
+                {pendingBookings.map((b: any) => (
+                  <div key={b.id} className="bg-white rounded-xl border border-yellow-200 p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-yellow-100 text-yellow-700">承認待ち</span>
+                          <span className="text-sm text-gray-500">{b.date} {b.slot}</span>
+                        </div>
+                        <div className="text-base font-bold text-gray-800">{b.title}</div>
+                        <div className="text-sm text-gray-500">{shortRoomName(b.room)}</div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleApprove(b.id)}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700"
+                        >
+                          <Check size={14} /> 承認
+                        </button>
+                        <button
+                          onClick={() => setRejectingId(rejectingId === b.id ? null : b.id)}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100"
+                        >
+                          <X size={14} /> 却下
+                        </button>
+                      </div>
+                    </div>
+                    {rejectingId === b.id && (
+                      <div className="mt-3 flex gap-2">
+                        <input
+                          value={rejectReason}
+                          onChange={e => setRejectReason(e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="却下理由を入力"
+                          autoFocus
+                        />
+                        <button onClick={() => handleReject(b.id)} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold">送信</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {/* === 団体マスタ === */}
