@@ -396,7 +396,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   </div>
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">利用区分</label><select value={orgForm.category} onChange={e => setOrgForm(f => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{categories.map(c => <option key={c.tier} value={c.tier}>{c.name}</option>)}</select></div>
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">活動内容</label><textarea value={orgForm.activity_description} onChange={e => setOrgForm(f => ({ ...f, activity_description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} /></div>
-                  <div className="flex items-center gap-2"><input type="checkbox" id="monthly_fee" checked={orgForm.has_monthly_fee} onChange={e => setOrgForm(f => ({ ...f, has_monthly_fee: e.target.checked }))} className="rounded" /><label htmlFor="monthly_fee" className="text-xs text-gray-600">月謝あり</label></div>
+                  <div className="flex items-center gap-2"><input type="checkbox" id="monthly_fee" checked={orgForm.has_monthly_fee} onChange={e => {
+                    const checked = e.target.checked;
+                    setOrgForm(f => ({ ...f, has_monthly_fee: checked, category: checked ? '3' : (orgGroups.find(g => g.name === f.group_name)?.default_tier || f.category) }));
+                  }} className="rounded" /><label htmlFor="monthly_fee" className="text-xs text-gray-600">月謝あり</label></div>
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">パスコード</label><input value={orgForm.passcode} onChange={e => setOrgForm(f => ({ ...f, passcode: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono" placeholder="4桁の数字など" /></div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">デフォルト設備</label>
