@@ -139,16 +139,16 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
               {isClosure ? '休館解除' : '休館にする'}
             </button>
             <button
-              onClick={() => { resetForm(); setFormMode('add-booking'); }}
-              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
-            >
-              <Plus size={14} /> 予約
-            </button>
-            <button
               onClick={() => { resetForm(); setFormMode('add-event'); }}
               className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
             >
               <CalendarPlus size={14} /> 予定
+            </button>
+            <button
+              onClick={() => { resetForm(); setFormMode('add-booking'); }}
+              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
+            >
+              <Plus size={14} /> 予約
             </button>
             <button onClick={onClose} className="p-1.5 hover:bg-gray-200 rounded-full">
               <X size={18} className="text-gray-500" />
