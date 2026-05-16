@@ -250,14 +250,14 @@ const Calendar: React.FC<CalendarProps> = ({
           className={`min-h-[8rem] border border-gray-200 relative cursor-pointer hover:bg-emerald-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
         >
           {/* Date number */}
-          <div className="px-1 pt-0.5 shrink-0 flex items-center gap-1 flex-wrap">
+          <div className="px-1 pt-0.5 shrink-0 flex items-center gap-1 overflow-hidden">
             <span className={`text-xs font-bold ${
               isToday ? 'bg-emerald-600 text-white px-1 rounded' : (isHoliday || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-600'
             }`}>
               {day}
             </span>
             {isClosure && <span className="text-[10px] bg-orange-400 text-white px-1.5 py-px rounded font-bold">休館</span>}
-            {holidayName && <span className="text-xs text-red-400 truncate">{holidayName}</span>}
+            {holidayName && <span className="text-xs text-red-400 truncate min-w-0">{holidayName}</span>}
           </div>
 
           <div className="flex flex-col flex-1 min-h-0">
