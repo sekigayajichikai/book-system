@@ -66,6 +66,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [holidays, setHolidays] = useState<Record<string, string>>({});
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [closures, setClosures] = useState<Set<string>>(new Set());
 
   const fetchEvents = useCallback(async (year: number, month: number) => {
     setLoading(true);
@@ -97,6 +98,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         setHolidays(map);
       }).catch(() => {});
 
+    supaFetch('calendar_events?is_closure=eq.true&select=date')
+      .then(r => r.json())
+      .then((data: { date: string }[]) => setClosures(new Set(data.map(d => d.date))))
+      .catch(() => {});
   }, []);
 
   const [showDayPanel, setShowDayPanel] = useState(false);
@@ -290,6 +295,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             bookings={bookings}
             onDateClick={handleDateClick}
             holidays={holidays}
+            closures={closures}
             disableModal
             loading={loading}
           />
@@ -500,8 +506,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         <AdminDayPanel
           date={selectedDate}
           bookings={bookings}
+          isClosure={closures.has(`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`)}
           onClose={() => setShowDayPanel(false)}
-          onRefresh={handleDayPanelRefresh}
+          onRefresh={() => {
+            handleDayPanelRefresh();
+            supaFetch('calendar_events?is_closure=eq.true&select=date')
+              .then(r => r.json())
+              .then((data: { date: string }[]) => setClosures(new Set(data.map(d => d.date))));
+          }}
         />
       )}
     </div>

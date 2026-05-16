@@ -256,7 +256,7 @@ const Calendar: React.FC<CalendarProps> = ({
             }`}>
               {day}
             </span>
-            {isClosure && <span className="text-[10px] bg-gray-200 text-gray-500 px-1 rounded font-bold">休館</span>}
+            {isClosure && <span className="text-[10px] bg-orange-400 text-white px-1.5 py-px rounded font-bold">休館</span>}
             {holidayName && <span className="text-xs text-red-400 truncate">{holidayName}</span>}
           </div>
 

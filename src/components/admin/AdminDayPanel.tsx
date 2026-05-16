@@ -28,13 +28,14 @@ async function supaFetch(path: string, options?: RequestInit) {
 interface AdminDayPanelProps {
   date: Date;
   bookings: Booking[];
+  isClosure?: boolean;
   onClose: () => void;
   onRefresh: () => void;
 }
 
 type FormMode = 'none' | 'add-booking' | 'add-event' | 'edit';
 
-export default function AdminDayPanel({ date, bookings, onClose, onRefresh }: AdminDayPanelProps) {
+export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRefresh }: AdminDayPanelProps) {
   const dateStr = formatDate(date);
   const dow = date.getDay();
   const dayBookings = bookings.filter(b => b.date === dateStr);
@@ -116,10 +117,26 @@ export default function AdminDayPanel({ date, bookings, onClose, onRefresh }: Ad
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
-          <h3 className="text-lg font-bold text-gray-800">
-            {date.getMonth() + 1}月{date.getDate()}日({DOW[dow]})
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold text-gray-800">
+              {date.getMonth() + 1}月{date.getDate()}日({DOW[dow]})
+            </h3>
+            {isClosure && <span className="text-xs bg-orange-400 text-white px-2 py-0.5 rounded font-bold">休館</span>}
+          </div>
           <div className="flex items-center gap-1.5">
+            <button
+              onClick={async () => {
+                if (isClosure) {
+                  await supaFetch(`calendar_events?date=eq.${dateStr}&is_closure=eq.true`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+                } else {
+                  await supaFetch('calendar_events', { method: 'POST', body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true }) });
+                }
+                onRefresh();
+              }}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${isClosure ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+            >
+              {isClosure ? '休館解除' : '休館にする'}
+            </button>
             <button
               onClick={() => { resetForm(); setFormMode('add-booking'); }}
               className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"

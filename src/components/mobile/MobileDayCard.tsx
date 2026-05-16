@@ -43,7 +43,7 @@ export default function MobileDayCard({ date, bookings, isToday, holidayName, is
           <span className={`text-base ${isToday ? 'text-emerald-500' : (isHoliday || dow === 0) ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
             ({DOW[dow]})
           </span>
-          {isClosure && <span className="text-xs bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded font-bold">休館</span>}
+          {isClosure && <span className="text-xs bg-orange-400 text-white px-2 py-0.5 rounded font-bold">休館</span>}
           {holidayName && <span className="text-xs text-red-500 font-bold">{holidayName}</span>}
           {isToday && <span className="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
         </div>
