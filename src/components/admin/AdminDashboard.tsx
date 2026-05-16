@@ -426,7 +426,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   }} className="rounded" /><label htmlFor="monthly_fee" className="text-xs text-gray-600">月謝あり</label></div>
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">パスコード</label><input value={orgForm.passcode} onChange={e => setOrgForm(f => ({ ...f, passcode: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono" placeholder="4桁の数字など" /></div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">デフォルト設備</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">主に利用予定の設備（予約ごとに変更できます）</label>
                     <div className="flex flex-wrap gap-2">
                       {equipmentList.map(eq => {
                         const checked = orgForm.default_equipment.includes(eq.name);
