@@ -68,7 +68,7 @@ function MasterSection<T extends MasterItem>({
     columns.forEach(c => {
       body[c.key] = c.type === 'number' ? Number(form[c.key]) : form[c.key];
     });
-    if (!body.sort_order) body.sort_order = items.length + 1;
+    if (body.sort_order === undefined || body.sort_order === null || body.sort_order === '') body.sort_order = items.length + 1;
 
     if (editId === 'new') {
       await supaFetch(table, { method: 'POST', body: JSON.stringify(body) });
