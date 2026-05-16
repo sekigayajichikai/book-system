@@ -316,6 +316,9 @@ function App() {
 
       {/* Main Content */}
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8">
+        {!isOrgLoggedIn && (
+          <div className="text-xs text-gray-400 text-right mb-2">最終更新日: 2026年5月16日</div>
+        )}
         {showSuccessMessage && (
           <div className="mb-6 p-4 bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl flex items-start gap-3 shadow-sm relative">
             <div className="bg-white p-1 rounded-full mt-0.5"><Info size={20} className="text-emerald-500" /></div>
