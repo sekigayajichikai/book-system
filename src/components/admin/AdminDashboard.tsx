@@ -109,7 +109,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   // === 団体マスタ ===
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [orgGroups, setOrgGroups] = useState<{ id: string; name: string }[]>([]);
+  const [orgGroups, setOrgGroups] = useState<{ id: string; name: string; default_tier: string }[]>([]);
   const [editOrg, setEditOrg] = useState<Org | null>(null);
   const [showOrgPanel, setShowOrgPanel] = useState(false);
   const [orgForm, setOrgForm] = useState({
@@ -361,7 +361,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1">大カテゴリ</label>
-                    <select value={orgForm.group_name} onChange={e => setOrgForm(f => ({ ...f, group_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <select value={orgForm.group_name} onChange={e => {
+                      const g = orgGroups.find(og => og.name === e.target.value);
+                      setOrgForm(f => ({ ...f, group_name: e.target.value, category: g?.default_tier || f.category }));
+                    }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
                       <option value="">未分類</option>
                       {orgGroups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
                     </select>

@@ -203,9 +203,10 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
         setItems={setOrgGroups}
         columns={[
           { key: 'name', label: 'カテゴリ名' },
+          { key: 'default_tier', label: 'デフォルト利用区分', width: '120px' },
           { key: 'sort_order', label: '順', type: 'number', width: '80px' },
         ]}
-        defaultRow={{ name: '', sort_order: 0 }}
+        defaultRow={{ name: '', default_tier: '1', sort_order: 0 }}
       />
 
       <MasterSection
