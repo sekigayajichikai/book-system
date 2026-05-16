@@ -397,7 +397,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">団体名 *</label><input value={orgForm.name} onChange={e => setOrgForm(f => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">フリガナ</label><input value={orgForm.furigana} onChange={e => setOrgForm(f => ({ ...f, furigana: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">代表者名（姓名）</label>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">代表者名</label>
                     <div className="grid grid-cols-2 gap-2">
                       <input value={orgForm.rep_last_name} onChange={e => setOrgForm(f => ({ ...f, rep_last_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="姓" />
                       <input value={orgForm.rep_first_name} onChange={e => setOrgForm(f => ({ ...f, rep_first_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="名" />
