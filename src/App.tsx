@@ -280,16 +280,18 @@ function App() {
             >
               <CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />カレンダー
             </button>
-            <button
-              onClick={() => { setCalendarMode('booking'); setShowMyPage(false); }}
-              className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
-                !showMyPage && calendarMode === 'booking'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              <ClipboardList size={16} className="inline-block mr-1 -mt-0.5" />予約
-            </button>
+            {isOrgLoggedIn && (
+              <button
+                onClick={() => { setCalendarMode('booking'); setShowMyPage(false); }}
+                className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
+                  !showMyPage && calendarMode === 'booking'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                <ClipboardList size={16} className="inline-block mr-1 -mt-0.5" />予約
+              </button>
+            )}
             {isOrgLoggedIn && (
               <button
                 onClick={() => { setShowMyPage(true); setCalendarModeState('booking'); }}
@@ -404,10 +406,10 @@ function App() {
               <MyPage orgId={orgId!} orgName={orgName!} />
             ) :
 
-            /* ビュー表示 */
+            /* ビュー表示（未ログイン時はカレンダーのみ） */
             isMobile ? (
               /* === モバイル版 === */
-              calendarMode === 'calendar' ? (
+              (calendarMode === 'calendar' || !isOrgLoggedIn) ? (
                 <MobileCalendarView
                   weekStart={weekStart}
                   bookings={bookings}
@@ -429,7 +431,7 @@ function App() {
               )
             ) : (
               /* === PC版（既存） === */
-              calendarMode === 'calendar' ? (
+              (calendarMode === 'calendar' || !isOrgLoggedIn) ? (
                 <Calendar
                   currentDate={currentDate}
                   onPrevMonth={handlePrevMonth}
