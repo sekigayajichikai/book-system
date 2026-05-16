@@ -508,8 +508,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           bookings={bookings}
           isClosure={closures.has(`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`)}
           onClose={() => setShowDayPanel(false)}
-          onRefresh={() => {
-            handleDayPanelRefresh();
+          onRefresh={handleDayPanelRefresh}
+          onClosureChange={() => {
             supaFetch('calendar_events?is_closure=eq.true&select=date')
               .then(r => r.json())
               .then((data: { date: string }[]) => setClosures(new Set(data.map(d => d.date))));

@@ -31,11 +31,12 @@ interface AdminDayPanelProps {
   isClosure?: boolean;
   onClose: () => void;
   onRefresh: () => void;
+  onClosureChange?: () => void;
 }
 
 type FormMode = 'none' | 'add-booking' | 'add-event' | 'edit';
 
-export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRefresh }: AdminDayPanelProps) {
+export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRefresh, onClosureChange }: AdminDayPanelProps) {
   const dateStr = formatDate(date);
   const dow = date.getDay();
   const dayBookings = bookings.filter(b => b.date === dateStr);
@@ -131,7 +132,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
                 } else {
                   await supaFetch('calendar_events', { method: 'POST', body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true }) });
                 }
-                onRefresh();
+                onClosureChange?.();
               }}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${isClosure ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
             >
