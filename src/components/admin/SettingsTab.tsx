@@ -98,7 +98,7 @@ function MasterSection<T extends MasterItem>({
           <thead className="bg-gray-50">
             <tr>
               {columns.map(c => (
-                <th key={c.key} className="text-left px-3 py-2 font-medium text-gray-500 text-xs whitespace-nowrap" style={c.width ? { minWidth: c.width } : { minWidth: '120px' }}>{c.label}</th>
+                <th key={c.key} className="text-left px-3 py-2 font-medium text-gray-500 text-xs whitespace-nowrap" style={c.width ? { width: c.width, minWidth: c.width } : {}}>{c.label}</th>
               ))}
               <th className="px-3 py-2 w-20"></th>
             </tr>
@@ -188,8 +188,8 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
         items={orgGroups}
         setItems={setOrgGroups}
         columns={[
-          { key: 'name', label: 'カテゴリ名' },
-          { key: 'sort_order', label: '順', type: 'number', width: '50px' },
+          { key: 'name', label: 'カテゴリ名', width: '200px' },
+          { key: 'sort_order', label: '順', type: 'number', width: '80px' },
         ]}
         defaultRow={{ name: '', sort_order: 0 }}
       />
@@ -203,7 +203,7 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
           { key: 'name', label: '部屋名' },
           { key: 'short_name', label: '略称' },
           { key: 'capacity', label: '定員', type: 'number', width: '60px' },
-          { key: 'sort_order', label: '順', type: 'number', width: '50px' },
+          { key: 'sort_order', label: '順', type: 'number', width: '80px' },
         ]}
         defaultRow={{ name: '', short_name: '', capacity: 0, description: '', sort_order: 0 }}
       />
@@ -218,7 +218,7 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
           { key: 'label', label: '表示名' },
           { key: 'start_time', label: '開始' },
           { key: 'end_time', label: '終了' },
-          { key: 'sort_order', label: '順', type: 'number', width: '50px' },
+          { key: 'sort_order', label: '順', type: 'number', width: '80px' },
         ]}
         defaultRow={{ slot_key: '', label: '', start_time: '09:00', end_time: '12:00', sort_order: 0 }}
       />
@@ -231,7 +231,7 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
         columns={[
           { key: 'name', label: '設備名' },
           { key: 'price', label: '料金', type: 'number', width: '80px' },
-          { key: 'sort_order', label: '順', type: 'number', width: '50px' },
+          { key: 'sort_order', label: '順', type: 'number', width: '80px' },
         ]}
         defaultRow={{ name: '', price: 300, sort_order: 0 }}
       />
@@ -246,7 +246,7 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
           { key: 'tier', label: '順', width: '50px' },
           { key: 'price_large', label: '会議室(円)', type: 'number', width: '80px' },
           { key: 'price_small', label: '和室等(円)', type: 'number', width: '80px' },
-          { key: 'sort_order', label: '順', type: 'number', width: '50px' },
+          { key: 'sort_order', label: '順', type: 'number', width: '80px' },
         ]}
         defaultRow={{ name: '', tier: '', price_type: 'other', price_large: 0, price_small: 0, sort_order: 0 }}
       />
