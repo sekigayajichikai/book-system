@@ -58,7 +58,7 @@ export default function MobileCalendarView({
         <button onClick={onPrevWeek} className="p-2 rounded-full hover:bg-gray-100 active:scale-90 transition-transform">
           <ChevronLeft size={20} className="text-gray-500" />
         </button>
-        <span className="text-base font-bold text-gray-700 tracking-wide">
+        <span className="text-lg font-bold text-gray-700 tracking-wide">
           {formatShort(weekStart)} 〜 {formatShort(weekEnd)}
         </span>
         <button onClick={onNextWeek} className="p-2 rounded-full hover:bg-gray-100 active:scale-90 transition-transform">
@@ -67,7 +67,7 @@ export default function MobileCalendarView({
       </div>
 
       {/* 凡例 */}
-      <div className="flex items-center justify-center gap-5 text-sm text-gray-500">
+      <div className="flex items-center justify-center gap-5 text-base text-gray-500">
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />会議室</span>
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-sky-400" />和室</span>
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-pink-400" />図書室</span>

@@ -37,30 +37,30 @@ export default function MobileDayCard({ date, bookings, isToday, holidayName, is
     <div className={`rounded-xl border ${isToday ? 'border-emerald-400 bg-emerald-50/50 ring-2 ring-emerald-200' : isClosure ? 'border-gray-200 bg-gray-50' : 'border-gray-200 bg-white'}`}>
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-baseline gap-2">
-          <span className={`text-xl font-bold ${isToday ? 'text-emerald-600' : (isHoliday || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-800'}`}>
+          <span className={`text-2xl font-bold ${isToday ? 'text-emerald-600' : (isHoliday || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-800'}`}>
             {date.getMonth() + 1}/{date.getDate()}
           </span>
-          <span className={`text-base ${isToday ? 'text-emerald-500' : (isHoliday || dow === 0) ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
+          <span className={`text-lg ${isToday ? 'text-emerald-500' : (isHoliday || dow === 0) ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
             ({DOW[dow]})
           </span>
-          {isClosure && <span className="text-xs bg-orange-400 text-white px-2 py-0.5 rounded font-bold">休館</span>}
-          {holidayName && <span className="text-xs text-red-500 font-bold">{holidayName}</span>}
-          {isToday && <span className="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
+          {isClosure && <span className="text-sm bg-orange-400 text-white px-2 py-0.5 rounded font-bold">休館</span>}
+          {holidayName && <span className="text-sm text-red-500 font-bold">{holidayName}</span>}
+          {isToday && <span className="text-sm bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
         </div>
       </div>
 
       {slotGroups.length === 0 ? (
-        <div className="px-4 pb-3 text-base text-gray-300">予定なし</div>
+        <div className="px-4 pb-3 text-lg text-gray-300">予定なし</div>
       ) : (
         <div className="px-4 pb-3 space-y-2">
           {slotGroups.map(({ slot, items }) => (
             <div key={slot.id}>
-              <div className="text-gray-600 mb-1"><span className="text-base font-bold">{slot.gasKey}</span> <span className="text-sm">{slot.startTime}〜{slot.endTime}</span></div>
+              <div className="text-gray-600 mb-1"><span className="text-lg font-bold">{slot.gasKey}</span> <span className="text-base">{slot.startTime}〜{slot.endTime}</span></div>
               {items.map(b => (
                 <div key={b.id} className="flex items-center gap-2 py-1">
-                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${ROOM_DOT[b.room] || 'bg-gray-300'}`} />
-                  <span className="text-base text-gray-800 truncate">{b.title}</span>
-                  <span className="text-sm text-gray-500 shrink-0">{shortRoomName(b.room)}</span>
+                  <span className={`w-3 h-3 rounded-full shrink-0 ${ROOM_DOT[b.room] || 'bg-gray-300'}`} />
+                  <span className="text-lg text-gray-800 truncate">{b.title}</span>
+                  <span className="text-base text-gray-500 shrink-0">{shortRoomName(b.room)}</span>
                 </div>
               ))}
             </div>
