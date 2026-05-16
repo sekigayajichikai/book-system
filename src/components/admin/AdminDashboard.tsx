@@ -17,6 +17,10 @@ interface Org {
   registration_no: string | null;
   furigana: string | null;
   representative: string | null;
+  rep_last_name: string | null;
+  rep_first_name: string | null;
+  rep_last_name_kana: string | null;
+  rep_first_name_kana: string | null;
   han_ko: string | null;
   phone: string | null;
   activity_description: string | null;
@@ -115,7 +119,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [showOrgPanel, setShowOrgPanel] = useState(false);
   const [orgForm, setOrgForm] = useState({
     name: '', furigana: '', category: '2', passcode: '', contact_email: '',
-    registration_no: '', representative: '', han_ko: '', phone: '',
+    registration_no: '', representative: '', rep_last_name: '', rep_first_name: '', rep_last_name_kana: '', rep_first_name_kana: '', han_ko: '', phone: '',
     activity_description: '', has_monthly_fee: false, registration_date: '',
     default_equipment: [] as string[], presets: [] as string[],
     group_name: '',
@@ -148,6 +152,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         name: org.name, furigana: org.furigana || '', category: org.category,
         passcode: org.passcode || '', contact_email: org.contact_email || '',
         registration_no: org.registration_no || '', representative: org.representative || '',
+        rep_last_name: org.rep_last_name || '', rep_first_name: org.rep_first_name || '',
+        rep_last_name_kana: org.rep_last_name_kana || '', rep_first_name_kana: org.rep_first_name_kana || '',
         han_ko: org.han_ko || '', phone: org.phone || '',
         activity_description: org.activity_description || '',
         has_monthly_fee: org.has_monthly_fee || false,
@@ -159,7 +165,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       setEditOrg(null);
       setOrgForm({
         name: '', furigana: '', category: '2', passcode: '', contact_email: '',
-        registration_no: '', representative: '', han_ko: '', phone: '',
+        registration_no: '', representative: '', rep_last_name: '', rep_first_name: '', rep_last_name_kana: '', rep_first_name_kana: '', han_ko: '', phone: '',
         activity_description: '', has_monthly_fee: false, registration_date: '',
         default_equipment: [], presets: [], group_name: '',
       });
@@ -183,7 +189,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       passcode: orgForm.passcode ? toHalf(orgForm.passcode.trim()) : null,
       contact_email: orgForm.contact_email ? orgForm.contact_email.trim().toLowerCase() : null,
       registration_no: orgForm.registration_no ? toHalf(orgForm.registration_no.trim()) : null,
-      representative: orgForm.representative?.trim() || null,
+      representative: [orgForm.rep_last_name, orgForm.rep_first_name].filter(Boolean).join(' ').trim() || null,
+      rep_last_name: orgForm.rep_last_name?.trim() || null,
+      rep_first_name: orgForm.rep_first_name?.trim() || null,
+      rep_last_name_kana: orgForm.rep_last_name_kana ? toKatakana(orgForm.rep_last_name_kana.trim()) : null,
+      rep_first_name_kana: orgForm.rep_first_name_kana ? toKatakana(orgForm.rep_first_name_kana.trim()) : null,
       han_ko: orgForm.han_ko ? toHalf(orgForm.han_ko.trim()) : null,
       phone: orgForm.phone ? toHalf(orgForm.phone.trim()).replace(/[-\s]/g, '') : null,
       activity_description: orgForm.activity_description?.trim() || null,
@@ -386,9 +396,23 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   </div>
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">団体名 *</label><input value={orgForm.name} onChange={e => setOrgForm(f => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                   <div><label className="block text-xs font-medium text-gray-500 mb-1">フリガナ</label><input value={orgForm.furigana} onChange={e => setOrgForm(f => ({ ...f, furigana: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className="block text-xs font-medium text-gray-500 mb-1">代表者名</label><input value={orgForm.representative} onChange={e => setOrgForm(f => ({ ...f, representative: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
-                    <div><label className="block text-xs font-medium text-gray-500 mb-1">班－戸番</label><input value={orgForm.han_ko} onChange={e => setOrgForm(f => ({ ...f, han_ko: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="例: 3-12" /></div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">代表者名（姓名）</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input value={orgForm.rep_last_name} onChange={e => setOrgForm(f => ({ ...f, rep_last_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="姓" />
+                      <input value={orgForm.rep_first_name} onChange={e => setOrgForm(f => ({ ...f, rep_first_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="名" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">代表者名（フリガナ）</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input value={orgForm.rep_last_name_kana} onChange={e => setOrgForm(f => ({ ...f, rep_last_name_kana: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="セイ" />
+                      <input value={orgForm.rep_first_name_kana} onChange={e => setOrgForm(f => ({ ...f, rep_first_name_kana: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="メイ" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">班－戸番</label>
+                    <input value={orgForm.han_ko} onChange={e => setOrgForm(f => ({ ...f, han_ko: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="例: 3-12" />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><label className="block text-xs font-medium text-gray-500 mb-1">電話番号</label><input value={orgForm.phone} onChange={e => setOrgForm(f => ({ ...f, phone: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
