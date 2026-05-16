@@ -322,39 +322,28 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         {/* === 団体マスタ === */}
         {tab === 'organizations' && (
           <div className="flex gap-4">
-            <div className={`space-y-4 ${showOrgPanel ? 'w-1/3' : 'w-full'} transition-all`}>
-              <div className="flex items-center justify-between">
+            <div className={`${showOrgPanel ? 'w-1/3' : 'w-full max-w-sm'} transition-all`}>
+              <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-bold text-gray-800">団体マスタ</h2>
-                <button onClick={() => openOrgForm()} className="flex items-center gap-1 px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700">
-                  <Plus size={16} /> 新規登録
+                <button onClick={() => openOrgForm()} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700">
+                  <Plus size={14} /> 新規
                 </button>
               </div>
               {loading ? <p className="text-gray-400 text-sm">読み込み中...</p> : orgs.length === 0 ? <p className="text-gray-400 text-sm">団体はありません</p> : (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="text-left px-3 py-2 font-medium text-gray-500">団体名</th>
-                        <th className="text-left px-3 py-2 font-medium text-gray-500">カテゴリ</th>
-                        <th className="text-left px-3 py-2 font-medium text-gray-500">代表者</th>
-                        <th className="text-left px-3 py-2 font-medium text-gray-500">利用区分</th>
-                        <th className="px-3 py-2"></th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {orgs.map(o => (
-                        <tr key={o.id} className={`cursor-pointer transition-colors ${editOrg?.id === o.id ? 'bg-emerald-50' : 'hover:bg-gray-50'}`} onClick={() => openOrgForm(o)}>
-                          <td className="px-3 py-2 font-medium">{o.name}</td>
-                          <td className="px-3 py-2 text-xs text-gray-500">{o.group_name || '—'}</td>
-                          <td className="px-3 py-2 text-gray-500">{o.representative || '—'}</td>
-                          <td className="px-3 py-2 text-xs">{categories.find(c => c.tier === o.category)?.name || o.category}</td>
-                          <td className="px-3 py-2 text-right">
-                            <button onClick={e => { e.stopPropagation(); handleDeleteOrg(o.id, o.name); }} className="text-xs text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
+                  {orgs.map(o => (
+                    <div
+                      key={o.id}
+                      className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${editOrg?.id === o.id ? 'bg-emerald-50 border-l-4 border-emerald-500' : 'hover:bg-gray-50'}`}
+                      onClick={() => openOrgForm(o)}
+                    >
+                      <div>
+                        <div className="text-sm font-bold text-gray-800">{o.name}</div>
+                        <div className="text-xs text-gray-400">{o.group_name || '未分類'}</div>
+                      </div>
+                      <button onClick={e => { e.stopPropagation(); handleDeleteOrg(o.id, o.name); }} className="text-red-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
