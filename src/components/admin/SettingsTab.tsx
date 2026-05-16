@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Pencil, Check, X } from 'lucide-react';
+import { Plus, Trash2, Pencil, Check, X, ChevronUp, ChevronDown } from 'lucide-react';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -85,6 +85,18 @@ function MasterSection<T extends MasterItem>({
     fetchItems();
   };
 
+  const handleSwap = async (index: number, direction: 'up' | 'down') => {
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+    const a = items[index];
+    const b = items[targetIndex];
+    await Promise.all([
+      supaFetch(`${table}?id=eq.${a.id}`, { method: 'PATCH', body: JSON.stringify({ sort_order: b.sort_order }) }),
+      supaFetch(`${table}?id=eq.${b.id}`, { method: 'PATCH', body: JSON.stringify({ sort_order: a.sort_order }) }),
+    ]);
+    fetchItems();
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
@@ -100,11 +112,11 @@ function MasterSection<T extends MasterItem>({
               {columns.map(c => (
                 <th key={c.key} className="text-left px-3 py-2 font-medium text-gray-500 text-xs whitespace-nowrap" style={c.width ? { width: c.width, minWidth: c.width } : {}}>{c.label}</th>
               ))}
-              <th className="px-3 py-2 w-20"></th>
+              <th className="px-3 py-2 w-28"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {items.map(item => (
+            {items.map((item, idx) => (
               <tr key={item.id} className="hover:bg-gray-50">
                 {editId === item.id ? (
                   <>
@@ -128,7 +140,9 @@ function MasterSection<T extends MasterItem>({
                     {columns.map(c => (
                       <td key={c.key} className="px-3 py-2">{String(item[c.key] ?? '')}</td>
                     ))}
-                    <td className="px-3 py-2 text-right whitespace-nowrap flex items-center justify-end gap-3">
+                    <td className="px-3 py-2 text-right whitespace-nowrap flex items-center justify-end gap-2">
+                      <button onClick={() => handleSwap(idx, 'up')} disabled={idx === 0} className={`${idx === 0 ? 'text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}><ChevronUp size={14} /></button>
+                      <button onClick={() => handleSwap(idx, 'down')} disabled={idx === items.length - 1} className={`${idx === items.length - 1 ? 'text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}><ChevronDown size={14} /></button>
                       <button onClick={() => startEdit(item)} className="text-blue-400 hover:text-blue-600"><Pencil size={14} /></button>
                       <button onClick={() => handleDelete(item.id)} className="text-red-400 hover:text-red-600"><Trash2 size={14} /></button>
                     </td>
