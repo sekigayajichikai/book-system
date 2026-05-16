@@ -113,7 +113,7 @@ function MasterSection<T extends MasterItem>({
                         <input
                           value={form[c.key] ?? ''}
                           onChange={e => setForm(f => ({ ...f, [c.key]: e.target.value }))}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm min-w-[60px]"
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm min-w-[70px]"
                           type={c.type === 'number' ? 'number' : 'text'}
                         />
                       </td>
@@ -143,7 +143,7 @@ function MasterSection<T extends MasterItem>({
                     <input
                       value={form[c.key] ?? ''}
                       onChange={e => setForm(f => ({ ...f, [c.key]: e.target.value }))}
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm min-w-[60px]"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm min-w-[70px]"
                       type={c.type === 'number' ? 'number' : 'text'}
                     />
                   </td>
@@ -202,7 +202,7 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
         columns={[
           { key: 'name', label: '部屋名' },
           { key: 'short_name', label: '略称' },
-          { key: 'capacity', label: '定員', type: 'number', width: '60px' },
+          { key: 'capacity', label: '定員', type: 'number', width: '80px' },
           { key: 'sort_order', label: '順', type: 'number', width: '80px' },
         ]}
         defaultRow={{ name: '', short_name: '', capacity: 0, description: '', sort_order: 0 }}
