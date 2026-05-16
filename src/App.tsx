@@ -125,6 +125,7 @@ function App() {
   });
   const [orgsByCategory, setOrgsByCategory] = useState<Record<string, OrgEntry[]>>({});
   const [holidays, setHolidays] = useState<Record<string, string>>({});
+  const [closures, setClosures] = useState<Set<string>>(new Set());
 
   /** 団体マスタ + 祝日を取得 */
   useEffect(() => {
@@ -143,6 +144,17 @@ function App() {
         setHolidays(map);
       })
       .catch(err => console.error('祝日取得エラー:', err));
+
+    const sbUrl = import.meta.env.VITE_SUPABASE_URL;
+    const sbKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (sbUrl && sbKey) {
+      fetch(`${sbUrl}/rest/v1/calendar_events?is_closure=eq.true&select=date`, {
+        headers: { 'apikey': sbKey, 'Authorization': `Bearer ${sbKey}` },
+      })
+        .then(r => r.json())
+        .then((data: { date: string }[]) => setClosures(new Set(data.map(d => d.date))))
+        .catch(() => {});
+    }
   }, []);
 
   /** スプレッドシートからイベントを取得（GAS API経由） */
@@ -397,6 +409,7 @@ function App() {
                   onPrevWeek={handlePrevWeek}
                   onNextWeek={handleNextWeek}
                   holidays={holidays}
+                  closures={closures}
                   loading={loading}
                 />
               ) : (
@@ -420,6 +433,7 @@ function App() {
                   bookings={bookings}
                   onDateClick={handleDateClick}
                   holidays={holidays}
+                  closures={closures}
                   loading={loading}
                 />
               ) : bookingSubView === 'weekly' ? (

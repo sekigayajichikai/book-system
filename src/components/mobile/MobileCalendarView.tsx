@@ -25,11 +25,12 @@ interface MobileCalendarViewProps {
   onPrevWeek: () => void;
   onNextWeek: () => void;
   holidays?: Record<string, string>;
+  closures?: Set<string>;
   loading?: boolean;
 }
 
 export default function MobileCalendarView({
-  weekStart, bookings, onPrevWeek, onNextWeek, holidays = {}, loading,
+  weekStart, bookings, onPrevWeek, onNextWeek, holidays = {}, closures = new Set(), loading,
 }: MobileCalendarViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const todayRef = useRef<HTMLDivElement>(null);
@@ -84,6 +85,7 @@ export default function MobileCalendarView({
               bookings={bookings}
               isToday={today}
               holidayName={holidays[formatDate(date)]}
+              isClosure={closures.has(formatDate(date))}
             />
           </div>
         );

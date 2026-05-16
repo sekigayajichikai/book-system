@@ -10,6 +10,7 @@ interface CalendarProps {
   bookings: Booking[];
   onDateClick: (date: Date) => void;
   holidays?: Record<string, string>;
+  closures?: Set<string>;
   disableModal?: boolean;
   loading?: boolean;
 }
@@ -191,7 +192,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const Calendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, holidays = {}, disableModal, loading,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, holidays = {}, closures = new Set(), disableModal, loading,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week'>('month');
   const [modalDate, setModalDate] = useState<Date | null>(null);
@@ -237,6 +238,7 @@ const Calendar: React.FC<CalendarProps> = ({
       const dow = new Date(year, month, day).getDay();
       const holidayName = holidays[dateStr];
       const isHoliday = !!holidayName;
+      const isClosure = closures.has(dateStr);
 
       const amBookings = dayBookings.filter(b => amSlot && b.startTime === amSlot.startTime);
       const pmBookings = dayBookings.filter(b => pmSlot && b.startTime === pmSlot.startTime);
@@ -245,15 +247,16 @@ const Calendar: React.FC<CalendarProps> = ({
         <div
           key={day}
           onClick={() => handleCellClick(day)}
-          className={`min-h-[8rem] border border-gray-200 relative cursor-pointer hover:bg-emerald-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''}`}
+          className={`min-h-[8rem] border border-gray-200 relative cursor-pointer hover:bg-emerald-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
         >
           {/* Date number */}
-          <div className="px-1 pt-0.5 shrink-0 flex items-center gap-1">
+          <div className="px-1 pt-0.5 shrink-0 flex items-center gap-1 flex-wrap">
             <span className={`text-xs font-bold ${
               isToday ? 'bg-emerald-600 text-white px-1 rounded' : (isHoliday || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-600'
             }`}>
               {day}
             </span>
+            {isClosure && <span className="text-[10px] bg-gray-200 text-gray-500 px-1 rounded font-bold">休館</span>}
             {holidayName && <span className="text-xs text-red-400 truncate">{holidayName}</span>}
           </div>
 
