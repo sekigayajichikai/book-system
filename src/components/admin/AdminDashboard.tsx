@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarDays, ClipboardList, Settings, LogOut, Plus, Trash2, X, Users, Check } from 'lucide-react';
+import { CalendarDays, ClipboardList, Settings, LogOut, Plus, Trash2, Pencil, X, Users, Check } from 'lucide-react';
 import Calendar from '../Calendar';
 import AdminDayPanel from './AdminDayPanel';
 import SettingsTab from './SettingsTab';
@@ -116,7 +116,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [orgGroups, setOrgGroups] = useState<{ id: string; name: string; default_tier: string }[]>([]);
   const [equipmentList, setEquipmentList] = useState<{ id: string; name: string }[]>([]);
   const [editOrg, setEditOrg] = useState<Org | null>(null);
-  const [orgSaved, setOrgSaved] = useState(false);
+  const [orgEditing, setOrgEditing] = useState(false);
   const [showOrgPanel, setShowOrgPanel] = useState(false);
   const [orgForm, setOrgForm] = useState({
     name: '', furigana: '', category: '2', passcode: '', contact_email: '',
@@ -162,8 +162,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         default_equipment: org.default_equipment || [], presets: org.presets || [],
         group_name: org.group_name || '',
       });
+      setOrgEditing(false);
     } else {
       setEditOrg(null);
+      setOrgEditing(true);
       setOrgForm({
         name: '', furigana: '', category: '2', passcode: '', contact_email: '',
         registration_no: '', representative: '', rep_last_name: '', rep_first_name: '', rep_last_name_kana: '', rep_first_name_kana: '', han_ko: '', phone: '',
@@ -208,8 +210,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     } else {
       await supaFetch('booking_organizations', { method: 'POST', body: JSON.stringify(body) });
     }
-    setOrgSaved(true);
-    setTimeout(() => setOrgSaved(false), 2000);
+    setOrgEditing(false);
     fetchOrgs();
   };
 
@@ -379,81 +380,110 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             {showOrgPanel && (
               <div className="w-2/3 bg-white rounded-xl border border-gray-200 p-6 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-base font-bold">{editOrg ? '団体を編集' : '新規団体登録'}</h3>
-                  <button onClick={() => setShowOrgPanel(false)} className="p-1 hover:bg-gray-100 rounded-full"><X size={18} className="text-gray-400" /></button>
-                </div>
-                <div className="space-y-3 text-sm">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className="block text-xs font-medium text-gray-500 mb-1">登録No.</label><input value={orgForm.registration_no} onChange={e => setOrgForm(f => ({ ...f, registration_no: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
-                    <div><label className="block text-xs font-medium text-gray-500 mb-1">登録年月日</label><input type="date" value={orgForm.registration_date} onChange={e => setOrgForm(f => ({ ...f, registration_date: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">大カテゴリ</label>
-                    <select value={orgForm.group_name} onChange={e => {
-                      const g = orgGroups.find(og => og.name === e.target.value);
-                      setOrgForm(f => ({ ...f, group_name: e.target.value, category: g?.default_tier || f.category }));
-                    }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                      <option value="">未分類</option>
-                      {orgGroups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
-                    </select>
-                  </div>
-                  <div><label className="block text-xs font-medium text-gray-500 mb-1">団体名 *</label><input value={orgForm.name} onChange={e => setOrgForm(f => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
-                  <div><label className="block text-xs font-medium text-gray-500 mb-1">フリガナ</label><input value={orgForm.furigana} onChange={e => setOrgForm(f => ({ ...f, furigana: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">代表者名</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input value={orgForm.rep_last_name} onChange={e => setOrgForm(f => ({ ...f, rep_last_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="姓" />
-                      <input value={orgForm.rep_first_name} onChange={e => setOrgForm(f => ({ ...f, rep_first_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="名" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">代表者名（フリガナ）</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input value={orgForm.rep_last_name_kana} onChange={e => setOrgForm(f => ({ ...f, rep_last_name_kana: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="セイ" />
-                      <input value={orgForm.rep_first_name_kana} onChange={e => setOrgForm(f => ({ ...f, rep_first_name_kana: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="メイ" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">班－戸番</label>
-                    <input value={orgForm.han_ko} onChange={e => setOrgForm(f => ({ ...f, han_ko: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="例: 3-12" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><label className="block text-xs font-medium text-gray-500 mb-1">電話番号</label><input value={orgForm.phone} onChange={e => setOrgForm(f => ({ ...f, phone: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
-                    <div><label className="block text-xs font-medium text-gray-500 mb-1">メールアドレス</label><input type="email" value={orgForm.contact_email} onChange={e => setOrgForm(f => ({ ...f, contact_email: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
-                  </div>
-                  <div><label className="block text-xs font-medium text-gray-500 mb-1">利用区分</label><select value={orgForm.category} onChange={e => setOrgForm(f => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{categories.map(c => <option key={c.tier} value={c.tier}>{c.name}</option>)}</select></div>
-                  <div><label className="block text-xs font-medium text-gray-500 mb-1">活動内容</label><textarea value={orgForm.activity_description} onChange={e => setOrgForm(f => ({ ...f, activity_description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} /></div>
-                  <div className="flex items-center gap-2"><input type="checkbox" id="monthly_fee" checked={orgForm.has_monthly_fee} onChange={e => {
-                    const checked = e.target.checked;
-                    setOrgForm(f => ({ ...f, has_monthly_fee: checked, category: checked ? '3' : (orgGroups.find(g => g.name === f.group_name)?.default_tier || f.category) }));
-                  }} className="rounded" /><label htmlFor="monthly_fee" className="text-xs text-gray-600">月謝あり</label></div>
-                  <div><label className="block text-xs font-medium text-gray-500 mb-1">パスコード</label><input value={orgForm.passcode} onChange={e => setOrgForm(f => ({ ...f, passcode: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono" placeholder="4桁の数字など" /></div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">主に利用予定の設備（予約ごとに変更できます）</label>
-                    <div className="flex flex-wrap gap-2">
-                      {equipmentList.map(eq => {
-                        const checked = orgForm.default_equipment.includes(eq.name);
-                        return (
-                          <label key={eq.id} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs cursor-pointer border transition-colors ${checked ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
-                            <input type="checkbox" checked={checked} onChange={() => {
-                              setOrgForm(f => ({
-                                ...f,
-                                default_equipment: checked
-                                  ? f.default_equipment.filter(e => e !== eq.name)
-                                  : [...f.default_equipment, eq.name],
-                              }));
-                            }} className="sr-only" />
-                            {eq.name}
-                          </label>
-                        );
-                      })}
-                    </div>
+                  <h3 className="text-base font-bold">{!editOrg ? '新規団体登録' : orgEditing ? '団体を編集' : orgForm.name}</h3>
+                  <div className="flex items-center gap-2">
+                    {editOrg && !orgEditing && (
+                      <button onClick={() => setOrgEditing(true)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100"><Pencil size={12} /> 編集</button>
+                    )}
+                    <button onClick={() => setShowOrgPanel(false)} className="p-1 hover:bg-gray-100 rounded-full"><X size={18} className="text-gray-400" /></button>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-5">
-                  <button onClick={() => setShowOrgPanel(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">キャンセル</button>
-                  <button onClick={handleSaveOrg} disabled={orgSaved} className={`flex-1 py-2 rounded-lg text-sm font-bold ${orgSaved ? 'bg-emerald-400 text-white' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}>{orgSaved ? '✓ 保存しました' : editOrg ? '更新' : '登録'}</button>
-                </div>
+
+                {/* === 閲覧モード === */}
+                {editOrg && !orgEditing ? (
+                  <div className="space-y-3 text-sm">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><span className="text-xs text-gray-400">登録No.</span><div className="text-gray-800">{orgForm.registration_no || '—'}</div></div>
+                      <div><span className="text-xs text-gray-400">登録年月日</span><div className="text-gray-800">{orgForm.registration_date || '—'}</div></div>
+                    </div>
+                    <div><span className="text-xs text-gray-400">大カテゴリ</span><div className="text-gray-800">{orgForm.group_name || '未分類'}</div></div>
+                    <div><span className="text-xs text-gray-400">フリガナ</span><div className="text-gray-800">{orgForm.furigana || '—'}</div></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><span className="text-xs text-gray-400">代表者名</span><div className="text-gray-800">{[orgForm.rep_last_name, orgForm.rep_first_name].filter(Boolean).join(' ') || '—'}</div></div>
+                      <div><span className="text-xs text-gray-400">フリガナ</span><div className="text-gray-800">{[orgForm.rep_last_name_kana, orgForm.rep_first_name_kana].filter(Boolean).join(' ') || '—'}</div></div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><span className="text-xs text-gray-400">班－戸番</span><div className="text-gray-800">{orgForm.han_ko || '—'}</div></div>
+                      <div><span className="text-xs text-gray-400">電話番号</span><div className="text-gray-800">{orgForm.phone || '—'}</div></div>
+                    </div>
+                    <div><span className="text-xs text-gray-400">メールアドレス</span><div className="text-gray-800">{orgForm.contact_email || '—'}</div></div>
+                    <div><span className="text-xs text-gray-400">利用区分</span><div className="text-gray-800">{categories.find(c => c.tier === orgForm.category)?.name || orgForm.category}</div></div>
+                    <div><span className="text-xs text-gray-400">活動内容</span><div className="text-gray-800">{orgForm.activity_description || '—'}</div></div>
+                    <div><span className="text-xs text-gray-400">月謝</span><div className="text-gray-800">{orgForm.has_monthly_fee ? 'あり' : 'なし'}</div></div>
+                    <div><span className="text-xs text-gray-400">パスコード</span><div className="text-gray-800 font-mono">{orgForm.passcode || '—'}</div></div>
+                    {orgForm.default_equipment.length > 0 && (
+                      <div><span className="text-xs text-gray-400">利用設備</span><div className="flex flex-wrap gap-1 mt-1">{orgForm.default_equipment.map(e => <span key={e} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">{e}</span>)}</div></div>
+                    )}
+                  </div>
+                ) : (
+                  /* === 編集モード === */
+                  <>
+                    <div className="space-y-3 text-sm">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><label className="block text-xs font-medium text-gray-500 mb-1">登録No.</label><input value={orgForm.registration_no} onChange={e => setOrgForm(f => ({ ...f, registration_no: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+                        <div><label className="block text-xs font-medium text-gray-500 mb-1">登録年月日</label><input type="date" value={orgForm.registration_date} onChange={e => setOrgForm(f => ({ ...f, registration_date: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">大カテゴリ</label>
+                        <select value={orgForm.group_name} onChange={e => {
+                          const g = orgGroups.find(og => og.name === e.target.value);
+                          setOrgForm(f => ({ ...f, group_name: e.target.value, category: g?.default_tier || f.category }));
+                        }} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                          <option value="">未分類</option>
+                          {orgGroups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
+                        </select>
+                      </div>
+                      <div><label className="block text-xs font-medium text-gray-500 mb-1">団体名 *</label><input value={orgForm.name} onChange={e => setOrgForm(f => ({ ...f, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+                      <div><label className="block text-xs font-medium text-gray-500 mb-1">フリガナ</label><input value={orgForm.furigana} onChange={e => setOrgForm(f => ({ ...f, furigana: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">代表者名</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input value={orgForm.rep_last_name} onChange={e => setOrgForm(f => ({ ...f, rep_last_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="姓" />
+                          <input value={orgForm.rep_first_name} onChange={e => setOrgForm(f => ({ ...f, rep_first_name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="名" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">代表者名（フリガナ）</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input value={orgForm.rep_last_name_kana} onChange={e => setOrgForm(f => ({ ...f, rep_last_name_kana: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="セイ" />
+                          <input value={orgForm.rep_first_name_kana} onChange={e => setOrgForm(f => ({ ...f, rep_first_name_kana: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="メイ" />
+                        </div>
+                      </div>
+                      <div><label className="block text-xs font-medium text-gray-500 mb-1">班－戸番</label><input value={orgForm.han_ko} onChange={e => setOrgForm(f => ({ ...f, han_ko: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="例: 3-12" /></div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div><label className="block text-xs font-medium text-gray-500 mb-1">電話番号</label><input value={orgForm.phone} onChange={e => setOrgForm(f => ({ ...f, phone: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+                        <div><label className="block text-xs font-medium text-gray-500 mb-1">メールアドレス</label><input type="email" value={orgForm.contact_email} onChange={e => setOrgForm(f => ({ ...f, contact_email: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
+                      </div>
+                      <div><label className="block text-xs font-medium text-gray-500 mb-1">利用区分</label><select value={orgForm.category} onChange={e => setOrgForm(f => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{categories.map(c => <option key={c.tier} value={c.tier}>{c.name}</option>)}</select></div>
+                      <div><label className="block text-xs font-medium text-gray-500 mb-1">活動内容</label><textarea value={orgForm.activity_description} onChange={e => setOrgForm(f => ({ ...f, activity_description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} /></div>
+                      <div className="flex items-center gap-2"><input type="checkbox" id="monthly_fee" checked={orgForm.has_monthly_fee} onChange={e => {
+                        const checked = e.target.checked;
+                        setOrgForm(f => ({ ...f, has_monthly_fee: checked, category: checked ? '3' : (orgGroups.find(g => g.name === f.group_name)?.default_tier || f.category) }));
+                      }} className="rounded" /><label htmlFor="monthly_fee" className="text-xs text-gray-600">月謝あり</label></div>
+                      <div><label className="block text-xs font-medium text-gray-500 mb-1">パスコード</label><input value={orgForm.passcode} onChange={e => setOrgForm(f => ({ ...f, passcode: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono" placeholder="4桁の数字など" /></div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">主に利用予定の設備（予約ごとに変更できます）</label>
+                        <div className="flex flex-wrap gap-2">
+                          {equipmentList.map(eq => {
+                            const checked = orgForm.default_equipment.includes(eq.name);
+                            return (
+                              <label key={eq.id} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs cursor-pointer border transition-colors ${checked ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-gray-50 border-gray-200 text-gray-500 hover:bg-gray-100'}`}>
+                                <input type="checkbox" checked={checked} onChange={() => {
+                                  setOrgForm(f => ({ ...f, default_equipment: checked ? f.default_equipment.filter(e => e !== eq.name) : [...f.default_equipment, eq.name] }));
+                                }} className="sr-only" />
+                                {eq.name}
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-5">
+                      <button onClick={() => editOrg ? setOrgEditing(false) : setShowOrgPanel(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">キャンセル</button>
+                      <button onClick={handleSaveOrg} className="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700">{editOrg ? '更新' : '登録'}</button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>
