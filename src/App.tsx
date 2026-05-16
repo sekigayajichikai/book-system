@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarDays, ClipboardList, DoorOpen, Info, Users, User, X, LogOut } from 'lucide-react';
+import { CalendarDays, ClipboardList, Info, Users, User, X, LogOut } from 'lucide-react';
 import Calendar from './components/Calendar';
 import DailyScheduleGrid from './components/DailyScheduleGrid';
 import WeeklyView from './components/WeeklyView';
@@ -360,20 +360,6 @@ function App() {
                 ))}
                 {/* 右寄せ: 部屋別 + 月/週トグル */}
                 <div className="flex items-center gap-2 ml-auto">
-                  <button
-                    onClick={() => {
-                      setRoomFilter(!roomFilter);
-                      if (!roomFilter && !selectedRoom) setSelectedRoom(ROOMS[0]);
-                    }}
-                    className={`px-1.5 py-0.5 rounded text-[10px] transition-all ${
-                      roomFilter
-                        ? 'bg-emerald-600 text-white'
-                        : 'text-gray-400 hover:text-gray-600'
-                    }`}
-                    title="部屋を選択すると、その部屋だけの月間カレンダーを表示"
-                  >
-                    <DoorOpen size={12} className="inline-block -mt-0.5" /> 月間別ver
-                  </button>
                   <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
                     <button
                       onClick={() => setBookingSubView('monthly')}
