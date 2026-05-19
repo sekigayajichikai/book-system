@@ -126,6 +126,7 @@ function App() {
   const [orgsByCategory, setOrgsByCategory] = useState<Record<string, OrgEntry[]>>({});
   const [holidays, setHolidays] = useState<Record<string, string>>({});
   const [closures, setClosures] = useState<Set<string>>(new Set());
+  const [banners, setBanners] = useState<any[]>([]);
 
   /** 団体マスタ + 祝日を取得 */
   useEffect(() => {
@@ -153,6 +154,14 @@ function App() {
       })
         .then(r => r.json())
         .then((data: { date: string }[]) => setClosures(new Set(data.map(d => d.date))))
+        .catch(() => {});
+
+      const today = new Date().toISOString().slice(0, 10);
+      fetch(`${sbUrl}/rest/v1/calendar_banners?display_start=lte.${today}&display_end=gte.${today}&order=event_date.asc&select=*`, {
+        headers: { 'apikey': sbKey, 'Authorization': `Bearer ${sbKey}` },
+      })
+        .then(r => r.json())
+        .then(data => setBanners(data || []))
         .catch(() => {});
     }
   }, []);
@@ -412,6 +421,7 @@ function App() {
                   onNextWeek={handleNextWeek}
                   holidays={holidays}
                   closures={closures}
+                  banners={banners}
                   loading={loading}
                 />
               ) : (

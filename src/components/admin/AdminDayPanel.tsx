@@ -34,7 +34,7 @@ interface AdminDayPanelProps {
   onClosureChange?: () => void;
 }
 
-type FormMode = 'none' | 'add-booking' | 'add-event' | 'edit';
+type FormMode = 'none' | 'add-booking' | 'add-event' | 'add-banner' | 'edit';
 
 export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRefresh, onClosureChange }: AdminDayPanelProps) {
   const dateStr = formatDate(date);
@@ -45,12 +45,14 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ slot: '午前', room: ROOMS[0].id as string, title: '' });
   const [eventForm, setEventForm] = useState({ title: '', location: '', start_time: '', end_time: '', memo: '' });
+  const [bannerForm, setBannerForm] = useState({ title: '', description: '', event_time: '', event_location: '', style: 'green', display_days: '7', image_url: '' });
 
   const resetForm = () => {
     setFormMode('none');
     setEditId(null);
     setForm({ slot: '午前', room: ROOMS[0].id as string, title: '' });
     setEventForm({ title: '', location: '', start_time: '', end_time: '', memo: '' });
+    setBannerForm({ title: '', description: '', event_time: '', event_location: '', style: 'green', display_days: '7', image_url: '' });
   };
 
   // 予約追加
@@ -113,6 +115,30 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
     onRefresh();
   };
 
+  // バナー追加
+  const handleAddBanner = async () => {
+    if (!bannerForm.title.trim()) return alert('タイトルを入力してください');
+    const displayDays = Number(bannerForm.display_days) || 7;
+    const displayStart = new Date(date);
+    displayStart.setDate(displayStart.getDate() - displayDays);
+    await supaFetch('calendar_banners', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: bannerForm.title.trim(),
+        description: bannerForm.description || null,
+        event_date: dateStr,
+        event_time: bannerForm.event_time || null,
+        event_location: bannerForm.event_location || null,
+        display_start: displayStart.toISOString().slice(0, 10),
+        display_end: dateStr,
+        style: bannerForm.style,
+        image_url: bannerForm.image_url || null,
+      }),
+    });
+    resetForm();
+    onRefresh();
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
@@ -137,6 +163,12 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
               className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${isClosure ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
             >
               {isClosure ? '休館解除' : '休館にする'}
+            </button>
+            <button
+              onClick={() => { resetForm(); setFormMode('add-banner'); }}
+              className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700"
+            >
+              バナー
             </button>
             <button
               onClick={() => { resetForm(); setFormMode('add-event'); }}
@@ -190,6 +222,55 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
         )}
 
         {/* カレンダー予定追加フォーム */}
+        {/* バナー追加フォーム */}
+        {formMode === 'add-banner' && (
+          <div className="p-4 border-b border-gray-200 bg-purple-50 space-y-3">
+            <div className="text-xs font-bold text-purple-700 mb-1">バナーを追加（この日のイベント告知）</div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">タイトル *</label>
+              <input value={bannerForm.title} onChange={e => setBannerForm(f => ({ ...f, title: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="古本市やります！" autoFocus />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">説明</label>
+              <input value={bannerForm.description} onChange={e => setBannerForm(f => ({ ...f, description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="どなたでも参加OK" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">時間</label>
+                <input value={bannerForm.event_time} onChange={e => setBannerForm(f => ({ ...f, event_time: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="10:00〜15:00" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">場所</label>
+                <input value={bannerForm.event_location} onChange={e => setBannerForm(f => ({ ...f, event_location: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="会議室" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">スタイル</label>
+                <select value={bannerForm.style} onChange={e => setBannerForm(f => ({ ...f, style: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                  <option value="green">グリーン</option>
+                  <option value="blue">ブルー</option>
+                  <option value="orange">オレンジ</option>
+                  <option value="pink">ピンク</option>
+                  <option value="purple">パープル</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">何日前から表示</label>
+                <input type="number" value={bannerForm.display_days} onChange={e => setBannerForm(f => ({ ...f, display_days: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">画像URL（任意。指定するとテンプレートの代わりに画像を表示）</label>
+              <input value={bannerForm.image_url} onChange={e => setBannerForm(f => ({ ...f, image_url: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="https://..." />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={resetForm} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-600">キャンセル</button>
+              <button onClick={handleAddBanner} className="flex-1 py-2 bg-purple-600 text-white rounded-lg text-sm font-bold hover:bg-purple-700">登録</button>
+            </div>
+          </div>
+        )}
+
         {formMode === 'add-event' && (
           <div className="p-4 border-b border-gray-200 bg-blue-50 space-y-3">
             <div className="text-xs font-bold text-blue-700 mb-1">カレンダー予定を追加</div>
