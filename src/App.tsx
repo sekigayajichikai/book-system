@@ -298,7 +298,7 @@ function App() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              <List size={16} className="inline-block mr-1 -mt-0.5" />予定
+              <List size={16} className="inline-block mr-1 -mt-0.5" />カレンダー
             </button>
             <button
               onClick={() => { setCalendarMode('calendar'); setShowMyPage(false); }}

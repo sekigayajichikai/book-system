@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CalendarDays, ClipboardList, Settings, LogOut, Plus, Trash2, Pencil, X, Users, Check } from 'lucide-react';
 import Calendar from '../Calendar';
+import EventList from '../EventList';
 import AdminDayPanel from './AdminDayPanel';
 import SettingsTab from './SettingsTab';
 import { Booking, BookingStatus, RoomType, CalendarEvent, OrgEntry } from '../../types';
@@ -59,6 +60,7 @@ async function supaFetch(path: string, options?: RequestInit) {
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [tab, setTab] = useState<Tab>('calendar');
+  const [calendarSubView, setCalendarSubView] = useState<'schedule' | 'facility'>('facility');
   const [loading, setLoading] = useState(false);
 
   // === カレンダー ===
@@ -288,17 +290,45 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       <main className="max-w-5xl mx-auto p-4 md:p-8">
         {/* === カレンダー === */}
         {tab === 'calendar' && (
-          <Calendar
-            currentDate={currentDate}
-            onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
-            onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
-            bookings={bookings}
-            onDateClick={handleDateClick}
-            holidays={holidays}
-            closures={closures}
-            disableModal
-            loading={loading}
-          />
+          <div className="space-y-4">
+            {/* カレンダー/会館利用 切り替え */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+                <button
+                  onClick={() => setCalendarSubView('schedule')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${
+                    calendarSubView === 'schedule' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  カレンダー
+                </button>
+                <button
+                  onClick={() => setCalendarSubView('facility')}
+                  className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${
+                    calendarSubView === 'facility' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  会館利用
+                </button>
+              </div>
+            </div>
+
+            {calendarSubView === 'schedule' ? (
+              <EventList holidays={holidays} closures={closures} />
+            ) : (
+              <Calendar
+                currentDate={currentDate}
+                onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
+                onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
+                bookings={bookings}
+                onDateClick={handleDateClick}
+                holidays={holidays}
+                closures={closures}
+                disableModal
+                loading={loading}
+              />
+            )}
+          </div>
         )}
 
         {/* === 申請管理 === */}
