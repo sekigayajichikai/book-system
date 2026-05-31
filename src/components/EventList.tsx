@@ -99,7 +99,7 @@ export default function EventList({ holidays, closures }: EventListProps) {
             {dayEvents.slice(0, MAX_DISPLAY).map(evt => (
               <div key={evt.id} className="text-xs text-gray-700 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden">
                 <span className={`w-2 h-2 rounded-full shrink-0 ${
-                  evt.eventType === 'general' ? 'bg-emerald-400' : 'bg-amber-400'
+                  evt.eventType === 'general' ? 'bg-emerald-400' : 'bg-violet-400'
                 }`} />
                 <span className="truncate">{evt.title}</span>
               </div>
@@ -155,7 +155,7 @@ export default function EventList({ holidays, closures }: EventListProps) {
 
         {/* 凡例 */}
         <div className="flex flex-wrap gap-3 p-3 border-t border-gray-100 text-xs text-gray-500 items-center">
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-amber-400 rounded-full" />会館利用</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-violet-400 rounded-full" />会館利用</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-emerald-400 rounded-full" />その他の予定</span>
         </div>
       </div>
@@ -203,7 +203,7 @@ function EventDayModal({ date, events, onClose }: { date: Date; events: EventSum
                 <div key={evt.id} className="bg-gray-50 rounded-lg p-3">
                   <div className="flex items-center gap-2">
                     <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                      evt.eventType === 'general' ? 'bg-emerald-400' : 'bg-amber-400'
+                      evt.eventType === 'general' ? 'bg-emerald-400' : 'bg-violet-400'
                     }`} />
                     <span className="font-bold text-gray-800">{evt.title}</span>
                   </div>
