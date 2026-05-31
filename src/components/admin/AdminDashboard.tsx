@@ -261,7 +261,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   };
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: 'calendar', label: 'カレンダー', icon: <CalendarDays size={18} /> },
+    { id: 'calendar', label: '予定管理', icon: <CalendarDays size={18} /> },
     { id: 'approvals', label: `申請管理${pendingBookings.length > 0 ? ` (${pendingBookings.length})` : ''}`, icon: <ClipboardList size={18} /> },
     { id: 'organizations', label: '団体マスタ', icon: <Users size={18} /> },
     { id: 'settings', label: '設定', icon: <Settings size={18} /> },
