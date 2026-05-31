@@ -25,6 +25,17 @@ async function supaFetch(path: string, options?: RequestInit) {
   });
 }
 
+interface CalEvent {
+  id: string;
+  title: string;
+  location: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  memo: string | null;
+  event_type: string;
+  visibility: string;
+}
+
 interface AdminDayPanelProps {
   date: Date;
   bookings: Booking[];
@@ -32,14 +43,26 @@ interface AdminDayPanelProps {
   onClose: () => void;
   onRefresh: () => void;
   onClosureChange?: () => void;
+  mode?: 'facility' | 'schedule';
 }
 
-type FormMode = 'none' | 'add-booking' | 'add-event' | 'add-banner' | 'edit';
+type FormMode = 'none' | 'add-booking' | 'add-event' | 'add-banner' | 'edit' | 'edit-event';
 
-export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRefresh, onClosureChange }: AdminDayPanelProps) {
+export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRefresh, onClosureChange, mode = 'facility' }: AdminDayPanelProps) {
   const dateStr = formatDate(date);
   const dow = date.getDay();
   const dayBookings = bookings.filter(b => b.date === dateStr);
+
+  // カレンダーモード: calendar_events を取得
+  const [calEvents, setCalEvents] = useState<CalEvent[]>([]);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
+
+  const fetchCalEvents = async () => {
+    const res = await supaFetch(`calendar_events?date=eq.${dateStr}&event_type=neq.closure&order=start_time.asc`);
+    if (res.ok) setCalEvents(await res.json());
+  };
+
+  useState(() => { if (mode === 'schedule') fetchCalEvents(); });
 
   const [formMode, setFormMode] = useState<FormMode>('none');
   const [editId, setEditId] = useState<string | null>(null);
@@ -97,6 +120,46 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
     onRefresh();
   };
 
+  // カレンダーイベント削除
+  const handleDeleteEvent = async (id: string, title: string) => {
+    if (!confirm(`「${title}」を削除しますか？`)) return;
+    await supaFetch(`calendar_events?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+    await fetchCalEvents();
+    onRefresh();
+  };
+
+  // カレンダーイベント編集開始
+  const startEditEvent = (ev: CalEvent) => {
+    setEditingEventId(ev.id);
+    setEventForm({
+      title: ev.title,
+      location: ev.location || '',
+      start_time: ev.start_time ? ev.start_time.slice(0, 5) : '',
+      end_time: ev.end_time ? ev.end_time.slice(0, 5) : '',
+      memo: ev.memo || '',
+    });
+    setFormMode('edit-event');
+  };
+
+  // カレンダーイベント編集保存
+  const handleSaveEventEdit = async () => {
+    if (!editingEventId || !eventForm.title.trim()) return;
+    await supaFetch(`calendar_events?id=eq.${editingEventId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        title: eventForm.title.trim(),
+        location: eventForm.location || null,
+        start_time: eventForm.start_time || null,
+        end_time: eventForm.end_time || null,
+        memo: eventForm.memo || null,
+      }),
+    });
+    setEditingEventId(null);
+    resetForm();
+    await fetchCalEvents();
+    onRefresh();
+  };
+
   // カレンダーイベント追加
   const handleAddEvent = async () => {
     if (!eventForm.title.trim()) return alert('タイトルを入力してください');
@@ -114,6 +177,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
       }),
     });
     resetForm();
+    await fetchCalEvents();
     onRefresh();
   };
 
@@ -178,12 +242,14 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
             >
               <CalendarPlus size={14} /> 予定
             </button>
-            <button
-              onClick={() => { resetForm(); setFormMode('add-booking'); }}
-              className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
-            >
-              <Plus size={14} /> 予約
-            </button>
+            {mode === 'facility' && (
+              <button
+                onClick={() => { resetForm(); setFormMode('add-booking'); }}
+                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
+              >
+                <Plus size={14} /> 予約
+              </button>
+            )}
             <button onClick={onClose} className="p-1.5 hover:bg-gray-200 rounded-full">
               <X size={18} className="text-gray-500" />
             </button>
@@ -273,9 +339,11 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
           </div>
         )}
 
-        {formMode === 'add-event' && (
+        {(formMode === 'add-event' || formMode === 'edit-event') && (
           <div className="p-4 border-b border-gray-200 bg-blue-50 space-y-3">
-            <div className="text-xs font-bold text-blue-700 mb-1">カレンダー予定を追加</div>
+            <div className="text-xs font-bold text-blue-700 mb-1">
+              {formMode === 'edit-event' ? 'カレンダー予定を編集' : 'カレンダー予定を追加'}
+            </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">タイトル</label>
               <input value={eventForm.title} onChange={e => setEventForm(f => ({ ...f, title: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="夏祭り、防災訓練など" autoFocus />
@@ -300,39 +368,68 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
             </div>
             <div className="flex gap-2">
               <button onClick={resetForm} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-600">キャンセル</button>
-              <button onClick={handleAddEvent} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">登録</button>
+              <button onClick={formMode === 'edit-event' ? handleSaveEventEdit : handleAddEvent} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">
+                {formMode === 'edit-event' ? '更新' : '登録'}
+              </button>
             </div>
           </div>
         )}
 
-        {/* 予約一覧 */}
+        {/* 一覧: モードで切り替え */}
         <div className="flex-1 overflow-auto p-4">
-          {dayBookings.length === 0 ? (
-            <p className="text-gray-300 text-sm text-center py-8">この日の予約はありません</p>
-          ) : (
-            <div className="space-y-2">
-              {TIME_SLOTS.map(slot => {
-                const slotBookings = dayBookings.filter(b => b.startTime === slot.startTime);
-                if (slotBookings.length === 0) return null;
-                return (
-                  <div key={slot.id}>
-                    <div className="text-xs font-bold text-gray-500 mb-1">{slot.gasKey} {slot.startTime}〜{slot.endTime}</div>
-                    {slotBookings.map(b => (
-                      <div key={b.id} className={`flex items-center justify-between py-2 px-3 rounded-lg mb-1 ${editId === b.id ? 'bg-emerald-50 ring-1 ring-emerald-300' : 'bg-gray-50'}`}>
-                        <div>
-                          <span className="text-sm font-medium text-gray-800">{b.title}</span>
-                          <span className="text-xs text-gray-400 ml-2">{shortRoomName(b.room)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => startEdit(b)} className="text-blue-400 hover:text-blue-600 p-1"><Pencil size={14} /></button>
-                          <button onClick={() => handleDelete(b.id, b.title)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14} /></button>
-                        </div>
-                      </div>
-                    ))}
+          {mode === 'schedule' ? (
+            /* === カレンダー予定一覧 === */
+            calEvents.length === 0 ? (
+              <p className="text-gray-300 text-sm text-center py-8">この日の予定はありません</p>
+            ) : (
+              <div className="space-y-2">
+                {calEvents.map(ev => (
+                  <div key={ev.id} className={`flex items-center justify-between py-2 px-3 rounded-lg mb-1 ${editingEventId === ev.id ? 'bg-blue-50 ring-1 ring-blue-300' : 'bg-gray-50'}`}>
+                    <div>
+                      <span className="text-sm font-medium text-gray-800">{ev.title}</span>
+                      {ev.start_time && <span className="text-xs text-gray-400 ml-2">{ev.start_time.slice(0,5)}{ev.end_time ? `〜${ev.end_time.slice(0,5)}` : ''}</span>}
+                      {ev.location && <span className="text-xs text-gray-400 ml-2">{ev.location}</span>}
+                      <span className={`text-xs ml-2 px-1.5 py-0.5 rounded ${ev.event_type === 'facility' ? 'bg-violet-100 text-violet-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                        {ev.event_type === 'facility' ? '会館' : '一般'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => startEditEvent(ev)} className="text-blue-400 hover:text-blue-600 p-1"><Pencil size={14} /></button>
+                      <button onClick={() => handleDeleteEvent(ev.id, ev.title)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14} /></button>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )
+          ) : (
+            /* === 予約一覧（従来） === */
+            dayBookings.length === 0 ? (
+              <p className="text-gray-300 text-sm text-center py-8">この日の予約はありません</p>
+            ) : (
+              <div className="space-y-2">
+                {TIME_SLOTS.map(slot => {
+                  const slotBookings = dayBookings.filter(b => b.startTime === slot.startTime);
+                  if (slotBookings.length === 0) return null;
+                  return (
+                    <div key={slot.id}>
+                      <div className="text-xs font-bold text-gray-500 mb-1">{slot.gasKey} {slot.startTime}〜{slot.endTime}</div>
+                      {slotBookings.map(b => (
+                        <div key={b.id} className={`flex items-center justify-between py-2 px-3 rounded-lg mb-1 ${editId === b.id ? 'bg-emerald-50 ring-1 ring-emerald-300' : 'bg-gray-50'}`}>
+                          <div>
+                            <span className="text-sm font-medium text-gray-800">{b.title}</span>
+                            <span className="text-xs text-gray-400 ml-2">{shortRoomName(b.room)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => startEdit(b)} className="text-blue-400 hover:text-blue-600 p-1"><Pencil size={14} /></button>
+                            <button onClick={() => handleDelete(b.id, b.title)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14} /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            )
           )}
         </div>
       </div>

@@ -539,6 +539,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           isClosure={closures.has(`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`)}
           onClose={() => setShowDayPanel(false)}
           onRefresh={handleDayPanelRefresh}
+          mode={calendarSubView}
           onClosureChange={() => {
             supaFetch('calendar_events?is_closure=eq.true&select=date')
               .then(r => r.json())
