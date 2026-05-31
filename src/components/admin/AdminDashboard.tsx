@@ -270,7 +270,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       <header className="bg-slate-800 text-white sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h1 className="text-base font-bold">事務局管理画面</h1>
+            <h1 className="text-base font-bold">管理画面</h1>
             <div className="flex gap-1">
               {tabs.map(t => (
                 <button key={t.id} onClick={() => setTab(t.id)}
