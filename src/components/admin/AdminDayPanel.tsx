@@ -109,6 +109,8 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
         start_time: eventForm.start_time || null,
         end_time: eventForm.end_time || null,
         memo: eventForm.memo || null,
+        event_type: 'general',
+        visibility: 'public',
       }),
     });
     resetForm();

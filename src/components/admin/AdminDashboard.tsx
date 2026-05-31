@@ -314,7 +314,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             </div>
 
             {calendarSubView === 'schedule' ? (
-              <EventList holidays={holidays} closures={closures} />
+              <EventList holidays={holidays} closures={closures} onDateClick={handleDateClick} />
             ) : (
               <Calendar
                 currentDate={currentDate}

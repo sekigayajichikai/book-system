@@ -12,9 +12,10 @@ function formatDate(d: Date): string {
 interface EventListProps {
   holidays: Record<string, string>;
   closures: Set<string>;
+  onDateClick?: (date: Date) => void;
 }
 
-export default function EventList({ holidays, closures }: EventListProps) {
+export default function EventList({ holidays, closures, onDateClick }: EventListProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -76,9 +77,13 @@ export default function EventList({ holidays, closures }: EventListProps) {
       days.push(
         <div
           key={day}
-          onClick={() => dayEvents.length > 0 && setModalDate(new Date(year, month, day))}
+          onClick={() => {
+            const d = new Date(year, month, day);
+            if (onDateClick) { onDateClick(d); }
+            else if (dayEvents.length > 0) { setModalDate(d); }
+          }}
           className={`min-h-[8rem] border border-gray-200 relative transition-colors flex flex-col ${
-            dayEvents.length > 0 ? 'cursor-pointer hover:bg-emerald-50/30' : ''
+            onDateClick || dayEvents.length > 0 ? 'cursor-pointer hover:bg-emerald-50/30' : ''
           } ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
         >
           {/* 日付 */}
