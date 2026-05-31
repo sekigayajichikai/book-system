@@ -56,6 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         date: b.date,
         startTime: times.start,
         endTime: times.end,
+        eventId: b.event_id || null,
       };
     });
 

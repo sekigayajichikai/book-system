@@ -31,6 +31,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         equipment: body.equipment || [],
         price: body.price || 0,
         memo: body.memo || null,
+        event_id: body.event_id || null,
       })
       .select()
       .single();

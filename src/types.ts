@@ -61,6 +61,22 @@ export interface BookingRequest {
   price?: number;
 }
 
+/** イベント（住民向け予定表示用） */
+export interface EventSummary {
+  id: string;
+  date: string;           // YYYY-MM-DD
+  title: string;
+  eventType: 'general' | 'facility' | 'closure';
+  visibility: 'public' | 'internal';
+  location: string | null;
+  startTime: string | null; // HH:mm
+  endTime: string | null;   // HH:mm
+  memo: string | null;
+  description: string | null;
+  rooms: string[];          // facility型: 使用部屋一覧
+  slots: string[];          // facility型: 使用時間帯一覧
+}
+
 /** 団体マスタ（1団体分） */
 export interface OrgEntry {
   name: string;

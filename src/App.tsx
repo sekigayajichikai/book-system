@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarDays, ClipboardList, Info, Users, User, X, LogOut } from 'lucide-react';
+import { CalendarDays, ClipboardList, Info, Users, User, X, LogOut, List } from 'lucide-react';
 import Calendar from './components/Calendar';
 import DailyScheduleGrid from './components/DailyScheduleGrid';
 import WeeklyView from './components/WeeklyView';
@@ -9,6 +9,8 @@ import RoomMonthWeekly from './components/RoomMonthWeekly';
 import BookingDetailModal from './components/BookingDetailModal';
 import MobileCalendarView from './components/mobile/MobileCalendarView';
 import MobileBookingView from './components/mobile/MobileBookingView';
+import EventList from './components/EventList';
+import MobileEventList from './components/mobile/MobileEventList';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import OrgLogin from './components/OrgLogin';
@@ -70,10 +72,11 @@ function App() {
   const [submitting, setSubmitting] = useState(false);
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
 
-  const [calendarMode, setCalendarModeState] = useState<'calendar' | 'booking'>(() => {
+  const [calendarMode, setCalendarModeState] = useState<'schedule' | 'calendar' | 'booking'>(() => {
     const hash = window.location.hash.replace('#', '');
     if (hash === 'calendar' || hash === 'monthly') return 'calendar';
-    return 'booking';
+    if (hash === 'weekly' || hash === 'room') return 'booking';
+    return 'schedule';
   });
   const [bookingSubView, setBookingSubViewState] = useState<'weekly' | 'monthly'>(() => {
     const hash = window.location.hash.replace('#', '');
@@ -85,12 +88,13 @@ function App() {
     return hash === 'room';
   });
 
-  const updateHash = (mode: 'calendar' | 'booking', sub: 'weekly' | 'monthly', rf: boolean) => {
+  const updateHash = (mode: 'schedule' | 'calendar' | 'booking', sub: 'weekly' | 'monthly', rf: boolean) => {
+    if (mode === 'schedule') { window.location.hash = 'schedule'; return; }
     if (mode === 'calendar') { window.location.hash = 'calendar'; return; }
     if (rf) { window.location.hash = 'room'; return; }
     window.location.hash = sub;
   };
-  const setCalendarMode = (mode: 'calendar' | 'booking') => {
+  const setCalendarMode = (mode: 'schedule' | 'calendar' | 'booking') => {
     setCalendarModeState(mode);
     if (mode === 'booking') {
       setBookingSubViewState('monthly');
@@ -284,20 +288,28 @@ function App() {
       {/* Header: タイトル右寄せ + ビュー切替ボタンを同一行に */}
       <header className="bg-white shadow-sm sticky top-0 z-30">
         <div className={`max-w-5xl mx-auto px-4 ${isMobile ? 'h-12' : 'h-14'} flex items-center justify-between`}>
-          {/* ビュー切替ボタン（ログイン時のみ表示） */}
+          {/* ビュー切替ボタン */}
           <div className="flex items-center gap-2">
-            {isOrgLoggedIn && (
-              <button
-                onClick={() => { setCalendarMode('calendar'); setShowMyPage(false); }}
-                className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
-                  !showMyPage && calendarMode === 'calendar'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                <CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />カレンダー
-              </button>
-            )}
+            <button
+              onClick={() => { setCalendarMode('schedule'); setShowMyPage(false); }}
+              className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
+                !showMyPage && calendarMode === 'schedule'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <List size={16} className="inline-block mr-1 -mt-0.5" />予定
+            </button>
+            <button
+              onClick={() => { setCalendarMode('calendar'); setShowMyPage(false); }}
+              className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
+                !showMyPage && calendarMode === 'calendar'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />会館利用
+            </button>
             {isOrgLoggedIn && (
               <button
                 onClick={() => { setCalendarMode('booking'); setShowMyPage(false); }}
@@ -410,10 +422,19 @@ function App() {
               <MyPage orgId={orgId!} orgName={orgName!} />
             ) :
 
-            /* ビュー表示（未ログイン時はカレンダーのみ） */
+            /* 予定タブ（イベント一覧） */
+            calendarMode === 'schedule' ? (
+              isMobile ? (
+                <MobileEventList holidays={holidays} closures={closures} />
+              ) : (
+                <EventList holidays={holidays} closures={closures} />
+              )
+            ) :
+
+            /* ビュー表示 */
             isMobile ? (
               /* === モバイル版 === */
-              (calendarMode === 'calendar' || !isOrgLoggedIn) ? (
+              calendarMode === 'calendar' ? (
                 <MobileCalendarView
                   weekStart={weekStart}
                   bookings={bookings}
@@ -437,7 +458,7 @@ function App() {
               )
             ) : (
               /* === PC版（既存） === */
-              (calendarMode === 'calendar' || !isOrgLoggedIn) ? (
+              calendarMode === 'calendar' ? (
                 <Calendar
                   currentDate={currentDate}
                   onPrevMonth={handlePrevMonth}
