@@ -474,7 +474,7 @@ export default function ImportTab() {
             disabled={pendingCount === 0}
             className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            全て取込
+            全て承認
           </button>
         </div>
       </div>
