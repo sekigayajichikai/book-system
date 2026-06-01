@@ -134,6 +134,14 @@ export default function ImportTab() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [sourceDate, setSourceDate] = useState(() => {
+    // デフォルト: 直近の金曜日
+    const d = new Date();
+    const day = d.getDay();
+    const diff = day >= 5 ? day - 5 : day + 2;
+    d.setDate(d.getDate() - diff);
+    return d.toISOString().slice(0, 10);
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchImport = useCallback(async () => {
@@ -176,6 +184,7 @@ export default function ImportTab() {
           body: JSON.stringify({
             api_key: 'browser-upload',
             year, month,
+            source_updated_at: sourceDate,
             rows: parsedRows,
           }),
         });
@@ -217,7 +226,11 @@ export default function ImportTab() {
     setSyncing(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/sync-drive', { method: 'POST' });
+      const res = await fetch('/api/sync-drive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source_updated_at: sourceDate }),
+      });
       const data = await res.json();
       if (data.ok) {
         setMessage({
@@ -335,6 +348,18 @@ export default function ImportTab() {
 
   // アップロードエリア（常に表示）
   const uploadArea = (
+    <div className="space-y-3">
+    {/* 更新日入力 */}
+    <div className="flex items-center gap-3">
+      <label className="text-sm font-bold text-gray-600">予定表の更新日：</label>
+      <input
+        type="date"
+        value={sourceDate}
+        onChange={e => setSourceDate(e.target.value)}
+        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+      />
+      <span className="text-xs text-gray-400">（Excelが最後に更新された日）</span>
+    </div>
     <div className="flex gap-3">
       {/* Googleドライブから取込 */}
       <button
@@ -383,6 +408,7 @@ export default function ImportTab() {
           </>
         )}
       </div>
+    </div>
     </div>
   );
 

@@ -103,8 +103,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const sourceUpdatedAt = req.body?.source_updated_at || null;
+
   try {
-    // Google DriveからExcelをダウンロード
     // Google DriveからExcelをダウンロード（リダイレクト対応）
     let exportUrl = `https://docs.google.com/spreadsheets/d/${DRIVE_FILE_ID}/export?format=xlsx`;
     let dlRes = await fetch(exportUrl, { redirect: 'manual' });
@@ -136,7 +137,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const totalStats = { add: 0, update: 0, delete: 0, skip: 0 };
 
     for (const { year, month, rows } of parsed) {
-      const result = await processMonth(supabase, year, month, rows);
+      const result = await processMonth(supabase, year, month, rows, sourceUpdatedAt);
       totalStats.add += result.add;
       totalStats.update += result.update;
       totalStats.delete += result.delete;
@@ -151,7 +152,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 /** 1ヶ月分の差分計算+ステージング保存（import.ts handlePostと同じロジック） */
-async function processMonth(supabase: any, year: number, month: number, rows: ParsedMonth['rows']) {
+async function processMonth(supabase: any, year: number, month: number, rows: ParsedMonth['rows'], sourceUpdatedAt?: string | null) {
   const stats = { add: 0, update: 0, delete: 0, skip: 0 };
 
   // 既存pendingバッチ削除
@@ -165,7 +166,7 @@ async function processMonth(supabase: any, year: number, month: number, rows: Pa
   // バッチ作成
   const { data: batch, error: batchErr } = await supabase
     .from('import_batches')
-    .insert({ target_year: year, target_month: month, source_file: 'Google Drive', total_rows: rows.length })
+    .insert({ target_year: year, target_month: month, source_file: 'Google Drive', total_rows: rows.length, source_updated_at: sourceUpdatedAt || null })
     .select()
     .single();
 

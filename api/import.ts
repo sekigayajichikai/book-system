@@ -20,7 +20,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 /** POST: ステージングデータ受付 + 差分計算 */
 async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any) {
-  const { api_key, year, month, source_hash, rows } = req.body;
+  const { api_key, year, month, source_hash, source_updated_at, rows } = req.body;
 
   // 認証（API keyまたはブラウザアップロード）
   if (api_key !== process.env.IMPORT_API_KEY && api_key !== 'browser-upload') {
@@ -46,6 +46,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
         target_year: year,
         target_month: month,
         source_hash: source_hash || null,
+        source_updated_at: source_updated_at || null,
         total_rows: rows.length,
       })
       .select()

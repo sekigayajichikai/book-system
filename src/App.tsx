@@ -131,6 +131,7 @@ function App() {
   const [holidays, setHolidays] = useState<Record<string, string>>({});
   const [closures, setClosures] = useState<Set<string>>(new Set());
   const [banners, setBanners] = useState<any[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   /** 団体マスタ + 祝日を取得 */
   useEffect(() => {
@@ -166,6 +167,16 @@ function App() {
       })
         .then(r => r.json())
         .then(data => setBanners(data || []))
+        .catch(() => {});
+
+      // 最終更新日を取得
+      fetch(`${sbUrl}/rest/v1/import_batches?select=source_updated_at&status=eq.applied&source_updated_at=not.is.null&order=source_updated_at.desc&limit=1`, {
+        headers: { 'apikey': sbKey, 'Authorization': `Bearer ${sbKey}` },
+      })
+        .then(r => r.json())
+        .then((data: any[]) => {
+          if (data?.[0]?.source_updated_at) setLastUpdated(data[0].source_updated_at);
+        })
         .catch(() => {});
     }
   }, []);
@@ -351,8 +362,10 @@ function App() {
 
       {/* Main Content */}
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8">
-        {!isOrgLoggedIn && (
-          <div className="text-xs text-gray-400 text-right mb-2">最終更新日: 2026年5月16日</div>
+        {!isOrgLoggedIn && lastUpdated && (
+          <div className="text-xs text-gray-400 text-right mb-2">
+            最終更新日: {new Date(lastUpdated + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
         )}
         {showSuccessMessage && (
           <div className="mb-6 p-4 bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl flex items-start gap-3 shadow-sm relative">
