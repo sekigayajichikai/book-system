@@ -103,8 +103,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // Google DriveからExcelをダウンロード
-    const exportUrl = `https://docs.google.com/spreadsheets/d/${DRIVE_FILE_ID}/export?format=xlsx`;
-    const dlRes = await fetch(exportUrl);
+    // Google DriveからExcelをダウンロード（リダイレクト対応）
+    let exportUrl = `https://docs.google.com/spreadsheets/d/${DRIVE_FILE_ID}/export?format=xlsx`;
+    let dlRes = await fetch(exportUrl, { redirect: 'manual' });
+
+    // 307/302リダイレクトを手動追跡
+    if (dlRes.status === 307 || dlRes.status === 302 || dlRes.status === 301) {
+      const redirectUrl = dlRes.headers.get('location');
+      if (redirectUrl) {
+        dlRes = await fetch(redirectUrl);
+      }
+    }
+
     if (!dlRes.ok) {
       return res.status(502).json({
         error: 'Googleドライブからのダウンロードに失敗しました',
