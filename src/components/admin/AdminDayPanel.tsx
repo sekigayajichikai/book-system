@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Pencil, X, CalendarPlus, Check } from 'lucide-react';
+import { Plus, Trash2, Pencil, X, CalendarPlus, Check, Star } from 'lucide-react';
 import { Booking } from '../../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../../constants';
 
@@ -118,6 +118,16 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`「${title}」を削除しますか？`)) return;
     await supaFetch(`bookings?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+    onRefresh();
+  };
+
+  // 主な予定トグル
+  const toggleMajor = async (id: string, current: boolean) => {
+    await supaFetch(`calendar_events?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_major: !current }),
+    });
+    await fetchCalEvents();
     onRefresh();
   };
 
@@ -403,6 +413,9 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
+                      <button onClick={() => toggleMajor(ev.id, ev.is_major)} className={`p-1 ${ev.is_major ? 'text-orange-400 hover:text-orange-600' : 'text-gray-300 hover:text-orange-400'}`} title={ev.is_major ? '主な予定を解除' : '主な予定にする'}>
+                        <Star size={14} fill={ev.is_major ? 'currentColor' : 'none'} />
+                      </button>
                       <button onClick={() => startEditEvent(ev)} className="text-blue-400 hover:text-blue-600 p-1"><Pencil size={14} /></button>
                       <button onClick={() => handleDeleteEvent(ev.id, ev.title)} className="text-red-400 hover:text-red-600 p-1"><Trash2 size={14} /></button>
                     </div>
