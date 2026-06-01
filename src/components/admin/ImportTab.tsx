@@ -140,7 +140,7 @@ export default function ImportTab() {
     const day = d.getDay();
     const diff = day >= 5 ? day - 5 : day + 2;
     d.setDate(d.getDate() - diff);
-    return d.toISOString().slice(0, 10);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
