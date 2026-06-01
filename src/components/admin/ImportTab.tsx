@@ -348,8 +348,10 @@ export default function ImportTab() {
         ) : (
           <>
             <p className="text-blue-500 text-sm font-bold">Googleドライブから取込</p>
-            <p className="text-gray-400 text-xs mt-1.5">関ヶ谷自治会DX委員会</p>
-            <p className="text-gray-400 text-xs">カレンダー &gt; 会館予定表 &gt; 会館日程表（新）.xlsx</p>
+            <div className="text-left inline-block mt-2 text-xs text-gray-400">
+              <p><span className="text-gray-500">アカウント：</span>関ヶ谷自治会DX委員会</p>
+              <p><span className="text-gray-500">ファイル　：</span>カレンダー &gt; 会館予定表 &gt; 会館日程表（新）.xlsx</p>
+            </div>
           </>
         )}
       </button>
