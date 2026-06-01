@@ -9,13 +9,10 @@ function formatDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-type CellStyle = 'A' | 'D';
-
 interface EventListProps {
   holidays: Record<string, string>;
   closures: Set<string>;
   onDateClick?: (date: Date) => void;
-  cellStyle?: CellStyle;
 }
 
 // 仮: 主要予定の判定（将来はDBフラグに置き換え）
@@ -24,8 +21,7 @@ function isMajorEvent(title: string): boolean {
   return MAJOR_KEYWORDS.some(kw => title.includes(kw));
 }
 
-export default function EventList({ holidays, closures, onDateClick, cellStyle }: EventListProps) {
-  const [activeCellStyle, setActiveCellStyle] = useState<CellStyle>(cellStyle || 'A');
+export default function EventList({ holidays, closures, onDateClick }: EventListProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -109,51 +105,23 @@ export default function EventList({ holidays, closures, onDateClick, cellStyle }
             {holidayName && <span className="text-xs text-red-400 truncate min-w-0">{holidayName}</span>}
           </div>
 
-          {/* イベント */}
-          {activeCellStyle === 'A' ? (
-            /* パターンA: 主要を上部固定・太字、区切り線の下に詳細・グレー小さい */
-            <div className="flex-1 px-0.5 py-0.5 overflow-hidden flex flex-col">
-              {/* 主要 */}
-              {dayEvents.filter(e => isMajorEvent(e.title)).map(evt => (
-                <div key={evt.id} className="text-xs font-bold text-gray-800 px-0.5 py-0.5 truncate">
-                  {evt.title}
-                </div>
-              ))}
-              {/* 区切り */}
-              {dayEvents.some(e => isMajorEvent(e.title)) && dayEvents.some(e => !isMajorEvent(e.title)) && (
-                <div className="border-t border-gray-200 my-0.5" />
-              )}
-              {/* 詳細 */}
-              {dayEvents.filter(e => !isMajorEvent(e.title)).slice(0, MAX_DISPLAY).map(evt => (
-                <div key={evt.id} className="text-[10px] text-gray-400 px-0.5 truncate leading-tight">
-                  ・{evt.title}
-                </div>
-              ))}
-              {dayEvents.filter(e => !isMajorEvent(e.title)).length > MAX_DISPLAY && (
-                <div className="text-[10px] text-gray-300 pl-1">+{dayEvents.filter(e => !isMajorEvent(e.title)).length - MAX_DISPLAY}</div>
-              )}
-            </div>
-          ) : (
-            /* パターンD: 主要をカラー背景ラベル、詳細は通常ドット表示 */
-            <div className="flex-1 px-0.5 py-0.5 overflow-hidden space-y-px">
-              {/* 主要 */}
-              {dayEvents.filter(e => isMajorEvent(e.title)).map(evt => (
-                <div key={evt.id} className="text-[10px] font-bold text-orange-700 bg-orange-100 rounded px-1 py-0.5 truncate">
-                  {evt.title}
-                </div>
-              ))}
-              {/* 詳細 */}
-              {dayEvents.filter(e => !isMajorEvent(e.title)).slice(0, MAX_DISPLAY).map(evt => (
-                <div key={evt.id} className="text-xs text-gray-700 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden">
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300" />
-                  <span className="truncate">{evt.title}</span>
-                </div>
-              ))}
-              {dayEvents.filter(e => !isMajorEvent(e.title)).length > MAX_DISPLAY && (
-                <div className="text-xs text-gray-400 pl-1">+{dayEvents.filter(e => !isMajorEvent(e.title)).length - MAX_DISPLAY}</div>
-              )}
-            </div>
-          )}
+          {/* イベント: 主要=カラー背景ラベル、詳細=グレードット */}
+          <div className="flex-1 px-0.5 py-0.5 overflow-hidden space-y-px">
+            {dayEvents.filter(e => isMajorEvent(e.title)).map(evt => (
+              <div key={evt.id} className="text-xs font-bold text-orange-700 bg-orange-100 rounded px-1 py-0.5 truncate">
+                {evt.title}
+              </div>
+            ))}
+            {dayEvents.filter(e => !isMajorEvent(e.title)).slice(0, MAX_DISPLAY).map(evt => (
+              <div key={evt.id} className="text-xs text-gray-700 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden">
+                <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300" />
+                <span className="truncate">{evt.title}</span>
+              </div>
+            ))}
+            {dayEvents.filter(e => !isMajorEvent(e.title)).length > MAX_DISPLAY && (
+              <div className="text-xs text-gray-400 pl-1">+{dayEvents.filter(e => !isMajorEvent(e.title)).length - MAX_DISPLAY}</div>
+            )}
+          </div>
         </div>,
       );
     }
@@ -179,25 +147,6 @@ export default function EventList({ holidays, closures, onDateClick, cellStyle }
               </button>
             </div>
           </div>
-          {/* スタイル切り替え（テスト用） */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
-            <button
-              onClick={() => setActiveCellStyle('A')}
-              className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
-                activeCellStyle === 'A' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
-              }`}
-            >
-              パターンA
-            </button>
-            <button
-              onClick={() => setActiveCellStyle('D')}
-              className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
-                activeCellStyle === 'D' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
-              }`}
-            >
-              パターンD
-            </button>
-          </div>
         </div>
 
         {loading && (
@@ -220,19 +169,9 @@ export default function EventList({ holidays, closures, onDateClick, cellStyle }
 
         {/* 凡例 */}
         <div className="flex flex-wrap gap-3 p-3 border-t border-gray-100 text-xs text-gray-500 items-center">
-          {activeCellStyle === 'A' ? (
-            <>
-              <span className="font-bold text-gray-700">太字</span><span>= みんなの予定</span>
-              <span className="text-gray-300">|</span>
-              <span className="text-gray-400">・小さい文字</span><span>= 詳細予定</span>
-            </>
-          ) : (
-            <>
-              <span className="flex items-center gap-1"><span className="w-4 h-3 bg-orange-100 rounded text-[8px] text-orange-700 font-bold flex items-center justify-center">例</span>みんなの予定</span>
-              <span className="text-gray-300">|</span>
-              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-gray-300 rounded-full" />詳細予定</span>
-            </>
-          )}
+          <span className="flex items-center gap-1"><span className="w-4 h-3 bg-orange-100 rounded text-[8px] text-orange-700 font-bold flex items-center justify-center">例</span>みんなの予定</span>
+          <span className="text-gray-300">|</span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-gray-300 rounded-full" />詳細予定</span>
         </div>
       </div>
 
