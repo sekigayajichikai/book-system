@@ -70,8 +70,10 @@ function parseWorkbook(buffer: ArrayBuffer): ParsedMonth[] {
     for (let c = 0; c <= range.e.c; c++) {
       const cell = ws[XLSX.utils.encode_cell({ r: 1, c })];
       if (cell && cell.t === 'n' && cell.v > 40000) {
-        const d = XLSX.SSF.parse_date_code(cell.v);
-        if (d.m === month) dateCols.push({ col: c, day: d.d });
+        // Excelシリアル値→日付変換（1900年起算、1/0バグ補正）
+        const utcDays = cell.v - 25569; // Unix epoch (1970-01-01) との差
+        const d = new Date(utcDays * 86400000);
+        if (d.getUTCMonth() + 1 === month) dateCols.push({ col: c, day: d.getUTCDate() });
       }
     }
 
