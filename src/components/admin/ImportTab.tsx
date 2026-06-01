@@ -248,7 +248,7 @@ export default function ImportTab() {
     });
   };
 
-  // 一括承認
+  // 一括取込
   const approveAll = async () => {
     const targets = filteredRows.filter(r => r.review_status === 'pending');
     if (targets.length === 0) return;
@@ -263,6 +263,25 @@ export default function ImportTab() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         rows: targets.map(r => ({ id: r.id, review_status: 'approved' })),
+      }),
+    });
+  };
+
+  // 一括取消
+  const rejectAll = async () => {
+    const targets = filteredRows.filter(r => r.review_status === 'pending');
+    if (targets.length === 0) return;
+
+    setRows(prev => prev.map(r => {
+      if (targets.some(t => t.id === r.id)) return { ...r, review_status: 'rejected' as const };
+      return r;
+    }));
+
+    await fetch('/api/import', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rows: targets.map(r => ({ id: r.id, review_status: 'rejected' })),
       }),
     });
   };
@@ -377,11 +396,18 @@ export default function ImportTab() {
             <RefreshCw size={16} className="text-gray-400" />
           </button>
           <button
+            onClick={rejectAll}
+            disabled={pendingCount === 0}
+            className="px-3 py-1.5 bg-gray-500 text-white rounded-lg text-xs font-bold hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            全て取消
+          </button>
+          <button
             onClick={approveAll}
             disabled={pendingCount === 0}
             className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            全て承認
+            全て取込
           </button>
         </div>
       </div>
