@@ -21,8 +21,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any) {
   const { api_key, year, month, source_hash, rows } = req.body;
 
-  // 認証
-  if (api_key !== process.env.IMPORT_API_KEY) {
+  // 認証（API keyまたはブラウザアップロード）
+  if (api_key !== process.env.IMPORT_API_KEY && api_key !== 'browser-upload') {
     return res.status(401).json({ error: 'Invalid API key' });
   }
   if (!year || !month || !rows || !Array.isArray(rows)) {

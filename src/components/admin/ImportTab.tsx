@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload } from 'lucide-react';
 import { shortRoomName } from '../../constants';
+import * as XLSX from 'xlsx';
 
 interface ImportBatch {
   id: string;
@@ -35,6 +36,87 @@ const DIFF_LABELS: Record<string, { label: string; bg: string; text: string }> =
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
 
+// Excelパース: ORG_MAP
+const ORG_MAP: Record<string, string> = {
+  '囲碁': '自主活動部', 'カラオケ': '自主活動部', '関ヶ谷クラブ': '自主活動部',
+  'ディスクコンサート': '自主活動部', '図書': '自主活動部', 'ふれあい': '自主活動部',
+  'ブルーベル': '自主活動部', 'ブル―ベル': '自主活動部', 'トーンチャイム': '自主活動部',
+  'ちりとてちん': '自主活動部', 'オペラ': '自主活動部', '読書': '自主活動部',
+  'つなぎの会': '自主活動部', 'ききょう': '自主活動部', '見まわり隊': '自主活動部',
+  '役員': '役員', '総会': '役員', '新役員': '役員',
+  '事務局': '事務局', '会館予約': '事務局', '会計監査': '事務局',
+  '防災': '委員会', 'HP': '委員会', 'DX': '委員会', '環境': '委員会',
+  '広報': '委員会', '青少年': '委員会',
+  '地区長': '地区長・班長', '班長': '地区長・班長', '合同会議': '地区長・班長',
+};
+
+function guessOrg(title: string): string {
+  for (const [kw, org] of Object.entries(ORG_MAP)) {
+    if (title.includes(kw)) return org;
+  }
+  return '';
+}
+
+// Excelパース: シートからイベント抽出
+const ROWS_DEF: [number, string, string][] = [
+  [3, '午前', '会議室'], [4, '午前', '和室（畳側）'],
+  [5, '午前', '和室（椅子側）'], [6, '午前', '図書室'],
+  [8, '午後', '会議室'], [9, '午後', '和室（畳側）'],
+  [10, '午後', '和室（椅子側）'], [11, '午後', '図書室'],
+  [12, '夜間', '会議室'],
+];
+
+interface ParsedRow {
+  date: string;
+  slot: string;
+  room: string;
+  title: string;
+  org_guess: string;
+}
+
+function parseExcel(file: ArrayBuffer): { year: number; month: number; rows: ParsedRow[] }[] {
+  const wb = XLSX.read(file, { type: 'array' });
+  const results: { year: number; month: number; rows: ParsedRow[] }[] = [];
+
+  for (const name of wb.SheetNames) {
+    const ws = wb.Sheets[name];
+    if (!ws['I1'] || !ws['L1']) continue;
+    const year = Number(ws['I1'].v);
+    const month = Number(ws['L1'].v);
+    if (!(year >= 2020 && year <= 2099 && month >= 1 && month <= 12)) continue;
+
+    // 日付列を検出（Row2, 0-indexed row=1）
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    const dateCols: { col: number; day: number }[] = [];
+    for (let c = 0; c <= range.e.c; c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: 1, c })];
+      if (cell && cell.t === 'n' && cell.v > 40000) {
+        const d = XLSX.SSF.parse_date_code(cell.v);
+        if (d.m === month) dateCols.push({ col: c, day: d.d });
+      }
+    }
+
+    const rows: ParsedRow[] = [];
+    for (const [rowIdx, slot, room] of ROWS_DEF) {
+      for (const { col, day } of dateCols) {
+        const cell = ws[XLSX.utils.encode_cell({ r: rowIdx, c: col })];
+        if (!cell || !cell.v) continue;
+        const title = String(cell.v).trim().replace(/\u3000/g, '');
+        if (!title || title === '×') continue;
+        rows.push({
+          date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+          slot, room, title,
+          org_guess: guessOrg(title),
+        });
+      }
+    }
+
+    if (rows.length > 0) results.push({ year, month, rows });
+  }
+
+  return results;
+}
+
 export default function ImportTab() {
   const [batch, setBatch] = useState<ImportBatch | null>(null);
   const [rows, setRows] = useState<ImportRow[]>([]);
@@ -42,6 +124,8 @@ export default function ImportTab() {
   const [filter, setFilter] = useState<'all' | 'add' | 'update' | 'delete'>('all');
   const [applying, setApplying] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchImport = useCallback(async () => {
     setLoading(true);
@@ -59,6 +143,65 @@ export default function ImportTab() {
   }, []);
 
   useEffect(() => { fetchImport(); }, [fetchImport]);
+
+  // Excelファイルアップロード処理
+  const handleFileUpload = async (file: File) => {
+    setUploading(true);
+    setMessage(null);
+    try {
+      const buffer = await file.arrayBuffer();
+      const parsed = parseExcel(buffer);
+
+      if (parsed.length === 0) {
+        setMessage({ type: 'error', text: '有効なシートが見つかりませんでした' });
+        setUploading(false);
+        return;
+      }
+
+      // 各月ごとにAPIにPOST
+      let totalStats = { add: 0, update: 0, delete: 0, skip: 0 };
+      for (const { year, month, rows: parsedRows } of parsed) {
+        const res = await fetch('/api/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            api_key: 'browser-upload',
+            year, month,
+            rows: parsedRows,
+          }),
+        });
+        const data = await res.json();
+        if (data.ok && data.stats) {
+          totalStats.add += data.stats.add || 0;
+          totalStats.update += data.stats.update || 0;
+          totalStats.delete += data.stats.delete || 0;
+          totalStats.skip += data.stats.skip || 0;
+        }
+      }
+
+      setMessage({
+        type: 'success',
+        text: `${parsed.length}ヶ月分を取込みました（新規${totalStats.add} / 変更${totalStats.update} / 削除${totalStats.delete}）`,
+      });
+      await fetchImport();
+    } catch (err) {
+      console.error('Excel parse error:', err);
+      setMessage({ type: 'error', text: 'Excelの読み取りに失敗しました' });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+      handleFileUpload(file);
+    } else {
+      setMessage({ type: 'error', text: 'Excelファイル(.xlsx)を選択してください' });
+    }
+  };
 
   const filteredRows = rows.filter(r => {
     if (filter === 'all') return true;
@@ -126,12 +269,50 @@ export default function ImportTab() {
 
   if (loading) return <div className="text-gray-400 text-sm py-12 text-center">読み込み中...</div>;
 
+  // アップロードエリア（常に表示）
+  const uploadArea = (
+    <div
+      onDrop={handleDrop}
+      onDragOver={e => e.preventDefault()}
+      className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors cursor-pointer"
+      onClick={() => fileInputRef.current?.click()}
+    >
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        className="hidden"
+        onChange={e => {
+          const file = e.target.files?.[0];
+          if (file) handleFileUpload(file);
+        }}
+      />
+      <Upload size={32} className="mx-auto text-gray-300 mb-2" />
+      {uploading ? (
+        <p className="text-emerald-600 font-bold text-sm">読み取り中...</p>
+      ) : (
+        <>
+          <p className="text-gray-500 text-sm font-bold">Excelファイルをドラッグ＆ドロップ</p>
+          <p className="text-gray-400 text-xs mt-1">またはクリックしてファイルを選択（.xlsx）</p>
+        </>
+      )}
+    </div>
+  );
+
   if (!batch) {
     return (
-      <div className="text-center py-12">
-        <AlertTriangle size={40} className="mx-auto text-gray-300 mb-3" />
-        <p className="text-gray-400 text-sm">インポートデータがありません</p>
-        <p className="text-gray-300 text-xs mt-1">自治会館PCからExcelデータがアップロードされると、ここに表示されます</p>
+      <div className="space-y-6">
+        {uploadArea}
+        {message && (
+          <div className={`p-3 rounded-lg text-sm font-bold ${message.type === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+            {message.text}
+          </div>
+        )}
+        <div className="text-center py-6">
+          <AlertTriangle size={40} className="mx-auto text-gray-300 mb-3" />
+          <p className="text-gray-400 text-sm">インポートデータがありません</p>
+          <p className="text-gray-300 text-xs mt-1">上のエリアからExcelファイルをアップロードしてください</p>
+        </div>
       </div>
     );
   }
@@ -140,6 +321,9 @@ export default function ImportTab() {
 
   return (
     <div className="space-y-4">
+      {/* アップロードエリア */}
+      {uploadArea}
+
       {/* バッチ情報 */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex items-center justify-between">
