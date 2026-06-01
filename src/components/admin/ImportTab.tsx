@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload } from 'lucide-react';
+import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload, Cloud } from 'lucide-react';
 import { shortRoomName } from '../../constants';
 import * as XLSX from 'xlsx';
 
@@ -133,6 +133,7 @@ export default function ImportTab() {
   const [applying, setApplying] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchImport = useCallback(async () => {
@@ -208,6 +209,29 @@ export default function ImportTab() {
       handleFileUpload(file);
     } else {
       setMessage({ type: 'error', text: 'Excelファイル(.xlsx)を選択してください' });
+    }
+  };
+
+  // Googleドライブから取込
+  const handleSyncDrive = async () => {
+    setSyncing(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/sync-drive', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        setMessage({
+          type: 'success',
+          text: `Googleドライブから${data.months}ヶ月分を取込みました（新規${data.stats.add} / 変更${data.stats.update} / 削除${data.stats.delete}）`,
+        });
+        await fetchImport();
+      } else {
+        setMessage({ type: 'error', text: data.error || '取込に失敗しました' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'Googleドライブからの取込に失敗しました' });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -311,31 +335,51 @@ export default function ImportTab() {
 
   // アップロードエリア（常に表示）
   const uploadArea = (
-    <div
-      onDrop={handleDrop}
-      onDragOver={e => e.preventDefault()}
-      className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors cursor-pointer"
-      onClick={() => fileInputRef.current?.click()}
-    >
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".xlsx,.xls"
-        className="hidden"
-        onChange={e => {
-          const file = e.target.files?.[0];
-          if (file) handleFileUpload(file);
-        }}
-      />
-      <Upload size={32} className="mx-auto text-gray-300 mb-2" />
-      {uploading ? (
-        <p className="text-emerald-600 font-bold text-sm">読み取り中...</p>
-      ) : (
-        <>
-          <p className="text-gray-500 text-sm font-bold">Excelファイルをドラッグ＆ドロップ</p>
-          <p className="text-gray-400 text-xs mt-1">またはクリックしてファイルを選択（.xlsx）</p>
-        </>
-      )}
+    <div className="flex gap-3">
+      {/* Googleドライブから取込 */}
+      <button
+        onClick={handleSyncDrive}
+        disabled={syncing || uploading}
+        className="flex-1 border-2 border-dashed border-blue-300 rounded-xl p-6 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <Cloud size={32} className="mx-auto text-blue-300 mb-2" />
+        {syncing ? (
+          <p className="text-blue-600 font-bold text-sm">取込中...</p>
+        ) : (
+          <>
+            <p className="text-blue-500 text-sm font-bold">Googleドライブから取込</p>
+            <p className="text-gray-400 text-xs mt-1">登録済みのExcelを自動読込</p>
+          </>
+        )}
+      </button>
+
+      {/* ファイルアップロード */}
+      <div
+        onDrop={handleDrop}
+        onDragOver={e => e.preventDefault()}
+        className="flex-1 border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors cursor-pointer"
+        onClick={() => fileInputRef.current?.click()}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          className="hidden"
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) handleFileUpload(file);
+          }}
+        />
+        <Upload size={32} className="mx-auto text-gray-300 mb-2" />
+        {uploading ? (
+          <p className="text-emerald-600 font-bold text-sm">読み取り中...</p>
+        ) : (
+          <>
+            <p className="text-gray-500 text-sm font-bold">Excelファイルをアップロード</p>
+            <p className="text-gray-400 text-xs mt-1">ドラッグ＆ドロップまたはクリック</p>
+          </>
+        )}
+      </div>
     </div>
   );
 
