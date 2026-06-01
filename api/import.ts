@@ -1,0 +1,275 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
+
+/**
+ * /api/import
+ *
+ * POST: PC側スクリプトからステージングデータ受付 + 差分計算
+ * GET:  管理画面用の差分一覧取得
+ * PATCH: 行ごとのレビューステータス更新
+ */
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+
+  if (req.method === 'POST') return handlePost(req, res, supabase);
+  if (req.method === 'GET') return handleGet(req, res, supabase);
+  if (req.method === 'PATCH') return handlePatch(req, res, supabase);
+  return res.status(405).json({ error: 'Method not allowed' });
+}
+
+/** POST: ステージングデータ受付 + 差分計算 */
+async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any) {
+  const { api_key, year, month, source_hash, rows } = req.body;
+
+  // 認証
+  if (api_key !== process.env.IMPORT_API_KEY) {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+  if (!year || !month || !rows || !Array.isArray(rows)) {
+    return res.status(400).json({ error: 'year, month, rows are required' });
+  }
+
+  try {
+    // 同一年月の既存pending/reviewingバッチを削除（CASCADEでrowsも消える）
+    await supabase
+      .from('import_batches')
+      .delete()
+      .eq('target_year', year)
+      .eq('target_month', month)
+      .in('status', ['pending', 'reviewing']);
+
+    // 新バッチ作成
+    const { data: batch, error: batchErr } = await supabase
+      .from('import_batches')
+      .insert({
+        target_year: year,
+        target_month: month,
+        source_hash: source_hash || null,
+        total_rows: rows.length,
+      })
+      .select()
+      .single();
+
+    if (batchErr) throw batchErr;
+
+    // 対象月の既存bookings取得
+    const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+    const endMonth = month === 12 ? 1 : month + 1;
+    const endYear = month === 12 ? year + 1 : year;
+    const endDate = `${endYear}-${String(endMonth).padStart(2, '0')}-01`;
+
+    const { data: existingBookings } = await supabase
+      .from('bookings')
+      .select('id, date, slot, room, title')
+      .gte('date', startDate)
+      .lt('date', endDate)
+      .in('status', ['CONFIRMED', 'PENDING']);
+
+    // 既存bookingsをキーでマップ化
+    const existingMap: Record<string, { id: string; title: string }> = {};
+    (existingBookings || []).forEach((b: any) => {
+      const key = `${b.date}|${b.slot}|${b.room}`;
+      existingMap[key] = { id: b.id, title: b.title };
+    });
+
+    // インポート行のキーセット（delete検出用）
+    const importKeySet = new Set<string>();
+
+    // 差分計算
+    const importRows: any[] = [];
+    const stats = { add: 0, update: 0, delete: 0, skip: 0 };
+
+    for (const row of rows) {
+      const key = `${row.date}|${row.slot}|${row.room}`;
+      importKeySet.add(key);
+
+      const existing = existingMap[key];
+
+      // 「予約あり」はスキップ
+      if (row.title === '予約あり') {
+        stats.skip++;
+        importRows.push({
+          batch_id: batch.id,
+          date: row.date,
+          slot: row.slot,
+          room: row.room,
+          title: row.title,
+          org_guess: row.org_guess || null,
+          diff_type: 'skip',
+          existing_booking_id: existing?.id || null,
+          existing_title: existing?.title || null,
+          review_status: 'skipped',
+        });
+        continue;
+      }
+
+      if (existing) {
+        if (existing.title === row.title) {
+          // 変更なし
+          stats.skip++;
+          importRows.push({
+            batch_id: batch.id,
+            date: row.date,
+            slot: row.slot,
+            room: row.room,
+            title: row.title,
+            org_guess: row.org_guess || null,
+            diff_type: 'skip',
+            existing_booking_id: existing.id,
+            existing_title: existing.title,
+            review_status: 'skipped',
+          });
+        } else {
+          // タイトル変更
+          stats.update++;
+          importRows.push({
+            batch_id: batch.id,
+            date: row.date,
+            slot: row.slot,
+            room: row.room,
+            title: row.title,
+            org_guess: row.org_guess || null,
+            diff_type: 'update',
+            existing_booking_id: existing.id,
+            existing_title: existing.title,
+            review_status: 'pending',
+          });
+        }
+      } else {
+        // 新規
+        stats.add++;
+        importRows.push({
+          batch_id: batch.id,
+          date: row.date,
+          slot: row.slot,
+          room: row.room,
+          title: row.title,
+          org_guess: row.org_guess || null,
+          diff_type: 'add',
+          review_status: 'pending',
+        });
+      }
+    }
+
+    // 削除検出: bookingsにあるがExcelにない（「予約あり」は除外）
+    for (const [key, existing] of Object.entries(existingMap)) {
+      if (!importKeySet.has(key) && existing.title !== '予約あり') {
+        const [date, slot, room] = key.split('|');
+        stats.delete++;
+        importRows.push({
+          batch_id: batch.id,
+          date,
+          slot,
+          room,
+          title: existing.title,
+          diff_type: 'delete',
+          existing_booking_id: existing.id,
+          existing_title: existing.title,
+          review_status: 'pending',
+        });
+      }
+    }
+
+    // import_rows 一括INSERT
+    if (importRows.length > 0) {
+      const { error: rowsErr } = await supabase
+        .from('import_rows')
+        .insert(importRows);
+      if (rowsErr) throw rowsErr;
+    }
+
+    // バッチstats更新
+    await supabase
+      .from('import_batches')
+      .update({ stats, total_rows: importRows.length })
+      .eq('id', batch.id);
+
+    return res.status(200).json({ ok: true, batch_id: batch.id, stats });
+  } catch (err: any) {
+    console.error('Import error:', err);
+    return res.status(500).json({ error: 'インポートに失敗しました', detail: err?.message });
+  }
+}
+
+/** GET: 差分一覧取得 */
+async function handleGet(req: VercelRequest, res: VercelResponse, supabase: any) {
+  const { year, month, include_skip } = req.query;
+
+  try {
+    // バッチ取得
+    let batchQuery = supabase
+      .from('import_batches')
+      .select('*')
+      .in('status', ['pending', 'reviewing', 'applied'])
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (year && month) {
+      batchQuery = supabase
+        .from('import_batches')
+        .select('*')
+        .eq('target_year', Number(year))
+        .eq('target_month', Number(month))
+        .order('created_at', { ascending: false })
+        .limit(1);
+    }
+
+    const { data: batches, error: batchErr } = await batchQuery;
+    if (batchErr) throw batchErr;
+
+    if (!batches || batches.length === 0) {
+      return res.status(200).json({ batch: null, rows: [] });
+    }
+
+    const batch = batches[0];
+
+    // import_rows取得
+    let rowsQuery = supabase
+      .from('import_rows')
+      .select('*')
+      .eq('batch_id', batch.id)
+      .order('date')
+      .order('slot')
+      .order('room');
+
+    if (include_skip !== 'true') {
+      rowsQuery = rowsQuery.neq('diff_type', 'skip');
+    }
+
+    const { data: rows, error: rowsErr } = await rowsQuery;
+    if (rowsErr) throw rowsErr;
+
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.status(200).json({ batch, rows: rows || [] });
+  } catch (err: any) {
+    console.error('Import GET error:', err);
+    return res.status(500).json({ error: '取得に失敗しました', detail: err?.message });
+  }
+}
+
+/** PATCH: レビューステータス更新 */
+async function handlePatch(req: VercelRequest, res: VercelResponse, supabase: any) {
+  const { rows } = req.body;
+
+  if (!rows || !Array.isArray(rows)) {
+    return res.status(400).json({ error: 'rows array is required' });
+  }
+
+  try {
+    for (const row of rows) {
+      const update: any = { review_status: row.review_status };
+      if (row.review_note !== undefined) update.review_note = row.review_note;
+      if (row.title !== undefined) update.title = row.title;
+
+      await supabase
+        .from('import_rows')
+        .update(update)
+        .eq('id', row.id);
+    }
+
+    return res.status(200).json({ ok: true });
+  } catch (err: any) {
+    console.error('Import PATCH error:', err);
+    return res.status(500).json({ error: '更新に失敗しました', detail: err?.message });
+  }
+}
