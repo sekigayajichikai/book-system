@@ -362,11 +362,6 @@ function App() {
 
       {/* Main Content */}
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8">
-        {!isOrgLoggedIn && lastUpdated && (
-          <div className="text-xs text-gray-400 text-right mb-2">
-            最終更新日: {new Date(lastUpdated + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}
-          </div>
-        )}
         {showSuccessMessage && (
           <div className="mb-6 p-4 bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl flex items-start gap-3 shadow-sm relative">
             <div className="bg-white p-1 rounded-full mt-0.5"><Info size={20} className="text-emerald-500" /></div>
@@ -448,6 +443,8 @@ function App() {
             isMobile ? (
               /* === モバイル版 === */
               calendarMode === 'calendar' ? (
+                <>
+                {lastUpdated && <div className="text-xs text-gray-400 text-right mb-2">会館利用状況 更新日: {new Date(lastUpdated + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}</div>}
                 <MobileCalendarView
                   weekStart={weekStart}
                   bookings={bookings}
@@ -458,6 +455,7 @@ function App() {
                   banners={banners}
                   loading={loading}
                 />
+                </>
               ) : (
                 <MobileBookingView
                   weekStart={weekStart}
@@ -472,6 +470,8 @@ function App() {
             ) : (
               /* === PC版（既存） === */
               calendarMode === 'calendar' ? (
+                <>
+                {lastUpdated && <div className="text-xs text-gray-400 text-right mb-2">会館利用状況 更新日: {new Date(lastUpdated + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}</div>}
                 <Calendar
                   currentDate={currentDate}
                   onPrevMonth={handlePrevMonth}
@@ -482,6 +482,7 @@ function App() {
                   closures={closures}
                   loading={loading}
                 />
+                </>
               ) : bookingSubView === 'weekly' ? (
                 <WeeklyView
                   weekStart={weekStart}
