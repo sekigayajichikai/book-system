@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarDays, ClipboardList, Settings, LogOut, Plus, Trash2, Pencil, X, Users, Check } from 'lucide-react';
+import { CalendarDays, ClipboardList, Settings, LogOut, Plus, Trash2, Pencil, X, Users, Check, Upload } from 'lucide-react';
 import Calendar from '../Calendar';
 import EventList from '../EventList';
 import AdminDayPanel from './AdminDayPanel';
 import SettingsTab from './SettingsTab';
+import ImportTab from './ImportTab';
 import { Booking, BookingStatus, RoomType, CalendarEvent, OrgEntry } from '../../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../../constants';
 
-type Tab = 'calendar' | 'approvals' | 'organizations' | 'settings';
+type Tab = 'calendar' | 'import' | 'approvals' | 'organizations' | 'settings';
 
 interface Org {
   id: string;
@@ -262,6 +263,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'calendar', label: '予定管理', icon: <CalendarDays size={18} /> },
+    { id: 'import', label: 'インポート', icon: <Upload size={18} /> },
     { id: 'approvals', label: `申請管理${pendingBookings.length > 0 ? ` (${pendingBookings.length})` : ''}`, icon: <ClipboardList size={18} /> },
     { id: 'organizations', label: '団体マスタ', icon: <Users size={18} /> },
     { id: 'settings', label: '設定', icon: <Settings size={18} /> },
@@ -330,6 +332,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             )}
           </div>
         )}
+
+        {/* === インポート === */}
+        {tab === 'import' && <ImportTab />}
 
         {/* === 申請管理 === */}
         {tab === 'approvals' && (
