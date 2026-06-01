@@ -61,7 +61,7 @@ async function supaFetch(path: string, options?: RequestInit) {
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [tab, setTab] = useState<Tab>('calendar');
-  const [calendarSubView, setCalendarSubView] = useState<'schedule' | 'facility'>('facility');
+  const [calendarSubView, setCalendarSubView] = useState<'schedule' | 'facility'>('schedule');
   const [loading, setLoading] = useState(false);
 
   // === カレンダー ===
