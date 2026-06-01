@@ -267,23 +267,17 @@ export default function ImportTab() {
     });
   };
 
-  // 一括取消
+  // 全て取消（バッチごとDBから削除）
   const rejectAll = async () => {
-    const targets = filteredRows.filter(r => r.review_status === 'pending');
-    if (targets.length === 0) return;
-
-    setRows(prev => prev.map(r => {
-      if (targets.some(t => t.id === r.id)) return { ...r, review_status: 'rejected' as const };
-      return r;
-    }));
-
-    await fetch('/api/import', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        rows: targets.map(r => ({ id: r.id, review_status: 'rejected' })),
-      }),
-    });
+    if (!confirm('インポートデータを全て取消しますか？')) return;
+    try {
+      await fetch('/api/import', { method: 'DELETE' });
+      setBatches([]);
+      setRows([]);
+      setMessage({ type: 'success', text: 'インポートデータを取消しました' });
+    } catch {
+      setMessage({ type: 'error', text: '取消に失敗しました' });
+    }
   };
 
   // 反映（全バッチ一括）

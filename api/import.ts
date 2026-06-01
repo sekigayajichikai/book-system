@@ -14,6 +14,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'POST') return handlePost(req, res, supabase);
   if (req.method === 'GET') return handleGet(req, res, supabase);
   if (req.method === 'PATCH') return handlePatch(req, res, supabase);
+  if (req.method === 'DELETE') return handleDelete(req, res, supabase);
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
@@ -259,5 +260,21 @@ async function handlePatch(req: VercelRequest, res: VercelResponse, supabase: an
   } catch (err: any) {
     console.error('Import PATCH error:', err);
     return res.status(500).json({ error: '更新に失敗しました', detail: err?.message });
+  }
+}
+
+/** DELETE: pending/reviewingの全バッチを削除（CASCADEでrowsも消える） */
+async function handleDelete(_req: VercelRequest, res: VercelResponse, supabase: any) {
+  try {
+    const { error } = await supabase
+      .from('import_batches')
+      .delete()
+      .in('status', ['pending', 'reviewing']);
+
+    if (error) throw error;
+    return res.status(200).json({ ok: true });
+  } catch (err: any) {
+    console.error('Import DELETE error:', err);
+    return res.status(500).json({ error: '削除に失敗しました', detail: err?.message });
   }
 }
