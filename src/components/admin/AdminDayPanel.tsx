@@ -34,6 +34,7 @@ interface CalEvent {
   memo: string | null;
   event_type: string;
   visibility: string;
+  is_major: boolean;
 }
 
 interface AdminDayPanelProps {
@@ -67,14 +68,14 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
   const [formMode, setFormMode] = useState<FormMode>('none');
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ slot: '午前', room: ROOMS[0].id as string, title: '' });
-  const [eventForm, setEventForm] = useState({ title: '', location: '', start_time: '', end_time: '', memo: '' });
+  const [eventForm, setEventForm] = useState({ title: '', location: '', start_time: '', end_time: '', memo: '', is_major: false });
   const [bannerForm, setBannerForm] = useState({ title: '', description: '', event_time: '', event_location: '', style: 'green', display_days: '7', image_url: '' });
 
   const resetForm = () => {
     setFormMode('none');
     setEditId(null);
     setForm({ slot: '午前', room: ROOMS[0].id as string, title: '' });
-    setEventForm({ title: '', location: '', start_time: '', end_time: '', memo: '' });
+    setEventForm({ title: '', location: '', start_time: '', end_time: '', memo: '', is_major: false });
     setBannerForm({ title: '', description: '', event_time: '', event_location: '', style: 'green', display_days: '7', image_url: '' });
   };
 
@@ -137,6 +138,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
       start_time: ev.start_time ? ev.start_time.slice(0, 5) : '',
       end_time: ev.end_time ? ev.end_time.slice(0, 5) : '',
       memo: ev.memo || '',
+      is_major: (ev as any).is_major || false,
     });
     setFormMode('edit-event');
   };
@@ -152,6 +154,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
         start_time: eventForm.start_time || null,
         end_time: eventForm.end_time || null,
         memo: eventForm.memo || null,
+        is_major: eventForm.is_major,
       }),
     });
     setEditingEventId(null);
@@ -174,6 +177,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
         memo: eventForm.memo || null,
         event_type: 'general',
         visibility: 'public',
+        is_major: eventForm.is_major,
       }),
     });
     resetForm();
@@ -366,6 +370,11 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
               <label className="block text-xs font-medium text-gray-500 mb-1">メモ</label>
               <input value={eventForm.memo} onChange={e => setEventForm(f => ({ ...f, memo: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="補足情報" />
             </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={eventForm.is_major} onChange={e => setEventForm(f => ({ ...f, is_major: e.target.checked }))} className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500" />
+              <span className="text-sm font-medium text-gray-700">主な予定</span>
+              <span className="text-xs text-gray-400">（カレンダーで強調表示されます）</span>
+            </label>
             <div className="flex gap-2">
               <button onClick={resetForm} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-600">キャンセル</button>
               <button onClick={formMode === 'edit-event' ? handleSaveEventEdit : handleAddEvent} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">

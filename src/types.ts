@@ -75,6 +75,7 @@ export interface EventSummary {
   description: string | null;
   rooms: string[];          // facility型: 使用部屋一覧
   slots: string[];          // facility型: 使用時間帯一覧
+  isMajor: boolean;         // 主な予定フラグ
 }
 
 /** 団体マスタ（1団体分） */

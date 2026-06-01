@@ -15,10 +15,8 @@ interface EventListProps {
   onDateClick?: (date: Date) => void;
 }
 
-// 仮: 主要予定の判定（将来はDBフラグに置き換え）
-const MAJOR_KEYWORDS = ['一斉清掃', '防災訓練', '納涼大会', '総会', '古本市', '運動会', '盆踊り', '新年会', '役員会'];
-function isMajorEvent(title: string): boolean {
-  return MAJOR_KEYWORDS.some(kw => title.includes(kw));
+function isMajorEvent(evt: { isMajor?: boolean }): boolean {
+  return evt.isMajor === true;
 }
 
 export default function EventList({ holidays, closures, onDateClick }: EventListProps) {
@@ -107,19 +105,19 @@ export default function EventList({ holidays, closures, onDateClick }: EventList
 
           {/* イベント: 主要=カラー背景ラベル、詳細=グレードット */}
           <div className="flex-1 px-0.5 py-0.5 overflow-hidden space-y-px">
-            {dayEvents.filter(e => isMajorEvent(e.title)).map(evt => (
+            {dayEvents.filter(e => isMajorEvent(e)).map(evt => (
               <div key={evt.id} className="text-xs font-bold text-orange-700 bg-orange-100 rounded px-1 py-0.5 truncate">
                 {evt.title}
               </div>
             ))}
-            {dayEvents.filter(e => !isMajorEvent(e.title)).slice(0, MAX_DISPLAY).map(evt => (
+            {dayEvents.filter(e => !isMajorEvent(e)).slice(0, MAX_DISPLAY).map(evt => (
               <div key={evt.id} className="text-xs text-gray-700 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden">
                 <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300" />
                 <span className="truncate">{evt.title}</span>
               </div>
             ))}
-            {dayEvents.filter(e => !isMajorEvent(e.title)).length > MAX_DISPLAY && (
-              <div className="text-xs text-gray-400 pl-1">+{dayEvents.filter(e => !isMajorEvent(e.title)).length - MAX_DISPLAY}</div>
+            {dayEvents.filter(e => !isMajorEvent(e)).length > MAX_DISPLAY && (
+              <div className="text-xs text-gray-400 pl-1">+{dayEvents.filter(e => !isMajorEvent(e)).length - MAX_DISPLAY}</div>
             )}
           </div>
         </div>,

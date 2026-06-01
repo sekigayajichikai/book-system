@@ -117,6 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         description: e.description,
         rooms: linked?.rooms || [],
         slots: linked?.slots || [],
+        isMajor: e.is_major || false,
       };
     });
 
