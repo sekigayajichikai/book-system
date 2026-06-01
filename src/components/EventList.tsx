@@ -169,7 +169,7 @@ export default function EventList({ holidays, closures, onDateClick }: EventList
 
         {/* 凡例 */}
         <div className="flex flex-wrap gap-3 p-3 border-t border-gray-100 text-xs text-gray-500 items-center">
-          <span className="flex items-center gap-1"><span className="w-4 h-3 bg-orange-100 rounded text-[8px] text-orange-700 font-bold flex items-center justify-center">例</span>みんなの予定</span>
+          <span className="flex items-center gap-1"><span className="w-4 h-3 bg-orange-100 rounded text-[8px] text-orange-700 font-bold flex items-center justify-center">例</span>主な予定</span>
           <span className="text-gray-300">|</span>
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-gray-300 rounded-full" />詳細予定</span>
         </div>
