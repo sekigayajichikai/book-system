@@ -106,7 +106,7 @@ export default function EventList({ holidays, closures, onDateClick }: EventList
           {/* イベント: 主要=カラー背景ラベル、詳細=グレードット */}
           <div className="flex-1 px-0.5 py-0.5 overflow-hidden space-y-px">
             {dayEvents.filter(e => isMajorEvent(e)).map(evt => (
-              <div key={evt.id} className="text-xs font-bold text-orange-700 bg-orange-100 rounded px-1 py-0.5 truncate">
+              <div key={evt.id} className="text-xs font-bold text-emerald-700 bg-emerald-100 rounded px-1 py-0.5 truncate">
                 {evt.title}
               </div>
             ))}
@@ -167,7 +167,7 @@ export default function EventList({ holidays, closures, onDateClick }: EventList
 
         {/* 凡例 */}
         <div className="flex flex-wrap gap-3 p-3 border-t border-gray-100 text-xs text-gray-500 items-center">
-          <span className="flex items-center gap-1"><span className="w-4 h-3 bg-orange-100 rounded text-[8px] text-orange-700 font-bold flex items-center justify-center">例</span>主な予定</span>
+          <span className="flex items-center gap-1"><span className="w-4 h-3 bg-emerald-100 rounded text-[8px] text-emerald-700 font-bold flex items-center justify-center">例</span>主な予定</span>
           <span className="text-gray-300">|</span>
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-gray-300 rounded-full" />詳細予定</span>
         </div>
