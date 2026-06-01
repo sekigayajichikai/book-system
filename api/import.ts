@@ -191,43 +191,31 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
   }
 }
 
-/** GET: 差分一覧取得 */
+/** GET: 差分一覧取得（全バッチ対応） */
 async function handleGet(req: VercelRequest, res: VercelResponse, supabase: any) {
-  const { year, month, include_skip } = req.query;
+  const { include_skip } = req.query;
 
   try {
-    // バッチ取得
-    let batchQuery = supabase
+    // pending/reviewing の全バッチ取得
+    const { data: batches, error: batchErr } = await supabase
       .from('import_batches')
       .select('*')
-      .in('status', ['pending', 'reviewing', 'applied'])
-      .order('created_at', { ascending: false })
-      .limit(1);
+      .in('status', ['pending', 'reviewing'])
+      .order('target_year')
+      .order('target_month');
 
-    if (year && month) {
-      batchQuery = supabase
-        .from('import_batches')
-        .select('*')
-        .eq('target_year', Number(year))
-        .eq('target_month', Number(month))
-        .order('created_at', { ascending: false })
-        .limit(1);
-    }
-
-    const { data: batches, error: batchErr } = await batchQuery;
     if (batchErr) throw batchErr;
 
     if (!batches || batches.length === 0) {
-      return res.status(200).json({ batch: null, rows: [] });
+      return res.status(200).json({ batches: [], rows: [] });
     }
 
-    const batch = batches[0];
-
-    // import_rows取得
+    // 全バッチのIDで行を一括取得
+    const batchIds = batches.map((b: any) => b.id);
     let rowsQuery = supabase
       .from('import_rows')
       .select('*')
-      .eq('batch_id', batch.id)
+      .in('batch_id', batchIds)
       .order('date')
       .order('slot')
       .order('room');
@@ -240,7 +228,7 @@ async function handleGet(req: VercelRequest, res: VercelResponse, supabase: any)
     if (rowsErr) throw rowsErr;
 
     res.setHeader('Cache-Control', 'no-cache');
-    return res.status(200).json({ batch, rows: rows || [] });
+    return res.status(200).json({ batches, rows: rows || [] });
   } catch (err: any) {
     console.error('Import GET error:', err);
     return res.status(500).json({ error: '取得に失敗しました', detail: err?.message });

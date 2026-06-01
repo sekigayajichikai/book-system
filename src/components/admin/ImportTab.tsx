@@ -78,12 +78,20 @@ function parseExcel(file: ArrayBuffer): { year: number; month: number; rows: Par
   const wb = XLSX.read(file, { type: 'array' });
   const results: { year: number; month: number; rows: ParsedRow[] }[] = [];
 
+  // 当月〜12ヶ月先のみ対象
+  const now = new Date();
+  const minYM = now.getFullYear() * 12 + now.getMonth(); // 当月
+  const maxYM = minYM + 12; // 12ヶ月先
+
   for (const name of wb.SheetNames) {
     const ws = wb.Sheets[name];
     if (!ws['I1'] || !ws['L1']) continue;
     const year = Number(ws['I1'].v);
     const month = Number(ws['L1'].v);
     if (!(year >= 2020 && year <= 2099 && month >= 1 && month <= 12)) continue;
+
+    const ym = year * 12 + (month - 1);
+    if (ym < minYM || ym > maxYM) continue; // 範囲外はスキップ
 
     // 日付列を検出（Row2, 0-indexed row=1）
     const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
@@ -118,7 +126,7 @@ function parseExcel(file: ArrayBuffer): { year: number; month: number; rows: Par
 }
 
 export default function ImportTab() {
-  const [batch, setBatch] = useState<ImportBatch | null>(null);
+  const [batches, setBatches] = useState<ImportBatch[]>([]);
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'add' | 'update' | 'delete'>('all');
@@ -133,7 +141,7 @@ export default function ImportTab() {
       const res = await fetch('/api/import');
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
-      setBatch(data.batch);
+      setBatches(data.batches || []);
       setRows(data.rows || []);
     } catch (err) {
       console.error('インポートデータ取得エラー:', err);
@@ -210,6 +218,25 @@ export default function ImportTab() {
 
   const pendingCount = rows.filter(r => r.review_status === 'pending').length;
   const approvedCount = rows.filter(r => r.review_status === 'approved').length;
+  const hasBatches = batches.length > 0;
+
+  // 月ごとにグループ化（バッチIDでRowsを紐づけ）
+  const batchMap = new Map(batches.map(b => [b.id, b]));
+  const rowsByBatch: Record<string, ImportRow[]> = {};
+  for (const r of filteredRows) {
+    // batch_idからバッチを特定
+    for (const b of batches) {
+      const startDate = `${b.target_year}-${String(b.target_month).padStart(2, '0')}-01`;
+      const endMonth = b.target_month === 12 ? 1 : b.target_month + 1;
+      const endYear = b.target_month === 12 ? b.target_year + 1 : b.target_year;
+      const endDate = `${endYear}-${String(endMonth).padStart(2, '0')}-01`;
+      if (r.date >= startDate && r.date < endDate) {
+        if (!rowsByBatch[b.id]) rowsByBatch[b.id] = [];
+        rowsByBatch[b.id].push(r);
+        break;
+      }
+    }
+  }
 
   // 行レビュー更新
   const updateRowStatus = async (rowId: string, status: 'approved' | 'rejected') => {
@@ -240,26 +267,26 @@ export default function ImportTab() {
     });
   };
 
-  // 反映
+  // 反映（全バッチ一括）
   const handleApply = async () => {
-    if (!batch) return;
+    if (batches.length === 0) return;
     if (!confirm(`承認済み ${approvedCount}件 を反映しますか？`)) return;
 
     setApplying(true);
     setMessage(null);
+    let totalApplied = 0;
     try {
-      const res = await fetch('/api/import-apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ batch_id: batch.id }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        setMessage({ type: 'success', text: `${data.applied}件を反映しました` });
-        await fetchImport();
-      } else {
-        setMessage({ type: 'error', text: data.error || '反映に失敗しました' });
+      for (const b of batches) {
+        const res = await fetch('/api/import-apply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ batch_id: b.id }),
+        });
+        const data = await res.json();
+        if (data.ok) totalApplied += data.applied || 0;
       }
+      setMessage({ type: 'success', text: `${totalApplied}件を反映しました` });
+      await fetchImport();
     } catch {
       setMessage({ type: 'error', text: '反映に失敗しました' });
     } finally {
@@ -299,7 +326,7 @@ export default function ImportTab() {
     </div>
   );
 
-  if (!batch) {
+  if (!hasBatches) {
     return (
       <div className="space-y-6">
         {uploadArea}
@@ -317,55 +344,10 @@ export default function ImportTab() {
     );
   }
 
-  const createdDate = new Date(batch.created_at);
-
   return (
     <div className="space-y-4">
       {/* アップロードエリア */}
       {uploadArea}
-
-      {/* バッチ情報 */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-bold text-gray-800">
-              {batch.target_year}年{batch.target_month}月のインポート
-            </h3>
-            <p className="text-xs text-gray-400 mt-0.5">
-              取込日時: {createdDate.toLocaleDateString('ja-JP')} {createdDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
-              {batch.status === 'applied' && <span className="ml-2 text-emerald-600 font-bold">反映済み</span>}
-            </p>
-          </div>
-          <button onClick={fetchImport} className="p-2 hover:bg-gray-100 rounded-full" title="再読み込み">
-            <RefreshCw size={16} className="text-gray-400" />
-          </button>
-        </div>
-
-        {/* 統計 */}
-        <div className="flex gap-3 mt-3">
-          {batch.stats.add != null && batch.stats.add > 0 && (
-            <span className="flex items-center gap-1 text-sm">
-              <Plus size={14} className="text-emerald-500" />
-              <span className="font-bold text-emerald-700">{batch.stats.add}</span>
-              <span className="text-gray-400">件 新規</span>
-            </span>
-          )}
-          {batch.stats.update != null && batch.stats.update > 0 && (
-            <span className="flex items-center gap-1 text-sm">
-              <ArrowRight size={14} className="text-amber-500" />
-              <span className="font-bold text-amber-700">{batch.stats.update}</span>
-              <span className="text-gray-400">件 変更</span>
-            </span>
-          )}
-          {batch.stats.delete != null && batch.stats.delete > 0 && (
-            <span className="flex items-center gap-1 text-sm">
-              <Trash2 size={14} className="text-red-500" />
-              <span className="font-bold text-red-700">{batch.stats.delete}</span>
-              <span className="text-gray-400">件 削除</span>
-            </span>
-          )}
-        </div>
-      </div>
 
       {/* メッセージ */}
       {message && (
@@ -375,124 +357,120 @@ export default function ImportTab() {
       )}
 
       {/* フィルタ + 一括操作 */}
-      {batch.status !== 'applied' && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            {(['all', 'add', 'update', 'delete'] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  filter === f ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {f === 'all' ? '全て' : DIFF_LABELS[f].label}
-                {f !== 'all' && ` (${rows.filter(r => r.diff_type === f).length})`}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          {(['all', 'add', 'update', 'delete'] as const).map(f => (
             <button
-              onClick={approveAll}
-              disabled={pendingCount === 0}
-              className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                filter === f ? 'bg-gray-700 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
             >
-              表示中を全て承認
+              {f === 'all' ? '全て' : DIFF_LABELS[f].label}
+              {f !== 'all' && ` (${rows.filter(r => r.diff_type === f).length})`}
             </button>
-          </div>
+          ))}
         </div>
-      )}
-
-      {/* 差分一覧 */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {filteredRows.length === 0 ? (
-          <div className="py-8 text-center text-gray-400 text-sm">
-            {filter === 'all' ? '差分はありません' : `${DIFF_LABELS[filter].label}の項目はありません`}
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500">日付</th>
-                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500">時間帯</th>
-                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500">部屋</th>
-                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500">内容</th>
-                <th className="px-3 py-2 text-left text-xs font-bold text-gray-500">種別</th>
-                {batch.status !== 'applied' && (
-                  <th className="px-3 py-2 text-center text-xs font-bold text-gray-500">操作</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredRows.map(row => {
-                const d = new Date(row.date + 'T00:00:00');
-                const diff = DIFF_LABELS[row.diff_type];
-                return (
-                  <tr key={row.id} className={`${diff.bg} ${row.review_status === 'rejected' ? 'opacity-40' : ''}`}>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      {d.getMonth() + 1}/{d.getDate()}({DOW[d.getDay()]})
-                    </td>
-                    <td className="px-3 py-2">{row.slot}</td>
-                    <td className="px-3 py-2">{shortRoomName(row.room)}</td>
-                    <td className="px-3 py-2">
-                      {row.diff_type === 'update' ? (
-                        <div>
-                          <span className="line-through text-gray-400">{row.existing_title}</span>
-                          <span className="mx-1">→</span>
-                          <span className="font-bold">{row.title}</span>
-                        </div>
-                      ) : row.diff_type === 'delete' ? (
-                        <span className="line-through">{row.title}</span>
-                      ) : (
-                        <span className="font-bold">{row.title}</span>
-                      )}
-                      {row.org_guess && <span className="ml-1 text-xs text-gray-400">({row.org_guess})</span>}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${diff.text} ${diff.bg} border ${
-                        row.diff_type === 'add' ? 'border-emerald-200' :
-                        row.diff_type === 'update' ? 'border-amber-200' :
-                        row.diff_type === 'delete' ? 'border-red-200' : 'border-gray-200'
-                      }`}>
-                        {diff.label}
-                      </span>
-                    </td>
-                    {batch.status !== 'applied' && (
-                      <td className="px-3 py-2 text-center">
-                        {row.review_status === 'pending' ? (
-                          <div className="flex items-center justify-center gap-1">
-                            <button
-                              onClick={() => updateRowStatus(row.id, 'approved')}
-                              className="p-1 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-200"
-                              title="承認"
-                            >
-                              <Check size={14} />
-                            </button>
-                            <button
-                              onClick={() => updateRowStatus(row.id, 'rejected')}
-                              className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
-                              title="却下"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        ) : row.review_status === 'approved' ? (
-                          <span className="text-xs text-emerald-600 font-bold">承認済</span>
-                        ) : (
-                          <span className="text-xs text-red-400">却下</span>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+        <div className="flex items-center gap-2">
+          <button onClick={fetchImport} className="p-2 hover:bg-gray-100 rounded-full" title="再読み込み">
+            <RefreshCw size={16} className="text-gray-400" />
+          </button>
+          <button
+            onClick={approveAll}
+            disabled={pendingCount === 0}
+            className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            全て承認
+          </button>
+        </div>
       </div>
 
+      {/* 月ごとの差分一覧 */}
+      {batches.map(b => {
+        const monthRows = rowsByBatch[b.id] || [];
+        if (monthRows.length === 0 && filter !== 'all') return null;
+        const addCount = monthRows.filter(r => r.diff_type === 'add').length;
+        const updateCount = monthRows.filter(r => r.diff_type === 'update').length;
+        const deleteCount = monthRows.filter(r => r.diff_type === 'delete').length;
+
+        return (
+          <div key={b.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            {/* 月ヘッダー */}
+            <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <h3 className="font-bold text-gray-800">{b.target_year}年{b.target_month}月</h3>
+                <div className="flex gap-2 text-xs">
+                  {addCount > 0 && <span className="text-emerald-600 font-bold">+{addCount}</span>}
+                  {updateCount > 0 && <span className="text-amber-600 font-bold">→{updateCount}</span>}
+                  {deleteCount > 0 && <span className="text-red-600 font-bold">-{deleteCount}</span>}
+                </div>
+              </div>
+              {monthRows.length === 0 && (
+                <span className="text-xs text-gray-400">差分なし</span>
+              )}
+            </div>
+
+            {monthRows.length > 0 && (
+              <table className="w-full text-sm">
+                <tbody className="divide-y divide-gray-100">
+                  {monthRows.map(row => {
+                    const d = new Date(row.date + 'T00:00:00');
+                    const diff = DIFF_LABELS[row.diff_type];
+                    return (
+                      <tr key={row.id} className={`${diff.bg} ${row.review_status === 'rejected' ? 'opacity-40' : ''}`}>
+                        <td className="px-3 py-2 whitespace-nowrap w-24">
+                          {d.getMonth() + 1}/{d.getDate()}({DOW[d.getDay()]})
+                        </td>
+                        <td className="px-3 py-2 w-16">{row.slot}</td>
+                        <td className="px-3 py-2 w-24">{shortRoomName(row.room)}</td>
+                        <td className="px-3 py-2">
+                          {row.diff_type === 'update' ? (
+                            <span>
+                              <span className="line-through text-gray-400">{row.existing_title}</span>
+                              <span className="mx-1">→</span>
+                              <span className="font-bold">{row.title}</span>
+                            </span>
+                          ) : row.diff_type === 'delete' ? (
+                            <span className="line-through">{row.title}</span>
+                          ) : (
+                            <span className="font-bold">{row.title}</span>
+                          )}
+                          {row.org_guess && <span className="ml-1 text-xs text-gray-400">({row.org_guess})</span>}
+                        </td>
+                        <td className="px-3 py-2 w-16">
+                          <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${diff.text} border ${
+                            row.diff_type === 'add' ? 'border-emerald-200 bg-emerald-50' :
+                            row.diff_type === 'update' ? 'border-amber-200 bg-amber-50' :
+                            'border-red-200 bg-red-50'
+                          }`}>
+                            {diff.label}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 w-20 text-center">
+                          {row.review_status === 'pending' ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <button onClick={() => updateRowStatus(row.id, 'approved')} className="p-1 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-200" title="承認"><Check size={14} /></button>
+                              <button onClick={() => updateRowStatus(row.id, 'rejected')} className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200" title="却下"><X size={14} /></button>
+                            </div>
+                          ) : row.review_status === 'approved' ? (
+                            <span className="text-xs text-emerald-600 font-bold">承認済</span>
+                          ) : (
+                            <span className="text-xs text-red-400">却下</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        );
+      })}
+
       {/* 反映ボタン */}
-      {batch.status !== 'applied' && approvedCount > 0 && (
+      {approvedCount > 0 && (
         <div className="flex justify-end">
           <button
             onClick={handleApply}
