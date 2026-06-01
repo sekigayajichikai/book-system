@@ -293,7 +293,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         {/* === カレンダー === */}
         {tab === 'calendar' && (
           <div className="space-y-4">
-            {/* カレンダー/会館利用 切り替え */}
+            {/* カレンダー/会館予約表 切り替え */}
             <div className="flex items-center gap-2">
               <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
                 <button
@@ -310,7 +310,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     calendarSubView === 'facility' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  会館利用
+                  会館予約表
                 </button>
               </div>
             </div>
