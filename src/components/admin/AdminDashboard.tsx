@@ -263,6 +263,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         group_name: org.group_name || '',
         keywords: (org as any).keywords || [],
         notes: (org as any).notes || '',
+        is_active: org.is_active,
       });
       setOrgEditing(false);
     } else {
@@ -273,6 +274,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         registration_no: '', representative: '', rep_last_name: '', rep_first_name: '', rep_last_name_kana: '', rep_first_name_kana: '', han_ko: '', phone: '',
         activity_description: '', has_monthly_fee: false, registration_date: '',
         default_equipment: [], presets: [], group_name: '', keywords: [], notes: '',
+        is_active: null as boolean | null,
       });
     }
     setShowOrgPanel(true);
@@ -325,10 +327,13 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       group_name: orgForm.group_name || null,
       keywords: orgForm.keywords || [],
       notes: orgForm.notes?.trim() || null,
+      is_active: orgForm.is_active,
     };
     if (editOrg) {
       await supaFetch(`booking_organizations?id=eq.${editOrg.id}`, { method: 'PATCH', body: JSON.stringify(body) });
     } else {
+      // 新規作成時: registration_dateを今日に設定（半年間アーカイブされない）
+      (body as any).registration_date = new Date().toISOString().slice(0, 10);
       await supaFetch('booking_organizations', { method: 'POST', body: JSON.stringify(body) });
     }
     setOrgEditing(false);
@@ -544,7 +549,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   // 自動判定 (null)
                   const last = orgLastUsed[o.id];
                   if (last && last >= cutoff) return true; // 直近6ヶ月に利用あり
-                  if (o.created_at && o.created_at >= cutoff) return true; // 登録6ヶ月以内
+                  if (o.registration_date && o.registration_date >= cutoff) return true; // 登録日6ヶ月以内
+                  if (o.created_at && o.created_at >= cutoff) return true; // DB登録6ヶ月以内
                   return false;
                 };
                 const activeOrgs = orgs.filter(isOrgActive);
@@ -814,6 +820,28 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             );
                           })}
                         </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">表示設定</label>
+                        <div className="flex bg-gray-100 rounded-full p-0.5">
+                          {([
+                            { value: true, label: '常に表示' },
+                            { value: null, label: '自動' },
+                            { value: false, label: '非表示' },
+                          ] as { value: boolean | null; label: string }[]).map(opt => (
+                            <button
+                              key={opt.label}
+                              type="button"
+                              onClick={() => setOrgForm(f => ({ ...f, is_active: opt.value }))}
+                              className={`flex-1 py-1.5 rounded-full text-xs font-bold transition-all ${
+                                orgForm.is_active === opt.value ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-xs text-gray-400 mt-0.5">自動: 登録から半年間 or 直近利用があれば表示、それ以外はアーカイブ</p>
                       </div>
                     </div>
                   </>
