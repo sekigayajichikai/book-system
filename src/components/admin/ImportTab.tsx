@@ -341,6 +341,25 @@ export default function ImportTab() {
     });
   };
 
+  // 承認を取消（approvedをpendingに戻す）
+  const resetApproval = async () => {
+    const targets = rows.filter(r => r.review_status === 'approved');
+    if (targets.length === 0) return;
+
+    setRows(prev => prev.map(r => {
+      if (targets.some(t => t.id === r.id)) return { ...r, review_status: 'pending' as const };
+      return r;
+    }));
+
+    await fetch('/api/import', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        rows: targets.map(r => ({ id: r.id, review_status: 'pending' })),
+      }),
+    });
+  };
+
   // 全て取消（バッチごとDBから削除）
   const rejectAll = async () => {
     if (!confirm('インポートデータを全て取消しますか？')) return;
@@ -523,11 +542,19 @@ export default function ImportTab() {
           </button>
           <button
             onClick={rejectAll}
-            disabled={pendingCount === 0}
+            disabled={pendingCount === 0 && approvedCount === 0}
             className="px-3 py-1.5 bg-gray-500 text-white rounded-lg text-xs font-bold hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             全て取消
           </button>
+          {approvedCount > 0 && (
+            <button
+              onClick={resetApproval}
+              className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-bold hover:bg-amber-600"
+            >
+              承認を取消
+            </button>
+          )}
           <button
             onClick={approveAll}
             disabled={pendingCount === 0}
