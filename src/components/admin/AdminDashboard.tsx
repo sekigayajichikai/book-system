@@ -878,8 +878,28 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           data={popover.data}
           onClose={closePopover}
           onRefresh={handleDayPanelRefresh}
-          onSwitchToFacility={(_, __) => {
+          onSwitchToFacility={async (eventId, eventDate) => {
+            closePopover();
             setCalendarSubView('facility');
+            // event_idからbookingを特定してDetailPopoverを開く
+            try {
+              const res = await supaFetch(`bookings?event_id=eq.${eventId}&status=in.(CONFIRMED,PENDING)&select=id,date,title,slot,room,memo,booking_organizations(name)&limit=1`);
+              const bks = res.ok ? await res.json() : [];
+              if (bks.length > 0) {
+                const b = bks[0];
+                const slot = b.slot || '午前';
+                const slotDef = TIME_SLOTS.find(s => s.gasKey === slot);
+                setPopover({
+                  type: 'detail',
+                  anchorRect: { top: window.innerHeight / 2 - 100, left: window.innerWidth / 2 - 170, width: 0, height: 0 },
+                  data: {
+                    type: 'booking', id: b.id, title: b.title, date: b.date || eventDate,
+                    room: b.room, slot, startTime: slotDef?.startTime || '09:00', endTime: slotDef?.endTime || '12:00',
+                    orgName: b.booking_organizations?.name || null,
+                  },
+                });
+              }
+            } catch {}
           }}
         />
       )}
