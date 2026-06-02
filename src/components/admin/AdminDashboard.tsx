@@ -7,6 +7,7 @@ import SettingsTab from './SettingsTab';
 import ImportTab from './ImportTab';
 import DetailPopover, { DetailData } from './DetailPopover';
 import { EventCreatePopover, BookingCreatePopover } from './QuickCreatePopover';
+import Popover from './Popover';
 import { Booking, BookingStatus, RoomType, CalendarEvent, EventSummary, OrgEntry } from '../../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../../constants';
 
@@ -120,7 +121,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   // ポップオーバー状態
   type PopoverState = {
-    type: 'create' | 'detail';
+    type: 'create' | 'detail' | 'list';
     anchorRect: { top: number; left: number; width: number; height: number };
     date?: Date;
     data?: DetailData;
@@ -135,6 +136,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   // 空セルクリック → 作成ポップオーバー
   const handleCellClick = (date: Date, rect: DOMRect) => {
     setPopover({ type: 'create', anchorRect: rect, date });
+  };
+
+  // +Nクリック → 一覧ポップオーバー（DayDetailPopover相当）
+  const handleOverflowClick = (date: Date, rect: DOMRect) => {
+    setPopover({ type: 'list', anchorRect: rect, date });
   };
 
   // 予約アイテムクリック → 詳細ポップオーバー
@@ -437,6 +443,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 onDateClick={handleDateClick}
                 onCellClick={handleCellClick}
                 onItemClick={handleBookingItemClick}
+                onOverflowClick={handleOverflowClick}
                 holidays={holidays}
                 closures={closures}
                 disableModal
@@ -871,6 +878,32 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           }}
         />
       )}
+
+      {/* +Nクリック時の一覧ポップオーバー */}
+      {popover?.type === 'list' && popover.date && (() => {
+        const dateStr = `${popover.date.getFullYear()}-${String(popover.date.getMonth() + 1).padStart(2, '0')}-${String(popover.date.getDate()).padStart(2, '0')}`;
+        const dayBookings = bookings.filter(b => b.date === dateStr);
+        const dow = ['日', '月', '火', '水', '木', '金', '土'][popover.date.getDay()];
+        const ROOM_COLORS: Record<string, string> = { '会議室': 'bg-yellow-400', '和室（畳側）': 'bg-sky-400', '和室（椅子側）': 'bg-sky-400', '図書室': 'bg-pink-400' };
+        return (
+          <Popover anchorRect={popover.anchorRect} onClose={closePopover} width={300}>
+            <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+              <span className="text-base font-bold text-gray-800">{popover.date.getMonth() + 1}月{popover.date.getDate()}日({dow})</span>
+              <button onClick={closePopover} className="p-1 hover:bg-gray-100 rounded-full"><X size={16} className="text-gray-400" /></button>
+            </div>
+            <div className="px-4 pb-3 divide-y divide-gray-100">
+              {dayBookings.map((b, i) => (
+                <div key={i} onClick={() => { closePopover(); handleBookingItemClick(b, popover.anchorRect as unknown as DOMRect); }}
+                  className="py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded -mx-1 px-1">
+                  <span className={`${ROOM_COLORS[b.room] || 'bg-gray-400'} w-2 h-2 rounded-full shrink-0`} />
+                  <span className="text-sm text-gray-900 truncate flex-1">{b.title}</span>
+                  <span className="text-xs text-gray-400">{shortRoomName(b.room)}</span>
+                </div>
+              ))}
+            </div>
+          </Popover>
+        );
+      })()}
 
       {/* 日付パネル（予約一覧+追加+削除） */}
       {showDayPanel && selectedDate && (

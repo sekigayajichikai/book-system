@@ -11,6 +11,7 @@ interface CalendarProps {
   onDateClick: (date: Date) => void;
   onCellClick?: (date: Date, rect: DOMRect) => void;
   onItemClick?: (booking: Booking, rect: DOMRect) => void;
+  onOverflowClick?: (date: Date, rect: DOMRect) => void;
   holidays?: Record<string, string>;
   closures?: Set<string>;
   disableModal?: boolean;
@@ -214,7 +215,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const Calendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, holidays = {}, closures = new Set(), disableModal, loading,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, holidays = {}, closures = new Set(), disableModal, loading,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week'>('month');
   const [modalDate, setModalDate] = useState<Date | null>(null);
@@ -281,6 +282,7 @@ const Calendar: React.FC<CalendarProps> = ({
       days.push(
         <div
           key={day}
+          data-cell
           onClick={(e) => handleCellClick(day, e)}
           className={`min-h-[8rem] border border-gray-200 relative cursor-pointer hover:bg-emerald-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
         >
@@ -308,7 +310,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 );
               })}
               {amBookings.length > 2 && (
-                <div className="text-xs text-gray-400 pl-1">+{amBookings.length - 2}</div>
+                <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || new DOMRect(); const d = new Date(year, month, day); if (onOverflowClick) onOverflowClick(d, rect); else if (onCellClick) onCellClick(d, rect); }} className="text-xs text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{amBookings.length - 2}件</div>
               )}
             </div>
 
@@ -324,7 +326,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 );
               })}
               {pmBookings.length > 2 && (
-                <div className="text-xs text-gray-400 pl-1">+{pmBookings.length - 2}</div>
+                <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect(); if (rect && onCellClick) { const date = new Date(year, month, day); onCellClick(date, rect); } }} className="text-xs text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{pmBookings.length - 2}件</div>
               )}
             </div>
           </div>
