@@ -142,23 +142,25 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
           </div>
         )}
 
-        {/* タイプバッジ */}
-        <div className="flex items-center gap-2 pt-1">
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-            data.type === 'booking'
-              ? 'bg-emerald-100 text-emerald-700'
-              : data.eventType === 'facility'
-                ? 'bg-violet-100 text-violet-700'
-                : 'bg-blue-100 text-blue-700'
-          }`}>
-            {data.type === 'booking' ? '会館予約' : data.eventType === 'facility' ? '会館予約由来' : '一般予定'}
-          </span>
-          {data.isMajor && (
-            <span className="flex items-center gap-0.5 text-xs text-orange-500">
-              <Star size={12} fill="currentColor" /> 主な予定
-            </span>
-          )}
-        </div>
+        {/* タイプバッジ（イベントのみ表示） */}
+        {(data.type === 'event' || data.isMajor) && (
+          <div className="flex items-center gap-2 pt-1">
+            {data.type === 'event' && (
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                data.eventType === 'facility'
+                  ? 'bg-violet-100 text-violet-700'
+                  : 'bg-blue-100 text-blue-700'
+              }`}>
+                {data.eventType === 'facility' ? '会館予約由来' : '一般予定'}
+              </span>
+            )}
+            {data.isMajor && (
+              <span className="flex items-center gap-0.5 text-xs text-orange-500">
+                <Star size={12} fill="currentColor" /> 主な予定
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </Popover>
   );
