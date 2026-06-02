@@ -396,7 +396,7 @@ const Calendar: React.FC<CalendarProps> = ({
               {amBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
-                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-blue-100 border-l-2 border-blue-500 pl-1' : 'hover:bg-gray-200'}`}
+                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-gray-200 rounded-sm' : 'hover:bg-gray-200'}`}>
                     <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
                     <span className="truncate">{b.title}</span>
                   </div>
@@ -412,7 +412,7 @@ const Calendar: React.FC<CalendarProps> = ({
               {pmBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
-                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-blue-100 border-l-2 border-blue-500 pl-1' : 'hover:bg-gray-200'}`}
+                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-gray-200 rounded-sm' : 'hover:bg-gray-200'}`}>
                     <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
                     <span className="truncate">{b.title}</span>
                   </div>
