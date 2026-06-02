@@ -422,7 +422,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
                       {ev.start_time && <span className="text-xs text-gray-400 ml-2">{ev.start_time.slice(0,5)}{ev.end_time ? `〜${ev.end_time.slice(0,5)}` : ''}</span>}
                       {ev.location && <span className="text-xs text-gray-400 ml-2">{ev.location}</span>}
                       <span className={`text-xs ml-2 px-1.5 py-0.5 rounded ${ev.event_type === 'facility' ? 'bg-violet-100 text-violet-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                        {ev.event_type === 'facility' ? '会館予約' : '一般'}
+                        {ev.event_type === 'facility' ? '会館予約' : '一般予定'}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
