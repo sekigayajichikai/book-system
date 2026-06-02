@@ -114,6 +114,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
   }, [initialEditBookingId]);
 
   const [formMode, setFormMode] = useState<FormMode>('none');
+  const isLoadingEdit = (!!initialEditBookingId || !!initialEditId) && formMode === 'none';
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ slot: '午前', room: ROOMS[0].id as string, org: '', title: '', description: '' });
   const [eventForm, setEventForm] = useState({ title: '', display_title: '', org: '', location: '', start_time: '', end_time: '', description: '', is_major: false });
@@ -504,7 +505,11 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
 
         {/* 一覧: モードで切り替え */}
         <div className="flex-1 overflow-auto p-4">
-          {mode === 'schedule' ? (
+          {isLoadingEdit ? (
+            <div className="flex items-center justify-center py-8">
+              <span className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+            </div>
+          ) : mode === 'schedule' ? (
             /* === カレンダー予定一覧 === */
             calEvents.length === 0 ? (
               <p className="text-gray-300 text-sm text-center py-8">この日の予定はありません</p>
