@@ -317,7 +317,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
             {isClosure && <span className="text-xs bg-orange-400 text-white px-2 py-0.5 rounded font-bold">休館</span>}
           </div>
           <div className="flex items-center gap-1.5">
-            {formMode !== 'edit' && formMode !== 'edit-event' && (
+            {!isLoadingEdit && formMode !== 'edit' && formMode !== 'edit-event' && (
               <>
                 <button
                   onClick={async () => {
