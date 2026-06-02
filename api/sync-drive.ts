@@ -237,27 +237,31 @@ async function processMonth(supabase: any, year: number, month: number, rows: Pa
   return stats;
 }
 
-/** GET: Driveファイルの最終更新日時を取得 */
+/** GET: Driveファイルの最終更新日時を取得（Google Drive API） */
 async function handleGetMeta(_req: VercelRequest, res: VercelResponse) {
   try {
-    // exportのリダイレクトURLにタイムスタンプが含まれる
-    const exportUrl = `https://docs.google.com/spreadsheets/d/${DRIVE_FILE_ID}/export?format=xlsx`;
-    const headRes = await fetch(exportUrl, { method: 'HEAD', redirect: 'manual' });
-    const location = headRes.headers.get('location') || '';
-
-    // URLからタイムスタンプを抽出: .../1780370305000/...
-    let lastModified: string | null = null;
-    const tsMatch = location.match(/\/(\d{13})\//);
-    if (tsMatch) {
-      lastModified = new Date(Number(tsMatch[1])).toISOString();
+    const apiKey = process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      return res.status(200).json({ fileId: DRIVE_FILE_ID, lastModified: null });
     }
+
+    const driveRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${DRIVE_FILE_ID}?fields=modifiedTime,name&key=${apiKey}`
+    );
+
+    if (!driveRes.ok) {
+      return res.status(200).json({ fileId: DRIVE_FILE_ID, lastModified: null });
+    }
+
+    const data = await driveRes.json();
 
     res.setHeader('Cache-Control', 'no-cache');
     return res.status(200).json({
       fileId: DRIVE_FILE_ID,
-      lastModified,
+      lastModified: data.modifiedTime || null,
+      fileName: data.name || null,
     });
   } catch (err: any) {
-    return res.status(500).json({ error: err?.message });
+    return res.status(200).json({ fileId: DRIVE_FILE_ID, lastModified: null });
   }
 }
