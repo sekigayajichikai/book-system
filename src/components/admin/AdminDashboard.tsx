@@ -157,14 +157,26 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       })
       .finally(() => setLoading(false));
 
-    // 各団体の最終利用日を取得
-    supaFetch('bookings?select=org_id,date&org_id=not.is.null&order=date.desc')
-      .then(r => r.json()).then((data: any[]) => {
-        const map: Record<string, string> = {};
-        (data || []).forEach(b => {
-          if (b.org_id && !map[b.org_id]) map[b.org_id] = b.date;
-        });
-        setOrgLastUsed(map);
+    // 各団体の最終利用日を取得（org_id紐づけ + タイトル部分一致で推定）
+    supaFetch('bookings?select=org_id,title,date&order=date.desc')
+      .then(r => r.json()).then((bookingData: any[]) => {
+        supaFetch('booking_organizations?select=id,name')
+          .then(r => r.json()).then((orgData: any[]) => {
+            const map: Record<string, string> = {};
+            // org_id紐づけ分
+            (bookingData || []).forEach(b => {
+              if (b.org_id && !map[b.org_id]) map[b.org_id] = b.date;
+            });
+            // タイトル部分一致で推定
+            (orgData || []).forEach((org: any) => {
+              if (map[org.id]) return; // 既にorg_idで判定済み
+              const match = (bookingData || []).find((b: any) =>
+                b.title && org.name && (b.title.includes(org.name) || org.name.includes(b.title))
+              );
+              if (match) map[org.id] = match.date;
+            });
+            setOrgLastUsed(map);
+          });
       }).catch(() => {});
   };
   useEffect(() => { if (tab === 'organizations') fetchOrgs(true); }, [tab]);
