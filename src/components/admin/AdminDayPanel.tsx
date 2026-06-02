@@ -305,6 +305,14 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
     onRefresh();
   };
 
+  if (isLoadingEdit) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40">
+        <span className="w-6 h-6 border-2 border-gray-300 border-t-white rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
