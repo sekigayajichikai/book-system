@@ -260,7 +260,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       await supaFetch('booking_organizations', { method: 'POST', body: JSON.stringify(body) });
     }
     setOrgEditing(false);
-    fetchOrgs();
+    const savedId = editOrg?.id;
+    setLoading(true);
+    supaFetch('booking_organizations?order=name.asc&select=*')
+      .then(r => r.json()).then(data => {
+        setOrgs(data || []);
+        // 更新した団体を再選択
+        const updated = (data || []).find((o: Org) => o.id === savedId);
+        if (updated) openOrgForm(updated);
+      })
+      .finally(() => setLoading(false));
   };
 
   const handleDeleteOrg = async (id: string, name: string) => {
