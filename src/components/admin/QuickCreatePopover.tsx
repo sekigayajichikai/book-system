@@ -102,7 +102,22 @@ export function EventCreatePopover({ date, onClose, onSaved, anchorRect }: Event
         {/* ヘッダー */}
         <div className="flex items-center justify-between">
           <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">予定を作成</span>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full"><X size={16} className="text-gray-400" /></button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={async () => {
+                await supaFetch('calendar_events', {
+                  method: 'POST',
+                  body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true }),
+                });
+                onClose();
+                onSaved();
+              }}
+              className="text-xs text-gray-500 hover:text-orange-600 hover:bg-orange-50 px-2 py-1 rounded-lg"
+            >
+              休館にする
+            </button>
+            <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full"><X size={16} className="text-gray-400" /></button>
+          </div>
         </div>
 
         {/* タイトル */}
