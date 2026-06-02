@@ -369,11 +369,11 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">開始</label>
-                <input type="time" value={eventForm.start_time} onChange={e => setEventForm(f => ({ ...f, start_time: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <input type="time" step="900" value={eventForm.start_time} onChange={e => setEventForm(f => ({ ...f, start_time: e.target.value }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-base" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">終了</label>
-                <input type="time" value={eventForm.end_time} onChange={e => setEventForm(f => ({ ...f, end_time: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                <input type="time" step="900" value={eventForm.end_time} onChange={e => setEventForm(f => ({ ...f, end_time: e.target.value }))} className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-base" />
               </div>
             </div>
             <div>
