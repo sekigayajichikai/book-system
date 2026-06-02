@@ -67,6 +67,11 @@ interface DetailPopoverProps {
 export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRefresh, onSwitchToFacility }: DetailPopoverProps) {
   const d = new Date(data.date + 'T00:00:00');
   const dateLabel = `${d.getMonth() + 1}月${d.getDate()}日 (${DOW[d.getDay()]})`;
+  // ローカルstate（即反映用）
+  const [localDisplayTitle, setLocalDisplayTitle] = useState(data.displayTitle);
+  const [localStartTime, setLocalStartTime] = useState(data.startTime);
+  const [localEndTime, setLocalEndTime] = useState(data.endTime);
+
   const [editingDisplayTitle, setEditingDisplayTitle] = useState(false);
   const [displayTitleValue, setDisplayTitleValue] = useState('');
   const [editingTime, setEditingTime] = useState(false);
@@ -74,25 +79,28 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   const [timeEnd, setTimeEnd] = useState('');
 
   const handleSaveTime = async () => {
+    const s = timeStart || null;
+    const e = timeEnd || null;
+    setLocalStartTime(s);
+    setLocalEndTime(e);
+    setEditingTime(false);
     await supaFetch(`calendar_events?id=eq.${data.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ start_time: timeStart || null, end_time: timeEnd || null }),
+      body: JSON.stringify({ start_time: s, end_time: e }),
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
     });
-    data.startTime = timeStart || null;
-    data.endTime = timeEnd || null;
-    setEditingTime(false);
     onRefresh();
   };
 
   const handleSaveDisplayTitle = async () => {
+    const val = displayTitleValue.trim() || null;
+    setLocalDisplayTitle(val);
+    setEditingDisplayTitle(false);
     await supaFetch(`calendar_events?id=eq.${data.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ display_title: displayTitleValue.trim() || null }),
+      body: JSON.stringify({ display_title: val }),
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
     });
-    data.displayTitle = displayTitleValue.trim() || null;
-    setEditingDisplayTitle(false);
     onRefresh();
   };
 
@@ -125,15 +133,17 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
     onRefresh();
   };
 
-  // 時間表示
+  // 時間表示（ローカルstate優先）
+  const effectiveStartTime = data.type === 'event' ? localStartTime : data.startTime;
+  const effectiveEndTime = data.type === 'event' ? localEndTime : data.endTime;
   let timeLabel = '';
   if (data.type === 'booking' && data.slot) {
     timeLabel = data.slot;
     if (data.startTime) timeLabel += ` ${data.startTime}`;
     if (data.endTime) timeLabel += `〜${data.endTime}`;
-  } else if (data.startTime) {
-    timeLabel = data.startTime;
-    if (data.endTime) timeLabel += `〜${data.endTime}`;
+  } else if (effectiveStartTime) {
+    timeLabel = effectiveStartTime;
+    if (effectiveEndTime) timeLabel += `〜${effectiveEndTime}`;
   }
 
   // 場所/部屋（結合表示）
@@ -262,10 +272,10 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
                 </button>
               </div>
             ) : (
-              <button onClick={() => { setEditingDisplayTitle(true); setDisplayTitleValue(data.displayTitle || ''); }}
+              <button onClick={() => { setEditingDisplayTitle(true); setDisplayTitleValue(localDisplayTitle || ''); }}
                 className="w-full text-left px-2 py-1.5 text-sm border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
-                <span className={data.displayTitle ? 'text-gray-800' : 'text-gray-400 italic'}>
-                  {data.displayTitle || '（クリックして設定）'}
+                <span className={localDisplayTitle ? 'text-gray-800' : 'text-gray-400 italic'}>
+                  {localDisplayTitle || '（クリックして設定）'}
                 </span>
               </button>
             )}
@@ -296,10 +306,10 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
                 </button>
               </div>
             ) : (
-              <button onClick={() => { setEditingTime(true); setTimeStart(data.startTime || ''); setTimeEnd(data.endTime || ''); }}
+              <button onClick={() => { setEditingTime(true); setTimeStart(localStartTime || ''); setTimeEnd(localEndTime || ''); }}
                 className="w-full text-left px-2 py-1.5 text-sm border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
-                <span className={data.startTime ? 'text-gray-800' : 'text-gray-400 italic'}>
-                  {data.startTime && data.endTime ? `${data.startTime}〜${data.endTime}` : '（クリックして設定）'}
+                <span className={localStartTime ? 'text-gray-800' : 'text-gray-400 italic'}>
+                  {localStartTime && localEndTime ? `${localStartTime}〜${localEndTime}` : '（クリックして設定）'}
                 </span>
               </button>
             )}
