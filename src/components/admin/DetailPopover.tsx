@@ -149,10 +149,10 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         </div>
 
         {/* 団体 */}
-        {data.orgName && (
+        {(data.orgName || data.memo) && (
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <Users size={16} className="text-gray-400 flex-shrink-0" />
-            <span>{data.orgName}</span>
+            <span>{data.orgName || data.memo}</span>
           </div>
         )}
 
