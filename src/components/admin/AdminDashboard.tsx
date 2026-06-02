@@ -478,14 +478,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 const sortedActive = sortOrgs(activeOrgs);
                 const sortedArchived = sortOrgs(archivedOrgs);
 
-                const groupColors: Record<string, { border: string; text: string; bg: string }> = {
-                  '自治会': { border: 'border-red-400', text: 'text-red-600', bg: 'bg-red-50' },
-                  '委員会': { border: 'border-blue-400', text: 'text-blue-600', bg: 'bg-blue-50' },
-                  '自主活動部': { border: 'border-emerald-400', text: 'text-emerald-600', bg: 'bg-emerald-50' },
-                  '会員団体': { border: 'border-amber-400', text: 'text-amber-600', bg: 'bg-amber-50' },
-                  '一般団体': { border: 'border-violet-400', text: 'text-violet-600', bg: 'bg-violet-50' },
-                  'その他': { border: 'border-gray-400', text: 'text-gray-500', bg: 'bg-gray-50' },
-                };
+                const groupColorsDef: [string[], { border: string; text: string; bg: string }][] = [
+                  [['自治会'], { border: 'border-red-400', text: 'text-red-600', bg: 'bg-red-50' }],
+                  [['委員会'], { border: 'border-blue-400', text: 'text-blue-600', bg: 'bg-blue-50' }],
+                  [['自主活動部'], { border: 'border-emerald-400', text: 'text-emerald-600', bg: 'bg-emerald-50' }],
+                  [['会員団体'], { border: 'border-amber-400', text: 'text-amber-600', bg: 'bg-amber-50' }],
+                  [['一般団体', '一般'], { border: 'border-violet-400', text: 'text-violet-600', bg: 'bg-violet-50' }],
+                  [['その他', 'その他/外部'], { border: 'border-gray-400', text: 'text-gray-500', bg: 'bg-gray-50' }],
+                ];
+                const groupColors: Record<string, { border: string; text: string; bg: string }> = {};
+                groupColorsDef.forEach(([names, color]) => names.forEach(n => { groupColors[n] = color; }));
                 const defaultColor = { border: 'border-gray-300', text: 'text-gray-500', bg: 'bg-gray-50' };
 
                 let lastGroup = '';
@@ -501,7 +503,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <div key={o.id}>
                       {groupHeader}
                       <div
-                        className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${editOrg?.id === o.id ? 'bg-emerald-50 border-l-4 border-emerald-500' : 'hover:bg-gray-50'}`}
+                        className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${editOrg?.id === o.id ? 'bg-slate-100 border-l-4 border-gray-400' : 'hover:bg-gray-50'}`}
                         onClick={() => openOrgForm(o)}
                       >
                         <div>
