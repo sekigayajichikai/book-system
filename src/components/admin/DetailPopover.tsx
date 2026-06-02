@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Pencil, Trash2, X, Clock, MapPin, Users, AlignLeft, Star, Check, Type } from 'lucide-react';
 import Popover from './Popover';
+import OrgPicker from './OrgPicker';
 import { ROOMS, TIME_SLOTS } from '../../constants';
 
 const TIME_OPTIONS: string[] = [];
@@ -69,6 +70,14 @@ interface DetailPopoverProps {
 export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRefresh, onSwitchToFacility, initialEditing }: DetailPopoverProps) {
   const d = new Date(data.date + 'T00:00:00');
   const dateLabel = `${d.getMonth() + 1}月${d.getDate()}日 (${DOW[d.getDay()]})`;
+  // 場所マスタ
+  const [locationOptions, setLocationOptions] = useState<string[]>([]);
+  useEffect(() => {
+    fetch(`${SUPABASE_URL}/rest/v1/event_locations?order=sort_order.asc&select=name`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+    }).then(r => r.json()).then(d => setLocationOptions((d || []).map((l: any) => l.name))).catch(() => {});
+  }, []);
+
   // ローカルstate（即反映用）
   const [localDisplayTitle, setLocalDisplayTitle] = useState(data.displayTitle);
   const [localStartTime, setLocalStartTime] = useState(data.startTime);
@@ -369,8 +378,11 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">場所</label>
-              <input value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))}
-                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400" placeholder="自治会館、公園など" />
+              <select value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))}
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 bg-white">
+                <option value="">-- 選択 --</option>
+                {locationOptions.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+              </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
@@ -412,8 +424,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">団体</label>
-              <input value={bookingForm.org} onChange={e => setBookingForm(f => ({ ...f, org: e.target.value }))}
-                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400" placeholder="団体名" />
+              <OrgPicker value={bookingForm.org} onChange={v => setBookingForm(f => ({ ...f, org: v }))} />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>

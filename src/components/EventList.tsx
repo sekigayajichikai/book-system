@@ -24,8 +24,13 @@ function isMajorEvent(evt: { isMajor?: boolean }): boolean {
 }
 
 export default function EventList({ holidays, closures, onDateClick, onCellClick, onItemClick, refreshKey, isAdmin }: EventListProps) {
-  const [subView, setSubView] = useState<'month' | 'list'>('month');
+  const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [weekStart, setWeekStart] = useState(() => {
+    const d = new Date(); const dow = d.getDay();
+    d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1)); d.setHours(0, 0, 0, 0);
+    return d;
+  });
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -76,6 +81,25 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
 
   const handlePrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
+  const handlePrevWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(d.getDate() - 7); return d; });
+  const handleNextWeek = () => setWeekStart(prev => { const d = new Date(prev); d.setDate(d.getDate() + 7); return d; });
+
+  // 週ビュー用: 週またぎ月の追加データ取得
+  const [weekExtraEvents, setWeekExtraEvents] = useState<EventSummary[]>([]);
+  useEffect(() => {
+    if (subView !== 'week') { setWeekExtraEvents([]); return; }
+    const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+    // weekStartの月のデータをメインで取得
+    const wm = weekStart.getMonth(); const wy = weekStart.getFullYear();
+    if (wy !== year || wm !== month) {
+      fetchEvents(wy, wm); setCurrentDate(new Date(wy, wm, 1));
+    }
+    // 月またぎの場合、翌月データも取得
+    if (weekEnd.getMonth() !== weekStart.getMonth()) {
+      fetch(`/api/events?year=${weekEnd.getFullYear()}&month=${weekEnd.getMonth() + 1}&visibility=public`)
+        .then(r => r.ok ? r.json() : []).then(d => setWeekExtraEvents(d || [])).catch(() => setWeekExtraEvents([]));
+    } else { setWeekExtraEvents([]); }
+  }, [subView, weekStart]);
 
   // 日付→イベントのマップ
   const eventsByDate: Record<string, EventSummary[]> = {};
@@ -178,27 +202,30 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
           <div className="flex items-center gap-2">
             <h2 className="text-[22px] font-normal text-gray-800 flex items-center gap-2">
-              {year}年 {month + 1}月
+              {subView === 'week' ? (() => {
+                const we = new Date(weekStart); we.setDate(we.getDate() + 6);
+                return `${weekStart.getMonth() + 1}/${weekStart.getDate()} 〜 ${we.getMonth() + 1}/${we.getDate()}`;
+              })() : `${year}年 ${month + 1}月`}
               {loading && <span className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />}
             </h2>
             <div className="flex gap-1">
-              <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <button onClick={subView === 'week' ? handlePrevWeek : handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <ChevronLeft size={20} className="text-gray-500" />
               </button>
-              <button onClick={handleNextMonth} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+              <button onClick={subView === 'week' ? handleNextWeek : handleNextMonth} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
                 <ChevronRight size={20} className="text-gray-500" />
               </button>
             </div>
           </div>
           {isAdmin && (
             <div className="flex items-center bg-gray-100 rounded-full p-0.5">
-              {(['month', 'list'] as const).map(v => (
+              {(['month', 'week', 'list'] as const).map(v => (
                 <button key={v} onClick={() => setSubView(v)}
                   className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
                     subView === v ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  {v === 'month' ? '月' : '一覧'}
+                  {v === 'month' ? '月' : v === 'week' ? '週' : '一覧'}
                 </button>
               ))}
             </div>
@@ -228,6 +255,8 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-gray-300 rounded-full" />詳細予定</span>
         </div>
         </>
+        ) : subView === 'week' ? (
+        <EventWeekView events={[...events, ...weekExtraEvents]} weekStart={weekStart} holidays={holidays} closures={closures} onItemClick={onItemClick} />
         ) : (
         <EventSheetView events={events} year={year} month={month} holidays={holidays} onRefresh={() => fetchEvents(year, month)} onItemClick={onItemClick} />
         )}
@@ -523,6 +552,88 @@ function EventSheetView({ events, year, month, holidays, onRefresh, onItemClick 
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** 週間ビュー（PC版） */
+function EventWeekView({ events, weekStart, holidays, closures, onItemClick }: {
+  events: EventSummary[]; weekStart: Date; holidays: Record<string, string>; closures: Set<string>;
+  onItemClick?: (event: EventSummary, rect: DOMRect) => void;
+}) {
+  const todayStr = formatDate(new Date());
+  const weekDays: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart); d.setDate(d.getDate() + i);
+    weekDays.push(formatDate(d));
+  }
+
+  const grouped: Record<string, EventSummary[]> = {};
+  events.forEach(e => { if (!grouped[e.date]) grouped[e.date] = []; grouped[e.date].push(e); });
+
+  const sortEvts = (list: EventSummary[]) => [...list].sort((a, b) => {
+    if (a.isMajor !== b.isMajor) return a.isMajor ? -1 : 1;
+    if (!a.startTime && b.startTime) return -1;
+    if (a.startTime && !b.startTime) return 1;
+    return (a.startTime || '').localeCompare(b.startTime || '');
+  });
+
+  return (
+    <div className="divide-y divide-gray-100">
+      {weekDays.map(dateStr => {
+        const d = new Date(dateStr + 'T00:00:00');
+        const dow = d.getDay();
+        const isToday = dateStr === todayStr;
+        const isPast = dateStr < todayStr;
+        const holidayName = holidays[dateStr];
+        const isClosure = closures.has(dateStr);
+        const dayEvents = sortEvts(grouped[dateStr] || []);
+
+        return (
+          <div key={dateStr} className={`p-4 ${isToday ? 'bg-blue-50/50' : isPast ? 'opacity-60' : ''}`}>
+            <div className="flex items-baseline gap-2 mb-2">
+              <span className={`text-lg font-bold ${isToday ? 'text-blue-600' : (holidayName || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-800'}`}>
+                {d.getMonth() + 1}/{d.getDate()}
+              </span>
+              <span className={`text-sm ${isToday ? 'text-blue-500' : (holidayName || dow === 0) ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-400'}`}>
+                ({DOW_LABELS[dow]})
+              </span>
+              {isClosure && <span className="text-xs bg-orange-400 text-white px-1.5 py-px rounded font-bold">休館</span>}
+              {holidayName && <span className="text-xs text-red-500 font-bold">{holidayName}</span>}
+              {isToday && <span className="text-xs bg-blue-600 text-white px-1.5 py-px rounded-full font-bold">TODAY</span>}
+            </div>
+            {dayEvents.length === 0 ? (
+              <div className="text-sm text-gray-300 pl-1">予定なし</div>
+            ) : (
+              <div className="space-y-1.5">
+                {dayEvents.map(evt => {
+                  const timeStr = evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : evt.startTime ? `${evt.startTime}〜` : evt.slots.length > 0 ? evt.slots.join('・') : null;
+                  const roomStr = evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : null;
+                  const locationStr = evt.eventType === 'facility'
+                    ? (evt.location && roomStr ? `${evt.location}（${roomStr}）` : evt.location || roomStr)
+                    : evt.location || null;
+                  return (
+                    <div key={evt.id}
+                      className={`rounded-lg px-3 py-2 cursor-pointer hover:ring-1 hover:ring-blue-300 ${evt.isMajor ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'}`}
+                      onClick={e => { if (onItemClick) onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); }}
+                    >
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-xs text-gray-500 shrink-0 w-20">{timeStr || '終日'}</span>
+                        <span className={`text-sm font-bold ${evt.isMajor ? 'text-blue-800' : 'text-gray-800'}`}>{evt.title}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-x-3 mt-0.5 pl-[5.5rem] text-xs text-gray-500">
+                        {locationStr && <span className="flex items-center gap-1"><MapPin size={12} /> {locationStr}</span>}
+                        {evt.memo && <span className="flex items-center gap-1"><Users size={12} /> {evt.memo}</span>}
+                      </div>
+                      {evt.description && <div className="text-xs text-gray-400 mt-1 pl-[5.5rem] line-clamp-2">{evt.description}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

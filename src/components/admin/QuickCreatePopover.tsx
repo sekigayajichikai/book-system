@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Clock, MapPin, Users, AlignLeft, Star, X } from 'lucide-react';
 import Popover from './Popover';
+import OrgPicker from './OrgPicker';
 import { ROOMS, TIME_SLOTS } from '../../constants';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
@@ -179,12 +180,7 @@ export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, is
 
         {/* 団体 */}
         <IconField icon={<Users size={18} />}>
-          <input
-            value={form.org}
-            onChange={e => setForm(f => ({ ...f, org: e.target.value }))}
-            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-blue-400 outline-none"
-            placeholder="団体名"
-          />
+          <OrgPicker value={form.org} onChange={v => setForm(f => ({ ...f, org: v }))} />
         </IconField>
 
         {/* 場所 */}
@@ -320,13 +316,7 @@ export function BookingCreatePopover({ date, onClose, onSaved, anchorRect }: Boo
 
         {/* 団体 */}
         <IconField icon={<Users size={18} />}>
-          <input
-            value={form.org}
-            onChange={e => setForm(f => ({ ...f, org: e.target.value }))}
-            className="w-full text-base font-medium border-0 border-b-2 border-emerald-400 focus:border-emerald-600 outline-none pb-1 placeholder-gray-300"
-            placeholder="団体名を入力"
-            autoFocus
-          />
+          <OrgPicker value={form.org} onChange={v => setForm(f => ({ ...f, org: v }))} />
         </IconField>
 
         {/* タイトル */}
