@@ -32,6 +32,7 @@ interface Org {
   presets: string[];
   group_name: string | null;
   is_active: boolean;
+  created_at: string;
 }
 
 interface Category {
@@ -261,7 +262,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     if (editOrg) {
       await supaFetch(`booking_organizations?id=eq.${editOrg.id}`, { method: 'PATCH', body: JSON.stringify(body) });
     } else {
-      body.is_active = true;
       await supaFetch('booking_organizations', { method: 'POST', body: JSON.stringify(body) });
     }
     setOrgEditing(false);
@@ -468,16 +468,15 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
                 const cutoff = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-${String(sixMonthsAgo.getDate()).padStart(2, '0')}`;
 
-                const activeOrgs = orgs.filter(o => {
-                  if (o.is_active) return true;
+                const isOrgActive = (o: Org) => {
+                  if (o.is_active) return true; // 手動強制
                   const last = orgLastUsed[o.id];
-                  return last && last >= cutoff;
-                });
-                const archivedOrgs = orgs.filter(o => {
-                  if (o.is_active) return false;
-                  const last = orgLastUsed[o.id];
-                  return !last || last < cutoff;
-                });
+                  if (last && last >= cutoff) return true; // 直近6ヶ月に利用あり
+                  if (o.created_at && o.created_at >= cutoff) return true; // 登録6ヶ月以内
+                  return false;
+                };
+                const activeOrgs = orgs.filter(isOrgActive);
+                const archivedOrgs = orgs.filter(o => !isOrgActive(o));
 
                 const sortOrgs = (list: Org[]) => {
                   if (!orgSortByGroup) return [...list].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
