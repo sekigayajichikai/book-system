@@ -64,7 +64,7 @@ const DayDetailPopover: React.FC<{
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div ref={ref} className="bg-gray-50 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-200 overflow-hidden max-h-[70vh] flex flex-col" style={style}>
+      <div ref={ref} className="bg-gray-50 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] border border-gray-200 overflow-hidden max-h-[70vh] flex flex-col" style={style}>
         {/* ヘッダー */}
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
           <h3 className="text-base font-bold text-gray-800">
@@ -396,7 +396,7 @@ const Calendar: React.FC<CalendarProps> = ({
               {amBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
-                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)] rounded-sm relative z-10' : 'hover:bg-gray-200'}`}>
+                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-white drop-shadow-[0_6px_20px_rgba(0,0,0,0.2)] rounded-sm relative z-10' : 'hover:bg-gray-200'}`}>
                     <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
                     <span className="truncate">{b.title}</span>
                   </div>
@@ -412,7 +412,7 @@ const Calendar: React.FC<CalendarProps> = ({
               {pmBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
-                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.4)] rounded-sm relative z-10' : 'hover:bg-gray-200'}`}>
+                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-white drop-shadow-[0_6px_20px_rgba(0,0,0,0.2)] rounded-sm relative z-10' : 'hover:bg-gray-200'}`}>
                     <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
                     <span className="truncate">{b.title}</span>
                   </div>
