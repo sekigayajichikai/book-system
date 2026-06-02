@@ -101,11 +101,11 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
       if (b) {
         const slot = TIME_SLOTS.find(s => s.startTime === b.startTime);
         setEditId(b.id);
-        // memoを取得
-        supaFetch(`bookings?id=eq.${b.id}&select=memo`)
+        // memo + 団体名を取得
+        supaFetch(`bookings?id=eq.${b.id}&select=memo,booking_organizations(name)`)
           .then(r => r.json())
           .then(d => {
-            setForm({ slot: slot?.gasKey || '午前', room: b.room, org: '', title: b.title, description: d[0]?.memo || '' });
+            setForm({ slot: slot?.gasKey || '午前', room: b.room, org: d[0]?.booking_organizations?.name || '', title: b.title, description: d[0]?.memo || '' });
             setFormMode('edit');
           });
       }
@@ -143,13 +143,14 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
   const startEdit = async (b: Booking) => {
     const slot = TIME_SLOTS.find(s => s.startTime === b.startTime);
     setEditId(b.id);
-    // memoを取得
+    // memo + org_idから団体名を取得
     let memo = '';
+    let orgName = '';
     try {
-      const res = await supaFetch(`bookings?id=eq.${b.id}&select=memo`);
-      if (res.ok) { const d = await res.json(); memo = d[0]?.memo || ''; }
+      const res = await supaFetch(`bookings?id=eq.${b.id}&select=memo,booking_organizations(name)`);
+      if (res.ok) { const d = await res.json(); memo = d[0]?.memo || ''; orgName = d[0]?.booking_organizations?.name || ''; }
     } catch {}
-    setForm({ slot: slot?.gasKey || '午前', room: b.room, org: '', title: b.title, description: memo });
+    setForm({ slot: slot?.gasKey || '午前', room: b.room, org: orgName, title: b.title, description: memo });
     setFormMode('edit');
   };
 
