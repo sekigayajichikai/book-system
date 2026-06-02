@@ -64,34 +64,34 @@ const DayDetailPopover: React.FC<{
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div ref={ref} className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden max-h-[70vh] flex flex-col" style={style}>
+      <div ref={ref} className="bg-gray-50 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-gray-200 overflow-hidden max-h-[70vh] flex flex-col" style={style}>
         {/* ヘッダー */}
         <div className="flex items-center justify-between px-4 pt-3 pb-2">
           <h3 className="text-base font-bold text-gray-800">
             {date.getMonth() + 1}月{date.getDate()}日({dow})
           </h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
-            <X size={16} className="text-gray-400" />
+          <button onClick={onClose} className="p-1.5 hover:bg-gray-200 rounded-full">
+            <X size={16} className="text-gray-500" />
           </button>
         </div>
 
         {/* イベント一覧 */}
-        <div className="flex-1 overflow-auto px-4 pb-3 divide-y divide-gray-100">
+        <div className="flex-1 overflow-auto px-3 pb-3 space-y-1">
           {dayBookings.map((b, i) => {
             const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
             return (
-              <div key={i} className="py-2.5 first:pt-0">
+              <div key={i} className="bg-white rounded-xl px-3 py-2.5 hover:shadow-sm transition-shadow">
                 <div className="flex items-center gap-2">
                   <span className={`${colors.bar} w-2.5 h-2.5 rounded-sm shrink-0`} />
-                  <span className="text-sm font-medium text-gray-900">{b.title}</span>
+                  <span className="text-sm font-semibold text-gray-900">{b.title}</span>
                 </div>
                 <div className="flex items-center gap-4 mt-1 pl-[18px]">
-                  <span className="flex items-center gap-1 text-xs text-gray-500">
-                    <Clock size={12} className="text-gray-400" />
+                  <span className="flex items-center gap-1 text-xs text-gray-600">
+                    <Clock size={12} className="text-gray-500" />
                     {b.startTime}〜{b.endTime}
                   </span>
-                  <span className="flex items-center gap-1 text-xs text-gray-500">
-                    <MapPin size={12} className="text-gray-400" />
+                  <span className="flex items-center gap-1 text-xs text-gray-600">
+                    <MapPin size={12} className="text-gray-500" />
                     {shortRoomName(b.room)}
                   </span>
                 </div>
@@ -310,6 +310,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [modalDate, setModalDate] = useState<Date | null>(null);
   const [modalAnchor, setModalAnchor] = useState<DOMRect | null>(null);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [weekStart, setWeekStart] = useState(() => {
     const d = new Date();
     const dow = d.getDay();
@@ -329,6 +330,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const pmSlot = TIME_SLOTS.find(s => s.gasKey === '午後');
 
   const handleCellClick = (day: number, e: React.MouseEvent) => {
+    setSelectedBookingId(null);
     const date = new Date(year, month, day);
     if (onCellClick) {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -345,6 +347,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const handleItemClick = (e: React.MouseEvent, booking: Booking) => {
     if (!onItemClick) return;
     e.stopPropagation();
+    setSelectedBookingId(booking.id);
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     onItemClick(booking, rect);
   };
@@ -393,7 +396,7 @@ const Calendar: React.FC<CalendarProps> = ({
               {amBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
-                  <div key={i} onClick={e => handleItemClick(e, b)} className="text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden hover:bg-gray-200 cursor-pointer transition-colors">
+                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-blue-100 ring-1 ring-blue-300' : 'hover:bg-gray-200'}`}
                     <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
                     <span className="truncate">{b.title}</span>
                   </div>
@@ -409,7 +412,7 @@ const Calendar: React.FC<CalendarProps> = ({
               {pmBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
-                  <div key={i} onClick={e => handleItemClick(e, b)} className="text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden hover:bg-gray-200 cursor-pointer transition-colors">
+                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-blue-100 ring-1 ring-blue-300' : 'hover:bg-gray-200'}`}
                     <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
                     <span className="truncate">{b.title}</span>
                   </div>
