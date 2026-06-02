@@ -31,7 +31,7 @@ interface Org {
   default_equipment: string[];
   presets: string[];
   group_name: string | null;
-  is_active: boolean;
+  is_active: boolean | null;
   created_at: string;
 }
 
@@ -475,7 +475,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 const cutoff = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-${String(sixMonthsAgo.getDate()).padStart(2, '0')}`;
 
                 const isOrgActive = (o: Org) => {
-                  if (o.is_active) return true; // 手動強制
+                  if (o.is_active === true) return true; // 常に表示
+                  if (o.is_active === false) return false; // 非表示
+                  // 自動判定 (null)
                   const last = orgLastUsed[o.id];
                   if (last && last >= cutoff) return true; // 直近6ヶ月に利用あり
                   if (o.created_at && o.created_at >= cutoff) return true; // 登録6ヶ月以内
@@ -534,17 +536,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         </div>
                         <div className="flex items-center gap-1">
                           {isArchived && (
-                            <input
-                              type="checkbox"
-                              checked={false}
-                              title="アクティブにする"
-                              onClick={e => e.stopPropagation()}
-                              onChange={async () => {
+                            <button
+                              title="常に表示にする"
+                              onClick={async e => {
+                                e.stopPropagation();
                                 await supaFetch(`booking_organizations?id=eq.${o.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: true }) });
                                 setOrgs(prev => prev.map(org => org.id === o.id ? { ...org, is_active: true } : org));
                               }}
-                              className="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-400 cursor-pointer"
-                            />
+                              className="text-xs text-blue-400 hover:text-blue-600 px-1"
+                            >
+                              表示
+                            </button>
                           )}
                           </div>
                       </div>
@@ -638,20 +640,34 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     {orgForm.default_equipment.length > 0 && (
                       <div><span className="text-xs text-gray-400">利用設備</span><div className="flex flex-wrap gap-1 mt-1">{orgForm.default_equipment.map(e => <span key={e} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">{e}</span>)}</div></div>
                     )}
-                    <label className="flex items-center gap-2 pt-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={editOrg?.is_active || false}
-                        onChange={async e => {
-                          const checked = e.target.checked;
-                          await supaFetch(`booking_organizations?id=eq.${editOrg!.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: checked }) });
-                          setOrgs(prev => prev.map(o => o.id === editOrg!.id ? { ...o, is_active: checked } : o));
-                          setEditOrg(prev => prev ? { ...prev, is_active: checked } : prev);
-                        }}
-                        className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-400"
-                      />
-                      <span className="text-xs text-gray-500">アクティブ（利用実績に関わらず上に表示）</span>
-                    </label>
+                    <div className="pt-2">
+                      <span className="text-xs text-gray-400">表示設定</span>
+                      <div className="flex bg-gray-100 rounded-lg p-0.5 mt-1">
+                        {([
+                          { value: true, label: '常に表示' },
+                          { value: null, label: '自動' },
+                          { value: false, label: '非表示' },
+                        ] as { value: boolean | null; label: string }[]).map(opt => {
+                          const current = editOrg?.is_active;
+                          const isSelected = current === opt.value;
+                          return (
+                            <button
+                              key={opt.label}
+                              onClick={async () => {
+                                await supaFetch(`booking_organizations?id=eq.${editOrg!.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: opt.value }) });
+                                setOrgs(prev => prev.map(o => o.id === editOrg!.id ? { ...o, is_active: opt.value as any } : o));
+                                setEditOrg(prev => prev ? { ...prev, is_active: opt.value as any } : prev);
+                              }}
+                              className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all ${
+                                isSelected ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   /* === 編集モード === */
