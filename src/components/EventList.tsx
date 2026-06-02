@@ -28,6 +28,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
   const [loading, setLoading] = useState(false);
   const [modalDate, setModalDate] = useState<Date | null>(null);
   const [modalAnchor, setModalAnchor] = useState<DOMRect | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -86,6 +87,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         <div
           key={day}
           onClick={(e) => {
+            setSelectedEventId(null);
             const d = new Date(year, month, day);
             if (onCellClick) {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -117,14 +119,18 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
           {/* イベント: 主要=カラー背景ラベル、詳細=グレードット */}
           <div className="flex-1 px-0.5 py-0.5 overflow-hidden space-y-px">
             {dayEvents.filter(e => isMajorEvent(e)).map(evt => (
-              <div key={evt.id} onClick={e => { if (onItemClick) { e.stopPropagation(); onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }}
-                className="text-xs font-bold text-blue-700 bg-blue-100 rounded px-1 py-0.5 truncate hover:bg-blue-200 cursor-pointer transition-colors">
+              <div key={evt.id} onClick={e => { if (onItemClick) { e.stopPropagation(); setSelectedEventId(evt.id); onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }}
+                className={`text-xs font-bold rounded px-1 py-0.5 truncate cursor-pointer transition-colors ${
+                  selectedEventId === evt.id ? 'bg-blue-200 text-blue-800' : 'text-blue-700 bg-blue-100 hover:bg-blue-200'
+                }`}>
                 {evt.title}
               </div>
             ))}
             {dayEvents.filter(e => !isMajorEvent(e)).slice(0, MAX_DISPLAY).map(evt => (
-              <div key={evt.id} onClick={e => { if (onItemClick) { e.stopPropagation(); onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }}
-                className="text-xs text-gray-700 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden hover:bg-gray-200 cursor-pointer transition-colors">
+              <div key={evt.id} onClick={e => { if (onItemClick) { e.stopPropagation(); setSelectedEventId(evt.id); onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }}
+                className={`text-xs text-gray-700 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${
+                  selectedEventId === evt.id ? 'bg-blue-50 font-bold' : 'hover:bg-gray-200'
+                }`}>
                 <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300" />
                 <span className="truncate">{evt.title}</span>
               </div>
