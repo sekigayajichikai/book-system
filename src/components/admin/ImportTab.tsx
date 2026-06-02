@@ -134,6 +134,7 @@ export default function ImportTab() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [syncingGeneral, setSyncingGeneral] = useState(false);
   const [sourceDate, setSourceDate] = useState(() => {
     // デフォルト: 直近の金曜日
     const d = new Date();
@@ -245,6 +246,32 @@ export default function ImportTab() {
       setMessage({ type: 'error', text: 'Googleドライブからの取込に失敗しました' });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  // 予定スプレッドシートから取込
+  const handleSyncGeneral = async () => {
+    setSyncingGeneral(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/sync-general', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMessage({
+          type: 'success',
+          text: `予定を取込みました（新規${data.imported} / 更新${data.updated} / 休館${data.closures || 0}）`,
+        });
+      } else {
+        setMessage({ type: 'error', text: data.error || '取込に失敗しました' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: '予定スプレッドシートの取込に失敗しました' });
+    } finally {
+      setSyncingGeneral(false);
     }
   };
 
@@ -409,6 +436,23 @@ export default function ImportTab() {
         )}
       </div>
     </div>
+
+    {/* 予定スプレッドシートから取込 */}
+    <button
+      onClick={handleSyncGeneral}
+      disabled={syncingGeneral}
+      className="w-full border-2 border-dashed border-violet-300 rounded-xl p-4 text-center hover:border-violet-400 hover:bg-violet-50/30 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {syncingGeneral ? (
+        <p className="text-violet-600 font-bold text-sm">取込中...</p>
+      ) : (
+        <>
+          <p className="text-violet-500 text-sm font-bold">予定スプレッドシートから取込（一般予定・休館日）</p>
+          <p className="text-gray-400 text-xs mt-1">Googleスプレッドシートの予定を一括インポート</p>
+        </>
+      )}
+    </button>
+
     </div>
   );
 
