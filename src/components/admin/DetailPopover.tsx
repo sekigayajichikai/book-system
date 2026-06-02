@@ -81,6 +81,18 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   const [editingDescription, setEditingDescription] = useState(false);
   const [descriptionValue, setDescriptionValue] = useState('');
 
+  // facility型: booking経由で団体名を取得
+  const [facilityOrgName, setFacilityOrgName] = useState<string | null>(null);
+  useState(() => {
+    if (data.type === 'event' && data.eventType === 'facility' && !data.orgName && !data.memo) {
+      fetch(`${SUPABASE_URL}/rest/v1/bookings?event_id=eq.${data.id}&status=in.(CONFIRMED,PENDING)&select=booking_organizations(name)&limit=1`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      }).then(r => r.json()).then(d => {
+        if (d[0]?.booking_organizations?.name) setFacilityOrgName(d[0].booking_organizations.name);
+      }).catch(() => {});
+    }
+  });
+
   // 一般イベント インライン編集
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -247,10 +259,10 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         </div>
 
         {/* 団体 */}
-        {(data.orgName || data.memo) && (
+        {(data.orgName || data.memo || facilityOrgName) && (
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <Users size={16} className="text-gray-400 flex-shrink-0" />
-            <span>{data.orgName || data.memo}</span>
+            <span>{data.orgName || data.memo || facilityOrgName}</span>
           </div>
         )}
 

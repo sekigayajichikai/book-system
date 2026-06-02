@@ -30,6 +30,24 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
   const [loading, setLoading] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [itemDetail, setItemDetail] = useState<{ event: EventSummary; anchor: DOMRect } | null>(null);
+  const [itemOrgName, setItemOrgName] = useState<string | null>(null);
+
+  // ポップオーバー表示時にfacility型なら団体名を取得
+  useEffect(() => {
+    if (!itemDetail) { setItemOrgName(null); return; }
+    const evt = itemDetail.event;
+    if (evt.eventType === 'facility' && !evt.memo) {
+      const sbUrl = import.meta.env.VITE_SUPABASE_URL;
+      const sbKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      if (sbUrl && sbKey) {
+        fetch(`${sbUrl}/rest/v1/bookings?event_id=eq.${evt.id}&status=in.(CONFIRMED,PENDING)&select=booking_organizations(name)&limit=1`, {
+          headers: { 'apikey': sbKey, 'Authorization': `Bearer ${sbKey}` },
+        }).then(r => r.json()).then(d => {
+          if (d[0]?.booking_organizations?.name) setItemOrgName(d[0].booking_organizations.name);
+        }).catch(() => {});
+      }
+    }
+  }, [itemDetail]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -248,10 +266,10 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
                     <p className="text-xs text-gray-500">{d.getMonth() + 1}月{d.getDate()}日 ({dow})</p>
                   </div>
                 </div>
-                {evt.memo && (
+                {(evt.memo || itemOrgName) && (
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <Users size={14} className="text-gray-500" />
-                    <span>{evt.memo}</span>
+                    <span>{evt.memo || itemOrgName}</span>
                   </div>
                 )}
                 {timeStr && (
