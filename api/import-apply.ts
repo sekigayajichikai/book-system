@@ -93,7 +93,7 @@ async function applyAdd(supabase: any, row: any) {
   if (existingEvents && existingEvents.length > 0) {
     eventId = existingEvents[0].id;
   } else {
-    // calendar_events 作成
+    // calendar_events 作成（会館予約由来なので場所は自治会館）
     const { data: newEvent, error: evErr } = await supabase
       .from('calendar_events')
       .insert({
@@ -101,6 +101,7 @@ async function applyAdd(supabase: any, row: any) {
         title: row.title,
         event_type: 'facility',
         visibility: 'public',
+        location: '自治会館',
       })
       .select()
       .single();

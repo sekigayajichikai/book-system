@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, Pencil, X, CalendarPlus, Check, Star } from 'lucide-react';
 import { Booking } from '../../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../../constants';
@@ -53,6 +53,13 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
   const dateStr = formatDate(date);
   const dow = date.getDay();
   const dayBookings = bookings.filter(b => b.date === dateStr);
+
+  // 場所マスタ
+  const [locationOptions, setLocationOptions] = useState<string[]>([]);
+  useEffect(() => {
+    supaFetch('event_locations?order=sort_order.asc&select=name')
+      .then(r => r.json()).then(data => setLocationOptions((data || []).map((l: any) => l.name)));
+  }, []);
 
   // カレンダーモード: calendar_events を取得
   const [calEvents, setCalEvents] = useState<CalEvent[]>([]);
@@ -377,7 +384,10 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">場所</label>
-              <input value={eventForm.location} onChange={e => setEventForm(f => ({ ...f, location: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="自治会館 / 公園 / その他" />
+              <select value={eventForm.location} onChange={e => setEventForm(f => ({ ...f, location: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                <option value="">-- 選択 --</option>
+                {locationOptions.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+              </select>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>

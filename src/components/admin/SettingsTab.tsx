@@ -182,6 +182,7 @@ interface SettingsTabProps {
 
 export default function SettingsTab({ categories, onCategoriesChange }: SettingsTabProps) {
   const [orgGroups, setOrgGroups] = useState<MasterItem[]>([]);
+  const [locations, setLocations] = useState<MasterItem[]>([]);
   const [rooms, setRooms] = useState<MasterItem[]>([]);
   const [equipment, setEquipment] = useState<MasterItem[]>([]);
   const [timeSlots, setTimeSlots] = useState<MasterItem[]>([]);
@@ -225,6 +226,23 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
             { key: 'sort_order', label: '順', type: 'number', width: '80px' },
           ]}
           defaultRow={{ name: '', tier: '', price_type: 'other', price_large: 0, price_small: 0, sort_order: 0 }}
+        />
+      </div>
+
+      {/* ===== 予定 ===== */}
+      <div className="border-l-4 border-emerald-400 pl-4 space-y-6">
+        <h3 className="text-sm font-bold text-emerald-700">予定</h3>
+
+        <MasterSection
+          title="場所マスタ"
+          table="event_locations"
+          items={locations}
+          setItems={setLocations}
+          columns={[
+            { key: 'name', label: '場所名' },
+            { key: 'sort_order', label: '順', type: 'number', width: '80px' },
+          ]}
+          defaultRow={{ name: '', sort_order: 0 }}
         />
       </div>
 

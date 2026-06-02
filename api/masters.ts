@@ -13,12 +13,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
-    const [orgsRes, roomsRes, slotsRes, equipRes, categoriesRes] = await Promise.all([
+    const [orgsRes, roomsRes, slotsRes, equipRes, categoriesRes, locationsRes] = await Promise.all([
       supabase.from('booking_organizations').select('*').order('category').order('name'),
       supabase.from('booking_rooms').select('*').order('sort_order'),
       supabase.from('booking_time_slots').select('*').order('sort_order'),
       supabase.from('booking_equipment').select('*').order('sort_order'),
       supabase.from('booking_usage_categories').select('*').order('sort_order'),
+      supabase.from('event_locations').select('*').order('sort_order'),
     ]);
 
     // 団体をカテゴリ別にグルーピング（フロントの既存形式に合わせる）
@@ -52,6 +53,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       slots,
       equipment: equipRes.data || [],
       categories: categoriesRes.data || [],
+      locations: (locationsRes.data || []).map(l => l.name),
     });
   } catch (err) {
     console.error('Supabase masters fetch error:', err);
