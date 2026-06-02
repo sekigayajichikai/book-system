@@ -9,6 +9,8 @@ interface CalendarProps {
   onNextMonth: () => void;
   bookings: Booking[];
   onDateClick: (date: Date) => void;
+  onCellClick?: (date: Date, rect: DOMRect) => void;
+  onItemClick?: (booking: Booking, rect: DOMRect) => void;
   holidays?: Record<string, string>;
   closures?: Set<string>;
   disableModal?: boolean;
@@ -192,7 +194,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const Calendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, holidays = {}, closures = new Set(), disableModal, loading,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, holidays = {}, closures = new Set(), disableModal, loading,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week'>('month');
   const [modalDate, setModalDate] = useState<Date | null>(null);
@@ -214,13 +216,23 @@ const Calendar: React.FC<CalendarProps> = ({
   const amSlot = TIME_SLOTS.find(s => s.gasKey === '午前');
   const pmSlot = TIME_SLOTS.find(s => s.gasKey === '午後');
 
-  const handleCellClick = (day: number) => {
+  const handleCellClick = (day: number, e: React.MouseEvent) => {
     const date = new Date(year, month, day);
-    if (disableModal) {
+    if (onCellClick) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      onCellClick(date, rect);
+    } else if (disableModal) {
       onDateClick(date);
     } else {
       setModalDate(date);
     }
+  };
+
+  const handleItemClick = (e: React.MouseEvent, booking: Booking) => {
+    if (!onItemClick) return;
+    e.stopPropagation();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    onItemClick(booking, rect);
   };
 
   const generateCalendarDays = () => {
@@ -246,7 +258,7 @@ const Calendar: React.FC<CalendarProps> = ({
       days.push(
         <div
           key={day}
-          onClick={() => handleCellClick(day)}
+          onClick={(e) => handleCellClick(day, e)}
           className={`min-h-[8rem] border border-gray-200 relative cursor-pointer hover:bg-emerald-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
         >
           {/* Date number */}
@@ -266,7 +278,7 @@ const Calendar: React.FC<CalendarProps> = ({
               {amBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
-                  <div key={i} className="text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden">
+                  <div key={i} onClick={e => handleItemClick(e, b)} className="text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden hover:bg-gray-200 cursor-pointer transition-colors">
                     <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
                     <span className="truncate">{b.title}</span>
                   </div>
@@ -282,7 +294,7 @@ const Calendar: React.FC<CalendarProps> = ({
               {pmBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
-                  <div key={i} className="text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden">
+                  <div key={i} onClick={e => handleItemClick(e, b)} className="text-xs font-normal text-[var(--md-on-surface)] rounded flex items-center gap-1 px-0.5 py-px overflow-hidden hover:bg-gray-200 cursor-pointer transition-colors">
                     <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
                     <span className="truncate">{b.title}</span>
                   </div>

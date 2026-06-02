@@ -5,7 +5,9 @@ import EventList from '../EventList';
 import AdminDayPanel from './AdminDayPanel';
 import SettingsTab from './SettingsTab';
 import ImportTab from './ImportTab';
-import { Booking, BookingStatus, RoomType, CalendarEvent, OrgEntry } from '../../types';
+import DetailPopover, { DetailData } from './DetailPopover';
+import { EventCreatePopover, BookingCreatePopover } from './QuickCreatePopover';
+import { Booking, BookingStatus, RoomType, CalendarEvent, EventSummary, OrgEntry } from '../../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../../constants';
 
 type Tab = 'calendar' | 'import' | 'approvals' | 'organizations' | 'settings';
@@ -113,10 +115,53 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const [showDayPanel, setShowDayPanel] = useState(false);
 
+  // ポップオーバー状態
+  type PopoverState = {
+    type: 'create' | 'detail';
+    anchorRect: { top: number; left: number; width: number; height: number };
+    date?: Date;
+    data?: DetailData;
+  } | null;
+  const [popover, setPopover] = useState<PopoverState>(null);
+
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
     setShowDayPanel(true);
   };
+
+  // 空セルクリック → 作成ポップオーバー
+  const handleCellClick = (date: Date, rect: DOMRect) => {
+    setPopover({ type: 'create', anchorRect: rect, date });
+  };
+
+  // 予約アイテムクリック → 詳細ポップオーバー
+  const handleBookingItemClick = (booking: Booking, rect: DOMRect) => {
+    const slot = booking.startTime === '09:00' ? '午前' : booking.startTime === '13:00' ? '午後' : '夜間';
+    setPopover({
+      type: 'detail',
+      anchorRect: rect,
+      data: {
+        type: 'booking', id: booking.id, title: booking.title, date: booking.date,
+        room: booking.room, slot, startTime: booking.startTime, endTime: booking.endTime,
+      },
+    });
+  };
+
+  // イベントアイテムクリック → 詳細ポップオーバー
+  const handleEventItemClick = (event: EventSummary, rect: DOMRect) => {
+    setPopover({
+      type: 'detail',
+      anchorRect: rect,
+      data: {
+        type: 'event', id: event.id, title: event.title, date: event.date,
+        location: event.location, startTime: event.startTime, endTime: event.endTime,
+        memo: event.memo, description: event.description, eventType: event.eventType,
+        isMajor: event.isMajor,
+      },
+    });
+  };
+
+  const closePopover = () => setPopover(null);
 
   const handleDayPanelRefresh = () => {
     fetchEvents(currentDate.getFullYear(), currentDate.getMonth());
@@ -378,7 +423,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             </div>
 
             {calendarSubView === 'schedule' ? (
-              <EventList holidays={holidays} closures={closures} onDateClick={handleDateClick} />
+              <EventList holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} />
             ) : (
               <Calendar
                 currentDate={currentDate}
@@ -386,6 +431,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
                 bookings={bookings}
                 onDateClick={handleDateClick}
+                onCellClick={handleCellClick}
+                onItemClick={handleBookingItemClick}
                 holidays={holidays}
                 closures={closures}
                 disableModal
@@ -764,6 +811,39 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <SettingsTab categories={categories} onCategoriesChange={setCategories} />
         )}
       </main>
+
+      {/* ポップオーバー: 作成 or 詳細 */}
+      {popover?.type === 'create' && popover.date && (
+        calendarSubView === 'schedule' ? (
+          <EventCreatePopover
+            date={popover.date}
+            anchorRect={popover.anchorRect}
+            onClose={closePopover}
+            onSaved={() => { closePopover(); handleDayPanelRefresh(); }}
+          />
+        ) : (
+          <BookingCreatePopover
+            date={popover.date}
+            anchorRect={popover.anchorRect}
+            onClose={closePopover}
+            onSaved={() => { closePopover(); handleDayPanelRefresh(); }}
+          />
+        )
+      )}
+      {popover?.type === 'detail' && popover.data && (
+        <DetailPopover
+          anchorRect={popover.anchorRect}
+          data={popover.data}
+          onClose={closePopover}
+          onEdit={(data) => {
+            closePopover();
+            const d = new Date(data.date + 'T00:00:00');
+            setSelectedDate(d);
+            setShowDayPanel(true);
+          }}
+          onRefresh={handleDayPanelRefresh}
+        />
+      )}
 
       {/* 日付パネル（予約一覧+追加+削除） */}
       {showDayPanel && selectedDate && (

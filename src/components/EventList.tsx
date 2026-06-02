@@ -13,13 +13,15 @@ interface EventListProps {
   holidays: Record<string, string>;
   closures: Set<string>;
   onDateClick?: (date: Date) => void;
+  onCellClick?: (date: Date, rect: DOMRect) => void;
+  onItemClick?: (event: EventSummary, rect: DOMRect) => void;
 }
 
 function isMajorEvent(evt: { isMajor?: boolean }): boolean {
   return evt.isMajor === true;
 }
 
-export default function EventList({ holidays, closures, onDateClick }: EventListProps) {
+export default function EventList({ holidays, closures, onDateClick, onCellClick, onItemClick }: EventListProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -81,13 +83,16 @@ export default function EventList({ holidays, closures, onDateClick }: EventList
       days.push(
         <div
           key={day}
-          onClick={() => {
+          onClick={(e) => {
             const d = new Date(year, month, day);
-            if (onDateClick) { onDateClick(d); }
+            if (onCellClick) {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              onCellClick(d, rect);
+            } else if (onDateClick) { onDateClick(d); }
             else if (dayEvents.length > 0) { setModalDate(d); }
           }}
           className={`min-h-[8rem] border border-gray-200 relative transition-colors flex flex-col ${
-            onDateClick || dayEvents.length > 0 ? 'cursor-pointer hover:bg-emerald-50/30' : ''
+            onCellClick || onDateClick || dayEvents.length > 0 ? 'cursor-pointer hover:bg-emerald-50/30' : ''
           } ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
         >
           {/* 日付 */}
@@ -106,12 +111,14 @@ export default function EventList({ holidays, closures, onDateClick }: EventList
           {/* イベント: 主要=カラー背景ラベル、詳細=グレードット */}
           <div className="flex-1 px-0.5 py-0.5 overflow-hidden space-y-px">
             {dayEvents.filter(e => isMajorEvent(e)).map(evt => (
-              <div key={evt.id} className="text-xs font-bold text-emerald-700 bg-emerald-100 rounded px-1 py-0.5 truncate">
+              <div key={evt.id} onClick={e => { if (onItemClick) { e.stopPropagation(); onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }}
+                className="text-xs font-bold text-emerald-700 bg-emerald-100 rounded px-1 py-0.5 truncate hover:bg-emerald-200 cursor-pointer transition-colors">
                 {evt.title}
               </div>
             ))}
             {dayEvents.filter(e => !isMajorEvent(e)).slice(0, MAX_DISPLAY).map(evt => (
-              <div key={evt.id} className="text-xs text-gray-700 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden">
+              <div key={evt.id} onClick={e => { if (onItemClick) { e.stopPropagation(); onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }}
+                className="text-xs text-gray-700 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden hover:bg-gray-200 cursor-pointer transition-colors">
                 <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300" />
                 <span className="truncate">{evt.title}</span>
               </div>
