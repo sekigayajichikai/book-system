@@ -128,6 +128,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [editOrg, setEditOrg] = useState<Org | null>(null);
   const [orgEditing, setOrgEditing] = useState(false);
   const [showOrgPanel, setShowOrgPanel] = useState(false);
+  const [orgSortByGroup, setOrgSortByGroup] = useState(true);
+  const [showArchived, setShowArchived] = useState(false);
+  const [orgLastUsed, setOrgLastUsed] = useState<Record<string, string>>({});
   const [orgForm, setOrgForm] = useState({
     name: '', furigana: '', category: '2', passcode: '', contact_email: '',
     registration_no: '', representative: '', rep_last_name: '', rep_first_name: '', rep_last_name_kana: '', rep_first_name_kana: '', han_ko: '', phone: '',
@@ -147,12 +150,22 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const fetchOrgs = (autoSelect?: boolean) => {
     setLoading(true);
-    supaFetch('booking_organizations?order=category.asc,name.asc&select=*')
+    supaFetch('booking_organizations?order=name.asc&select=*')
       .then(r => r.json()).then(data => {
         setOrgs(data || []);
         if (autoSelect && data?.length > 0) openOrgForm(data[0]);
       })
       .finally(() => setLoading(false));
+
+    // 各団体の最終利用日を取得
+    supaFetch('bookings?select=org_id,date&org_id=not.is.null&order=date.desc')
+      .then(r => r.json()).then((data: any[]) => {
+        const map: Record<string, string> = {};
+        (data || []).forEach(b => {
+          if (b.org_id && !map[b.org_id]) map[b.org_id] = b.date;
+        });
+        setOrgLastUsed(map);
+      }).catch(() => {});
   };
   useEffect(() => { if (tab === 'organizations') fetchOrgs(true); }, [tab]);
 
@@ -184,6 +197,20 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       });
     }
     setShowOrgPanel(true);
+  };
+
+  // 利用区分→大カテゴリ自動判定
+  const guessGroupByCategory = (cat: string): string => {
+    const group = orgGroups.find(g => g.default_tier === cat);
+    return group?.name || '';
+  };
+
+  const handleCategoryChange = (cat: string) => {
+    setOrgForm(f => ({
+      ...f,
+      category: cat,
+      group_name: f.group_name || guessGroupByCategory(cat),
+    }));
   };
 
   // 全角→半角変換
@@ -397,27 +424,109 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <div className={`${showOrgPanel ? 'w-1/3' : 'w-full max-w-sm'} transition-all`}>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-bold text-gray-800">団体マスタ</h2>
-                <button onClick={() => openOrgForm()} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700">
-                  <Plus size={14} /> 新規
-                </button>
-              </div>
-              {loading ? <p className="text-gray-400 text-sm">読み込み中...</p> : orgs.length === 0 ? <p className="text-gray-400 text-sm">団体はありません</p> : (
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
-                  {orgs.map(o => (
-                    <div
-                      key={o.id}
-                      className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${editOrg?.id === o.id ? 'bg-emerald-50 border-l-4 border-emerald-500' : 'hover:bg-gray-50'}`}
-                      onClick={() => openOrgForm(o)}
-                    >
-                      <div>
-                        <div className="text-sm font-bold text-gray-800">{o.name}</div>
-                        <div className="text-xs text-gray-400">{o.group_name || '未分類'}</div>
-                      </div>
-                      <button onClick={e => { e.stopPropagation(); handleDeleteOrg(o.id, o.name); }} className="text-red-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setOrgSortByGroup(!orgSortByGroup)}
+                    className={`px-2 py-1 rounded text-xs font-bold ${orgSortByGroup ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}
+                  >
+                    {orgSortByGroup ? 'カテゴリ順' : '名前順'}
+                  </button>
+                  <button onClick={() => openOrgForm()} className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700">
+                    <Plus size={14} /> 新規
+                  </button>
                 </div>
-              )}
+              </div>
+              {loading ? <p className="text-gray-400 text-sm">読み込み中...</p> : orgs.length === 0 ? <p className="text-gray-400 text-sm">団体はありません</p> : (() => {
+                const sixMonthsAgo = new Date();
+                sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+                const cutoff = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-${String(sixMonthsAgo.getDate()).padStart(2, '0')}`;
+
+                const activeOrgs = orgs.filter(o => {
+                  const last = orgLastUsed[o.id];
+                  return !last || last >= cutoff;
+                });
+                const archivedOrgs = orgs.filter(o => {
+                  const last = orgLastUsed[o.id];
+                  return last && last < cutoff;
+                });
+
+                const sortOrgs = (list: Org[]) => {
+                  if (!orgSortByGroup) return [...list].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+                  const groupOrder = orgGroups.map(g => g.name);
+                  return [...list].sort((a, b) => {
+                    const ga = groupOrder.indexOf(a.group_name || '');
+                    const gb = groupOrder.indexOf(b.group_name || '');
+                    const ia = ga >= 0 ? ga : 999;
+                    const ib = gb >= 0 ? gb : 999;
+                    if (ia !== ib) return ia - ib;
+                    return a.name.localeCompare(b.name, 'ja');
+                  });
+                };
+
+                const sortedActive = sortOrgs(activeOrgs);
+                const sortedArchived = sortOrgs(archivedOrgs);
+
+                let lastGroup = '';
+                const renderOrgItem = (o: Org, showGroupHeader: boolean) => {
+                  const groupHeader = orgSortByGroup && showGroupHeader ? (
+                    <div className="px-4 py-1.5 bg-gray-50 text-xs font-bold text-gray-500 border-b border-gray-100">
+                      {o.group_name || '未分類'}
+                    </div>
+                  ) : null;
+
+                  return (
+                    <div key={o.id}>
+                      {groupHeader}
+                      <div
+                        className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-colors ${editOrg?.id === o.id ? 'bg-emerald-50 border-l-4 border-emerald-500' : 'hover:bg-gray-50'}`}
+                        onClick={() => openOrgForm(o)}
+                      >
+                        <div>
+                          <div className="text-sm font-bold text-gray-800">{o.name}</div>
+                          {!orgSortByGroup && <div className="text-xs text-gray-400">{o.group_name || '未分類'}</div>}
+                        </div>
+                        <button onClick={e => { e.stopPropagation(); handleDeleteOrg(o.id, o.name); }} className="text-red-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+                  );
+                };
+
+                return (
+                  <>
+                  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
+                    {sortedActive.map(o => {
+                      const group = o.group_name || '未分類';
+                      const showHeader = orgSortByGroup && group !== lastGroup;
+                      lastGroup = group;
+                      return renderOrgItem(o, showHeader);
+                    })}
+                  </div>
+
+                  {/* アーカイブ（6ヶ月以上利用なし） */}
+                  {sortedArchived.length > 0 && (
+                    <div className="mt-3">
+                      <button
+                        onClick={() => setShowArchived(!showArchived)}
+                        className="w-full text-xs text-gray-400 hover:text-gray-600 py-2 flex items-center justify-center gap-1"
+                      >
+                        {showArchived ? '▲' : '▼'} アーカイブ（{sortedArchived.length}件・6ヶ月以上利用なし）
+                      </button>
+                      {showArchived && (
+                        <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100 opacity-60">
+                          {(() => { lastGroup = ''; return null; })()}
+                          {sortedArchived.map(o => {
+                            const group = o.group_name || '未分類';
+                            const showHeader = orgSortByGroup && group !== lastGroup;
+                            lastGroup = group;
+                            return renderOrgItem(o, showHeader);
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  </>
+                );
+              })()}
             </div>
 
             {showOrgPanel && (
@@ -503,7 +612,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <div><label className="block text-xs font-medium text-gray-500 mb-1">電話番号</label><input value={orgForm.phone} onChange={e => setOrgForm(f => ({ ...f, phone: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                         <div><label className="block text-xs font-medium text-gray-500 mb-1">メールアドレス</label><input type="email" value={orgForm.contact_email} onChange={e => setOrgForm(f => ({ ...f, contact_email: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" /></div>
                       </div>
-                      <div><label className="block text-xs font-medium text-gray-500 mb-1">利用区分</label><select value={orgForm.category} onChange={e => setOrgForm(f => ({ ...f, category: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{categories.map(c => <option key={c.tier} value={c.tier}>{c.name}</option>)}</select></div>
+                      <div><label className="block text-xs font-medium text-gray-500 mb-1">利用区分</label><select value={orgForm.category} onChange={e => handleCategoryChange(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">{categories.map(c => <option key={c.tier} value={c.tier}>{c.name}</option>)}</select></div>
                       <div><label className="block text-xs font-medium text-gray-500 mb-1">活動内容</label><textarea value={orgForm.activity_description} onChange={e => setOrgForm(f => ({ ...f, activity_description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows={2} /></div>
                       <div className="flex items-center gap-2"><input type="checkbox" id="monthly_fee" checked={orgForm.has_monthly_fee} onChange={e => {
                         const checked = e.target.checked;
