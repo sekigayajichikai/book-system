@@ -24,17 +24,20 @@ function formatDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function App() {
-  // 管理画面ルーティング（#admin）
-  const [isAdminRoute] = useState(() => window.location.hash === '#admin');
+/** 管理画面ラッパー（Hooksルール違反を防ぐため分離） */
+function AdminApp() {
   const [adminToken, setAdminToken] = useState<string | null>(() => localStorage.getItem('admin_token'));
 
-  if (isAdminRoute) {
-    if (!adminToken) {
-      return <AdminLogin onLogin={(token) => setAdminToken(token)} />;
-    }
-    return <AdminDashboard onLogout={() => { localStorage.removeItem('admin_token'); setAdminToken(null); }} />;
+  if (!adminToken) {
+    return <AdminLogin onLogin={(token) => setAdminToken(token)} />;
   }
+  return <AdminDashboard onLogout={() => { localStorage.removeItem('admin_token'); setAdminToken(null); }} />;
+}
+
+function App() {
+  // 管理画面ルーティング（#admin）
+  const isAdminRoute = window.location.hash === '#admin';
+  if (isAdminRoute) return <AdminApp />;
 
   const isMobile = useIsMobile();
 
