@@ -53,10 +53,11 @@ interface EventCreateProps {
   date: Date;
   onClose: () => void;
   onSaved: () => void;
+  onClosureChange?: () => void;
   anchorRect: { top: number; left: number; width: number; height: number };
 }
 
-export function EventCreatePopover({ date, onClose, onSaved, anchorRect }: EventCreateProps) {
+export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, anchorRect }: EventCreateProps) {
   const dateStr = formatDateStr(date);
   const dateLabel = `${date.getMonth() + 1}月${date.getDate()}日 (${DOW[date.getDay()]})`;
   const [locations, setLocations] = useState<string[]>([]);
@@ -109,6 +110,7 @@ export function EventCreatePopover({ date, onClose, onSaved, anchorRect }: Event
                   method: 'POST',
                   body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true }),
                 });
+                onClosureChange?.();
                 onClose();
                 onSaved();
               }}

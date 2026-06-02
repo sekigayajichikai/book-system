@@ -824,6 +824,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             anchorRect={popover.anchorRect}
             onClose={closePopover}
             onSaved={() => { closePopover(); handleDayPanelRefresh(); }}
+            onClosureChange={() => {
+              supaFetch('calendar_events?is_closure=eq.true&select=date')
+                .then(r => r.json())
+                .then((data: { date: string }[]) => setClosures(new Set(data.map(d => d.date))));
+            }}
           />
         ) : (
           <BookingCreatePopover
