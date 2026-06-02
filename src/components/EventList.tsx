@@ -129,7 +129,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
             {dayEvents.filter(e => !isMajorEvent(e)).slice(0, MAX_DISPLAY).map(evt => (
               <div key={evt.id} onClick={e => { if (onItemClick) { e.stopPropagation(); setSelectedEventId(evt.id); onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }}
                 className={`text-xs text-gray-700 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${
-                  selectedEventId === evt.id ? 'bg-white drop-shadow-[0_6px_20px_rgba(0,0,0,0.2)] rounded-sm relative z-10' : 'hover:bg-gray-200'
+                  selectedEventId === evt.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.35)] rounded-sm relative z-10' : 'hover:bg-gray-200'
                 }`}>
                 <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300" />
                 <span className="truncate">{evt.title}</span>
