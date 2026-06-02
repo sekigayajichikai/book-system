@@ -250,7 +250,8 @@ const CalendarWeeklyView: React.FC<{
   onPrevWeek: () => void;
   onNextWeek: () => void;
   holidays?: Record<string, string>;
-}> = ({ weekStart, bookings, onPrevWeek, onNextWeek, holidays = {} }) => {
+  onItemClick?: (booking: Booking, rect: DOMRect) => void;
+}> = ({ weekStart, bookings, onPrevWeek, onNextWeek, holidays = {}, onItemClick }) => {
   const weekDates: Date[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(weekStart);
@@ -328,7 +329,8 @@ const CalendarWeeklyView: React.FC<{
                       {items.map((b, j) => {
                         const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
                         return (
-                          <div key={j} className="flex items-start gap-1 px-0.5 py-px">
+                          <div key={j} className={`flex items-start gap-1 px-0.5 py-px rounded ${onItemClick ? 'cursor-pointer hover:bg-blue-50' : ''}`}
+                            onClick={e => { e.stopPropagation(); if (onItemClick) onItemClick(b, (e.currentTarget as HTMLElement).getBoundingClientRect()); }}>
                             <span className={`${colors.bar} w-1.5 h-1.5 rounded-full shrink-0 mt-1`} />
                             <span className="text-xs leading-tight text-gray-700">{b.title}</span>
                           </div>
@@ -566,6 +568,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 return d;
               })}
               holidays={holidays}
+              onItemClick={onItemClick}
             />
           </div>
         )}
