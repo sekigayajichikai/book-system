@@ -99,16 +99,22 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   // 場所/部屋
   const locationLabel = data.type === 'booking' ? data.room : data.location;
 
+  const isFacilityEvent = data.type === 'event' && data.eventType === 'facility';
+
   return (
     <Popover anchorRect={anchorRect} onClose={onClose} width={340}>
       {/* ヘッダーアクション */}
       <div className="flex items-center justify-end gap-1 px-3 pt-3 pb-1">
-        <button onClick={() => onEdit(data)} className="p-1.5 hover:bg-gray-100 rounded-full" title="編集">
-          <Pencil size={16} className="text-gray-500" />
-        </button>
-        <button onClick={handleDelete} className="p-1.5 hover:bg-gray-100 rounded-full" title="削除">
-          <Trash2 size={16} className="text-gray-500" />
-        </button>
+        {!isFacilityEvent && (
+          <>
+            <button onClick={() => onEdit(data)} className="p-1.5 hover:bg-gray-100 rounded-full" title="編集">
+              <Pencil size={16} className="text-gray-500" />
+            </button>
+            <button onClick={handleDelete} className="p-1.5 hover:bg-gray-100 rounded-full" title="削除">
+              <Trash2 size={16} className="text-gray-500" />
+            </button>
+          </>
+        )}
         <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-full" title="閉じる">
           <X size={16} className="text-gray-500" />
         </button>
@@ -151,9 +157,9 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
           </div>
         )}
 
-        {/* タイプバッジ（イベントのみ表示） */}
+        {/* タイプバッジ + facility注意書き */}
         {(data.type === 'event' || data.isMajor) && (
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex items-center gap-2 pt-1 flex-wrap">
             {data.type === 'event' && (
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                 data.eventType === 'facility'
@@ -169,6 +175,9 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
               </span>
             )}
           </div>
+        )}
+        {isFacilityEvent && (
+          <p className="text-xs text-gray-400">編集は「会館予約」タブから行えます</p>
         )}
       </div>
     </Popover>
