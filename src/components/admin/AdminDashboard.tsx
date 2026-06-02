@@ -262,13 +262,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     }
     setOrgEditing(false);
     const savedId = editOrg?.id;
+    const savedName = orgForm.name.trim();
     setLoading(true);
     supaFetch('booking_organizations?order=name.asc&select=*')
       .then(r => r.json()).then(data => {
         setOrgs(data || []);
-        // 更新した団体を再選択
-        const updated = (data || []).find((o: Org) => o.id === savedId);
-        if (updated) openOrgForm(updated);
+        // 更新 or 新規登録した団体を再選択
+        const found = (data || []).find((o: Org) => savedId ? o.id === savedId : o.name === savedName);
+        if (found) openOrgForm(found);
       })
       .finally(() => setLoading(false));
   };
