@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarDays, ClipboardList, Settings, LogOut, Plus, Trash2, Pencil, X, Users, Check, Upload } from 'lucide-react';
+import { CalendarDays, ClipboardList, Settings, LogOut, Plus, Trash2, Pencil, X, Users, Check, Upload, List } from 'lucide-react';
 import Calendar from '../Calendar';
 import EventList from '../EventList';
 import AdminDayPanel from './AdminDayPanel';
@@ -412,22 +412,22 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <div className="space-y-4">
             {/* カレンダー/会館予約 切り替え */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center bg-gray-100 rounded-full p-0.5">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setCalendarSubView('schedule')}
-                  className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${
-                    calendarSubView === 'schedule' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
+                    calendarSubView === 'schedule' ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  カレンダー
+                  <List size={16} className="inline-block mr-1 -mt-0.5" />カレンダー
                 </button>
                 <button
                   onClick={() => setCalendarSubView('facility')}
-                  className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${
-                    calendarSubView === 'facility' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
+                    calendarSubView === 'facility' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  会館予約
+                  <CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />会館予約
                 </button>
               </div>
             </div>
