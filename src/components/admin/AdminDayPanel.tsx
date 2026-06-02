@@ -302,38 +302,42 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
             {isClosure && <span className="text-xs bg-orange-400 text-white px-2 py-0.5 rounded font-bold">休館</span>}
           </div>
           <div className="flex items-center gap-1.5">
-            <button
-              onClick={async () => {
-                if (isClosure) {
-                  await supaFetch(`calendar_events?date=eq.${dateStr}&is_closure=eq.true`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
-                } else {
-                  await supaFetch('calendar_events', { method: 'POST', body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true }) });
-                }
-                onClosureChange?.();
-              }}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${isClosure ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-            >
-              {isClosure ? '休館解除' : '休館にする'}
-            </button>
-            <button
-              onClick={() => { resetForm(); setFormMode('add-banner'); }}
-              className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700"
-            >
-              バナー
-            </button>
-            <button
-              onClick={() => { resetForm(); setFormMode('add-event'); }}
-              className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
-            >
-              <CalendarPlus size={14} /> 予定
-            </button>
-            {mode === 'facility' && (
-              <button
-                onClick={() => { resetForm(); setFormMode('add-booking'); }}
-                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
-              >
-                <Plus size={14} /> 予約
-              </button>
+            {!initialEditId && !initialEditBookingId && (
+              <>
+                <button
+                  onClick={async () => {
+                    if (isClosure) {
+                      await supaFetch(`calendar_events?date=eq.${dateStr}&is_closure=eq.true`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+                    } else {
+                      await supaFetch('calendar_events', { method: 'POST', body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true }) });
+                    }
+                    onClosureChange?.();
+                  }}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold ${isClosure ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                >
+                  {isClosure ? '休館解除' : '休館にする'}
+                </button>
+                <button
+                  onClick={() => { resetForm(); setFormMode('add-banner'); }}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700"
+                >
+                  バナー
+                </button>
+                <button
+                  onClick={() => { resetForm(); setFormMode('add-event'); }}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700"
+                >
+                  <CalendarPlus size={14} /> 予定
+                </button>
+                {mode === 'facility' && (
+                  <button
+                    onClick={() => { resetForm(); setFormMode('add-booking'); }}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700"
+                  >
+                    <Plus size={14} /> 予約
+                  </button>
+                )}
+              </>
             )}
             <button onClick={onClose} className="p-1.5 hover:bg-gray-200 rounded-full">
               <X size={18} className="text-gray-500" />
