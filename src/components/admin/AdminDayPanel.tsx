@@ -117,7 +117,20 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
   // 予約削除
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`「${title}」を削除しますか？`)) return;
+    // event_idを先に取得
+    const evRes = await supaFetch(`bookings?id=eq.${id}&select=event_id`);
+    const evData = evRes.ok ? await evRes.json() : [];
+    const eventId = evData[0]?.event_id;
+    // bookings削除
     await supaFetch(`bookings?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+    // 孤立したcalendar_eventsも削除
+    if (eventId) {
+      const remRes = await supaFetch(`bookings?event_id=eq.${eventId}&status=in.(CONFIRMED,PENDING)&select=id&limit=1`);
+      const remaining = remRes.ok ? await remRes.json() : [1];
+      if (remaining.length === 0) {
+        await supaFetch(`calendar_events?id=eq.${eventId}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+      }
+    }
     onRefresh();
   };
 
