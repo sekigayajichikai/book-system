@@ -80,6 +80,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
     });
     setEditingTime(false);
+    onClose();
     onRefresh();
   };
 
@@ -90,6 +91,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
     });
     setEditingDisplayTitle(false);
+    onClose();
     onRefresh();
   };
 
