@@ -21,6 +21,14 @@ async function supaFetch(path: string, options?: RequestInit) {
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
 
+/** 15分刻みの時間選択肢を生成 (07:00〜21:00) */
+const TIME_OPTIONS: string[] = [];
+for (let h = 7; h <= 21; h++) {
+  for (let m = 0; m < 60; m += 15) {
+    TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+  }
+}
+
 function formatDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
@@ -121,13 +129,19 @@ export function EventCreatePopover({ date, onClose, onSaved, anchorRect }: Event
         {/* 時間 */}
         <IconField icon={<Clock size={18} />}>
           <div className="flex items-center gap-2">
-            <input type="time" step="900" value={form.start_time}
+            <select value={form.start_time}
               onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
-              className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-blue-400 outline-none" />
+              className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-blue-400 outline-none">
+              <option value="">開始</option>
+              {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
             <span className="text-gray-400">〜</span>
-            <input type="time" step="900" value={form.end_time}
+            <select value={form.end_time}
               onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
-              className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-blue-400 outline-none" />
+              className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-blue-400 outline-none">
+              <option value="">終了</option>
+              {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
           </div>
         </IconField>
 
