@@ -188,7 +188,7 @@ function App() {
   const fetchEvents = useCallback(async (year: number, month: number) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/calendar?year=${year}&month=${month + 1}`);
+      const res = await fetch(`/api/bookings-view?year=${year}&month=${month + 1}`);
       if (!res.ok) throw new Error('API error');
       const events: CalendarEvent[] = await res.json();
       setBookings(events.map(evt => ({

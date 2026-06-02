@@ -29,33 +29,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
 
-    // イベント取得
+    // イベント取得 + 時間帯マスタを並列取得
     let query = supabase
       .from('calendar_events')
-      .select('*')
+      .select('id,date,title,event_type,visibility,location,start_time,end_time,memo,description,is_major')
       .gte('date', startDate)
       .lt('date', endDate);
 
-    // 休館日を除外（デフォルト）
     if (include_closures !== 'true') {
       query = query.neq('event_type', 'closure');
     }
-
-    // visibility フィルタ
     if (visibility === 'public' || visibility === 'internal') {
       query = query.eq('visibility', visibility);
     }
-
     query = query.order('date').order('start_time');
 
-    const { data: events, error } = await query;
-    if (error) throw error;
+    // 時間帯マスタは並列取得
+    const [eventsResult, slotResult] = await Promise.all([
+      query,
+      supabase.from('booking_time_slots').select('slot_key, start_time, end_time').order('sort_order'),
+    ]);
 
-    // facility 型のイベントには紐づく bookings の部屋・時間帯を結合
-    const facilityEventIds = (events || [])
-      .filter(e => e.event_type === 'facility')
-      .map(e => e.id);
+    if (eventsResult.error) throw eventsResult.error;
+    const events = eventsResult.data || [];
 
+    // facility型のbookings情報を並列取得
+    const facilityEventIds = events.filter(e => e.event_type === 'facility').map(e => e.id);
     let bookingsByEvent: Record<string, { rooms: string[]; slots: string[] }> = {};
 
     if (facilityEventIds.length > 0) {
@@ -66,22 +65,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .in('status', ['CONFIRMED', 'PENDING']);
 
       if (bErr) throw bErr;
-
       for (const b of bookings || []) {
-        if (!bookingsByEvent[b.event_id]) {
-          bookingsByEvent[b.event_id] = { rooms: [], slots: [] };
-        }
+        if (!bookingsByEvent[b.event_id]) bookingsByEvent[b.event_id] = { rooms: [], slots: [] };
         const entry = bookingsByEvent[b.event_id];
         if (!entry.rooms.includes(b.room)) entry.rooms.push(b.room);
         if (!entry.slots.includes(b.slot)) entry.slots.push(b.slot);
       }
     }
 
-    // 時間帯マスタ取得（start_time / end_time の解決用）
-    const { data: slotMaster } = await supabase
-      .from('booking_time_slots')
-      .select('slot_key, start_time, end_time')
-      .order('sort_order');
+    const { data: slotMaster } = slotResult;
 
     const slotMap: Record<string, { start: string; end: string }> = {};
     (slotMaster || []).forEach(s => {
@@ -121,7 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
     });
 
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=30');
     return res.status(200).json(result);
   } catch (err: any) {
     console.error('Events fetch error:', err);
