@@ -125,7 +125,7 @@ const BookingSheetView: React.FC<{
       (data || []).forEach((b: any) => { if (b.booking_organizations?.name) map[b.id] = b.booking_organizations.name; });
       setOrgMap(map);
     }).catch(() => {});
-  }, [year, month]);
+  }, [year, month, bookings]);
 
   // 当月の予約を日付・時間帯・部屋でソート
   const slotOrder: Record<string, number> = { '09:00': 0, '13:00': 1, '17:00': 2 };

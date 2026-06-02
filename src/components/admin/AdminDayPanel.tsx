@@ -157,9 +157,17 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
   const handleSaveEdit = async () => {
     const effectiveTitle = form.title.trim() || form.org.trim();
     if (!editId || !effectiveTitle) return;
+    // 団体名からorg_idを検索
+    let orgId: string | null = null;
+    if (form.org.trim()) {
+      try {
+        const orgRes = await supaFetch(`booking_organizations?name=eq.${encodeURIComponent(form.org.trim())}&select=id&limit=1`);
+        if (orgRes.ok) { const d = await orgRes.json(); orgId = d[0]?.id || null; }
+      } catch {}
+    }
     const res = await supaFetch(`bookings?id=eq.${editId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ slot: form.slot, room: form.room, title: effectiveTitle, memo: form.description || null }),
+      body: JSON.stringify({ slot: form.slot, room: form.room, title: effectiveTitle, memo: form.description || null, org_id: orgId }),
     });
     if (!res.ok) {
       const err = await res.text();
