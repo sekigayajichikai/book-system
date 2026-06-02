@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { batch_id } = req.body;
+  const { batch_id, source_updated_at } = req.body;
   if (!batch_id) {
     return res.status(400).json({ error: 'batch_id is required' });
   }
@@ -66,6 +66,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .update({
         status: 'applied',
         applied_at: new Date().toISOString(),
+        source_updated_at: source_updated_at || null,
       })
       .eq('id', batch_id);
 

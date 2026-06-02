@@ -136,14 +136,7 @@ export default function ImportTab() {
   const [syncing, setSyncing] = useState(false);
   const [syncingGeneral, setSyncingGeneral] = useState(false);
   const [driveLastModified, setDriveLastModified] = useState<string | null>(null);
-  const [sourceDate, setSourceDate] = useState(() => {
-    // デフォルト: 直近の金曜日
-    const d = new Date();
-    const day = d.getDay();
-    const diff = day >= 5 ? day - 5 : day + 2;
-    d.setDate(d.getDate() - diff);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
+  const [sourceDate, setSourceDate] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchImport = useCallback(async () => {
@@ -164,7 +157,19 @@ export default function ImportTab() {
   useEffect(() => {
     fetchImport();
     fetch('/api/sync-drive').then(r => r.json()).then(d => {
-      if (d.lastModified) setDriveLastModified(d.lastModified);
+      if (d.lastModified) {
+        setDriveLastModified(d.lastModified);
+        // 最終更新日の直近の金曜日を計算
+        const mod = new Date(d.lastModified);
+        const day = mod.getDay();
+        if (day === 5) {
+          // 金曜日ならその日
+        } else {
+          const diff = day >= 5 ? day - 5 : day + 2;
+          mod.setDate(mod.getDate() - diff);
+        }
+        setSourceDate(`${mod.getFullYear()}-${String(mod.getMonth() + 1).padStart(2, '0')}-${String(mod.getDate()).padStart(2, '0')}`);
+      }
     }).catch(() => {});
   }, [fetchImport]);
 
@@ -191,7 +196,6 @@ export default function ImportTab() {
           body: JSON.stringify({
             api_key: 'browser-upload',
             year, month,
-            source_updated_at: sourceDate,
             rows: parsedRows,
           }),
         });
@@ -236,7 +240,7 @@ export default function ImportTab() {
       const res = await fetch('/api/sync-drive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ source_updated_at: sourceDate }),
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (data.ok) {
@@ -363,7 +367,7 @@ export default function ImportTab() {
         const res = await fetch('/api/import-apply', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ batch_id: b.id }),
+          body: JSON.stringify({ batch_id: b.id, source_updated_at: sourceDate }),
         });
         const data = await res.json();
         if (data.ok) totalApplied += data.applied || 0;
@@ -390,18 +394,6 @@ export default function ImportTab() {
     {/* ===== 会館予約のインポート ===== */}
     <div className="bg-white rounded-xl border border-blue-200 p-4 space-y-3">
       <h3 className="text-sm font-bold text-blue-700">会館予約のインポート</h3>
-
-      {/* 更新日入力 */}
-      <div className="flex items-center gap-3">
-        <label className="text-xs font-bold text-gray-500">予定表の更新日：</label>
-        <input
-          type="date"
-          value={sourceDate}
-          onChange={e => setSourceDate(e.target.value)}
-          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-        />
-      </div>
-
       <div className="flex gap-3">
         {/* Googleドライブから取込 */}
         <button
@@ -629,16 +621,28 @@ export default function ImportTab() {
         );
       })}
 
-      {/* 反映ボタン */}
+      {/* 反映エリア */}
       {approvedCount > 0 && (
-        <div className="flex justify-end">
-          <button
-            onClick={handleApply}
-            disabled={applying}
-            className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50 shadow-sm"
-          >
-            {applying ? '反映中...' : `反映する（承認済み: ${approvedCount}件）`}
-          </button>
+        <div className="bg-white rounded-xl border border-blue-200 p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-bold text-gray-600">予定表の更新日：</label>
+            <input
+              type="date"
+              value={sourceDate}
+              onChange={e => setSourceDate(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+            />
+            <span className="text-xs text-gray-400">（閲覧者に表示される更新日）</span>
+          </div>
+          <div className="flex justify-end">
+            <button
+              onClick={handleApply}
+              disabled={applying || !sourceDate}
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50 shadow-sm"
+            >
+              {applying ? '反映中...' : `反映する（承認済み: ${approvedCount}件）`}
+            </button>
+          </div>
         </div>
       )}
     </div>
