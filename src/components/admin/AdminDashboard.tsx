@@ -143,15 +143,21 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     setPopover({ type: 'list', anchorRect: rect, date });
   };
 
-  // 予約アイテムクリック → 詳細ポップオーバー
-  const handleBookingItemClick = (booking: Booking, rect: DOMRect) => {
+  // 予約アイテムクリック → 詳細ポップオーバー（org_idから団体名も取得）
+  const handleBookingItemClick = async (booking: Booking, rect: DOMRect) => {
     const slot = booking.startTime === '09:00' ? '午前' : booking.startTime === '13:00' ? '午後' : '夜間';
+    let orgName: string | null = null;
+    try {
+      const res = await supaFetch(`bookings?id=eq.${booking.id}&select=org_id,booking_organizations(name)`);
+      const data = res.ok ? await res.json() : [];
+      orgName = data[0]?.booking_organizations?.name || null;
+    } catch {}
     setPopover({
       type: 'detail',
       anchorRect: rect,
       data: {
         type: 'booking', id: booking.id, title: booking.title, date: booking.date,
-        room: booking.room, slot, startTime: booking.startTime, endTime: booking.endTime,
+        room: booking.room, slot, startTime: booking.startTime, endTime: booking.endTime, orgName,
       },
     });
   };

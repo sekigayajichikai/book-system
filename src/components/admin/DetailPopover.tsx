@@ -42,6 +42,7 @@ export interface DetailData {
   // booking fields
   room?: string;
   slot?: string;
+  orgName?: string | null;
 }
 
 interface DetailPopoverProps {
@@ -146,6 +147,14 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
             <p className="text-sm text-gray-500 mt-0.5">{dateLabel}</p>
           </div>
         </div>
+
+        {/* 団体 */}
+        {data.orgName && (
+          <div className="flex items-center gap-3 text-sm text-gray-600">
+            <Users size={16} className="text-gray-400 flex-shrink-0" />
+            <span>{data.orgName}</span>
+          </div>
+        )}
 
         {/* 時間 */}
         {timeLabel && (
