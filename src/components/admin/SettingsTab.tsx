@@ -110,7 +110,7 @@ function MasterSection<T extends MasterItem>({
           <thead className="bg-gray-50">
             <tr>
               {columns.map(c => (
-                <th key={c.key} className="text-left px-3 py-2 font-medium text-gray-500 text-xs whitespace-nowrap" style={c.width ? { width: c.width, minWidth: c.width } : {}}>{c.label}</th>
+                <th key={c.key} className={`px-3 py-2 font-medium text-gray-500 text-xs whitespace-nowrap ${c.width ? 'text-center' : 'text-left'}`} style={c.width ? { width: c.width, minWidth: c.width } : {}}>{c.label}</th>
               ))}
               <th className="px-3 py-2 w-28"></th>
             </tr>
@@ -138,7 +138,7 @@ function MasterSection<T extends MasterItem>({
                 ) : (
                   <>
                     {columns.map(c => (
-                      <td key={c.key} className="px-3 py-2">{String(item[c.key] ?? '')}</td>
+                      <td key={c.key} className={`px-3 py-2 ${c.width ? 'text-center' : ''}`}>{String(item[c.key] ?? '')}</td>
                     ))}
                     <td className="px-3 py-2 text-right whitespace-nowrap flex items-center justify-end gap-2">
                       <button onClick={() => handleSwap(idx, 'up')} disabled={idx === 0} className={`${idx === 0 ? 'text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}><ChevronUp size={14} /></button>
@@ -202,7 +202,7 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
         items={orgGroups}
         setItems={setOrgGroups}
         columns={[
-          { key: 'name', label: 'カテゴリ名', width: '160px' },
+          { key: 'name', label: 'カテゴリ名' },
           { key: 'default_tier', label: 'デフォルト利用区分', width: '120px' },
           { key: 'sort_order', label: '順', type: 'number', width: '80px' },
         ]}
