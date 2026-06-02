@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronLeft, ChevronRight, X, Clock, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Clock, MapPin, Pencil, Check } from 'lucide-react';
 import { EventSummary } from '../types';
 import { shortRoomName } from '../constants';
 
@@ -23,6 +23,7 @@ function isMajorEvent(evt: { isMajor?: boolean }): boolean {
 }
 
 export default function EventList({ holidays, closures, onDateClick, onCellClick, onItemClick, refreshKey }: EventListProps) {
+  const [subView, setSubView] = useState<'month' | 'list'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -166,8 +167,22 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
               </button>
             </div>
           </div>
+          {/* 月/一覧トグル */}
+          <div className="flex items-center bg-gray-100 rounded-full p-0.5">
+            {(['month', 'list'] as const).map(v => (
+              <button key={v} onClick={() => setSubView(v)}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                  subView === v ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {v === 'month' ? '月' : '一覧'}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {subView === 'month' ? (
+        <>
         {/* 曜日ヘッダー */}
         <div className="grid grid-cols-7 text-center bg-gray-50 border-b border-gray-200">
           {WEEK_DAYS.map((d, i) => (
@@ -188,6 +203,10 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
           <span className="text-gray-300">|</span>
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-gray-300 rounded-full" />詳細予定</span>
         </div>
+        </>
+        ) : (
+        <EventSheetView events={events} year={year} month={month} holidays={holidays} onRefresh={() => fetchEvents(year, month)} />
+        )}
       </div>
 
       {/* 日付クリック時のポップオーバー */}
@@ -271,5 +290,95 @@ function EventDayPopover({ date, events, anchorRect, onClose }: { date: Date; ev
         </div>
       </div>
     </>
+  );
+}
+
+const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+/** カレンダー一覧ビュー（display_title編集対応） */
+function EventSheetView({ events, year, month, holidays, onRefresh }: {
+  events: EventSummary[]; year: number; month: number; holidays: Record<string, string>; onRefresh: () => void;
+}) {
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+
+  const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || '').localeCompare(b.startTime || ''));
+
+  const handleSave = async (id: string) => {
+    await fetch(`${SUPABASE_URL}/rest/v1/calendar_events?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ display_title: editValue.trim() || null }),
+    });
+    setEditId(null);
+    onRefresh();
+  };
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50 sticky top-0">
+          <tr className="text-left">
+            <th className="px-3 py-2 text-xs font-bold text-gray-500 w-24">日付</th>
+            <th className="px-3 py-2 text-xs font-bold text-gray-500">元タイトル</th>
+            <th className="px-3 py-2 text-xs font-bold text-gray-500">カレンダー用タイトル</th>
+            <th className="px-3 py-2 text-xs font-bold text-gray-500 w-14">時間</th>
+            <th className="px-3 py-2 text-xs font-bold text-gray-500 w-20">場所</th>
+            <th className="px-3 py-2 text-xs font-bold text-gray-500 w-10"></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {sorted.length === 0 ? (
+            <tr><td colSpan={6} className="px-3 py-8 text-center text-gray-300">予定はありません</td></tr>
+          ) : sorted.map(evt => {
+            const d = new Date(evt.date + 'T00:00:00');
+            const dow = d.getDay();
+            const isHoliday = !!holidays[evt.date] || dow === 0;
+            const isEditing = editId === evt.id;
+
+            return (
+              <tr key={evt.id} className="hover:bg-gray-50">
+                <td className={`px-3 py-2 whitespace-nowrap ${isHoliday ? 'text-red-500' : dow === 6 ? 'text-blue-500' : ''}`}>
+                  {d.getMonth() + 1}/{d.getDate()}({DOW_LABELS[dow]})
+                </td>
+                <td className="px-3 py-2 text-gray-500">{evt.originalTitle || evt.title}</td>
+                <td className="px-3 py-2">
+                  {isEditing ? (
+                    <input value={editValue} onChange={e => setEditValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleSave(evt.id); if (e.key === 'Escape') setEditId(null); }}
+                      className="w-full px-2 py-1 border border-blue-300 rounded text-sm focus:outline-none focus:border-blue-500"
+                      autoFocus placeholder="空欄で元タイトルを使用" />
+                  ) : (
+                    <span className={evt.displayTitle ? 'font-medium text-gray-900' : 'text-gray-300 italic'}>
+                      {evt.displayTitle || '（元タイトルを使用）'}
+                    </span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-gray-500 text-xs">
+                  {evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : '終日'}
+                </td>
+                <td className="px-3 py-2 text-gray-500 text-xs">
+                  {evt.location || (evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : '')}
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {isEditing ? (
+                    <button onClick={() => handleSave(evt.id)} className="text-blue-500 hover:text-blue-700">
+                      <Check size={14} />
+                    </button>
+                  ) : (
+                    <button onClick={() => { setEditId(evt.id); setEditValue(evt.displayTitle || ''); }}
+                      className="text-gray-300 hover:text-gray-500">
+                      <Pencil size={14} />
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

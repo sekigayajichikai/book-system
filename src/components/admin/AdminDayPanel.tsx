@@ -79,6 +79,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
           setEditingEventId(ev.id);
           setEventForm({
             title: ev.title,
+            display_title: (ev as any).display_title || '',
             org: ev.memo || '',
             location: ev.location || '',
             start_time: ev.start_time ? ev.start_time.slice(0, 5) : '',
@@ -115,14 +116,14 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
   const [formMode, setFormMode] = useState<FormMode>('none');
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ slot: '午前', room: ROOMS[0].id as string, org: '', title: '', description: '' });
-  const [eventForm, setEventForm] = useState({ title: '', org: '', location: '', start_time: '', end_time: '', description: '', is_major: false });
+  const [eventForm, setEventForm] = useState({ title: '', display_title: '', org: '', location: '', start_time: '', end_time: '', description: '', is_major: false });
   const [bannerForm, setBannerForm] = useState({ title: '', description: '', event_time: '', event_location: '', style: 'green', display_days: '7', image_url: '' });
 
   const resetForm = () => {
     setFormMode('none');
     setEditId(null);
     setForm({ slot: '午前', room: ROOMS[0].id as string, org: '', title: '', description: '' });
-    setEventForm({ title: '', org: '', location: '', start_time: '', end_time: '', description: '', is_major: false });
+    setEventForm({ title: '', display_title: '', org: '', location: '', start_time: '', end_time: '', description: '', is_major: false });
     setBannerForm({ title: '', description: '', event_time: '', event_location: '', style: 'green', display_days: '7', image_url: '' });
   };
 
@@ -222,6 +223,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
     setEditingEventId(ev.id);
     setEventForm({
       title: ev.title,
+      display_title: (ev as any).display_title || '',
       org: ev.memo || '',
       location: ev.location || '',
       start_time: ev.start_time ? ev.start_time.slice(0, 5) : '',
@@ -239,6 +241,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
       method: 'PATCH',
       body: JSON.stringify({
         title: eventForm.title.trim(),
+        display_title: eventForm.display_title.trim() || null,
         location: eventForm.location || null,
         start_time: eventForm.start_time || null,
         end_time: eventForm.end_time || null,
@@ -455,6 +458,10 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">タイトル</label>
               <input value={eventForm.title} onChange={e => setEventForm(f => ({ ...f, title: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="夏祭り、防災訓練など" autoFocus />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">カレンダー用タイトル <span className="text-gray-400 font-normal">（空欄で元タイトルを使用）</span></label>
+              <input value={eventForm.display_title} onChange={e => setEventForm(f => ({ ...f, display_title: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder={eventForm.title || '住民に表示する名前'} />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">団体</label>

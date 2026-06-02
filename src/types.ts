@@ -66,6 +66,8 @@ export interface EventSummary {
   id: string;
   date: string;           // YYYY-MM-DD
   title: string;
+  originalTitle?: string;    // 元タイトル（bookings由来）
+  displayTitle?: string | null; // カレンダー用表示タイトル
   eventType: 'general' | 'facility' | 'closure';
   visibility: 'public' | 'internal';
   location: string | null;
