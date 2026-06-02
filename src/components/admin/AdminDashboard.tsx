@@ -540,8 +540,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                               className="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-400 cursor-pointer"
                             />
                           )}
-                          <button onClick={e => { e.stopPropagation(); handleDeleteOrg(o.id, o.name); }} className="text-red-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
-                        </div>
+                          </div>
                       </div>
                     </div>
                   );
@@ -591,7 +590,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   <h3 className="text-base font-bold">{!editOrg ? '新規団体登録' : orgEditing ? '団体を編集' : orgForm.name}</h3>
                   <div className="flex items-center gap-2">
                     {editOrg && !orgEditing && (
-                      <button onClick={() => setOrgEditing(true)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100"><Pencil size={12} /> 編集</button>
+                      <>
+                        <button onClick={() => setOrgEditing(true)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100"><Pencil size={12} /> 編集</button>
+                        <button onClick={() => handleDeleteOrg(editOrg.id, editOrg.name)} className="p-1.5 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-full"><Trash2 size={16} /></button>
+                      </>
                     )}
                     {(!editOrg || orgEditing) && (
                       <>
