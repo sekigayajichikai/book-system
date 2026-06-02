@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pencil, Trash2, X, Clock, MapPin, Users, AlignLeft, Star, Check, Type } from 'lucide-react';
 import Popover from './Popover';
+import { ROOMS, TIME_SLOTS } from '../../constants';
 
 const TIME_OPTIONS: string[] = [];
 for (let h = 7; h <= 21; h++) {
@@ -93,7 +94,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
     }
   });
 
-  // 一般イベント インライン編集
+  // インライン編集
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     title: data.title,
@@ -102,6 +103,13 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
     startTime: data.startTime || '',
     endTime: data.endTime || '',
     isMajor: data.isMajor || false,
+  });
+  // booking編集用
+  const [bookingForm, setBookingForm] = useState({
+    title: data.title,
+    slot: data.slot || '午前',
+    room: data.room || '',
+    memo: data.memo || '',
   });
 
   const handleSaveTime = async () => {
@@ -138,6 +146,27 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       method: 'PATCH',
       body: JSON.stringify({ description: val }),
     });
+    onRefresh();
+  };
+
+  const handleSaveBooking = async () => {
+    if (!bookingForm.title.trim()) return;
+    const res = await supaFetch(`bookings?id=eq.${data.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        title: bookingForm.title.trim(),
+        slot: bookingForm.slot,
+        room: bookingForm.room,
+        memo: bookingForm.memo.trim() || null,
+      }),
+    });
+    if (res && !res.ok) {
+      const err = await res.text();
+      alert(err.includes('23505') ? 'この時間帯・部屋は既に予約されています' : '保存に失敗しました');
+      return;
+    }
+    setEditing(false);
+    onClose();
     onRefresh();
   };
 
@@ -353,6 +382,42 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
             <div className="flex gap-2">
               <button onClick={() => setEditing(false)} className="flex-1 py-1.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">キャンセル</button>
               <button onClick={handleSaveEdit} className="flex-1 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">保存</button>
+            </div>
+          </div>
+        )}
+
+        {/* booking インライン編集 */}
+        {editing && data.type === 'booking' && (
+          <div className="space-y-3 border-t border-gray-200 pt-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">タイトル</label>
+              <input value={bookingForm.title} onChange={e => setBookingForm(f => ({ ...f, title: e.target.value }))}
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">時間帯</label>
+                <select value={bookingForm.slot} onChange={e => setBookingForm(f => ({ ...f, slot: e.target.value }))}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400">
+                  {TIME_SLOTS.map(s => <option key={s.id} value={s.gasKey}>{s.gasKey}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">部屋</label>
+                <select value={bookingForm.room} onChange={e => setBookingForm(f => ({ ...f, room: e.target.value }))}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400">
+                  {ROOMS.map(r => <option key={r.id} value={r.id}>{r.shortName}</option>)}
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">メモ</label>
+              <textarea value={bookingForm.memo} onChange={e => setBookingForm(f => ({ ...f, memo: e.target.value }))}
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400" rows={2} placeholder="補足情報" />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setEditing(false)} className="flex-1 py-1.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">キャンセル</button>
+              <button onClick={handleSaveBooking} className="flex-1 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">保存</button>
             </div>
           </div>
         )}
