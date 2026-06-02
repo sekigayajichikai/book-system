@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronLeft, ChevronRight, X, Clock, MapPin, Pencil, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Clock, MapPin, Check, MoreVertical, Star } from 'lucide-react';
 import { EventSummary } from '../types';
 import { shortRoomName } from '../constants';
 
@@ -309,22 +309,41 @@ const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-/** カレンダー一覧ビュー（display_title編集対応） */
+/** カレンダー一覧ビュー（display_title編集対応 + ⋮メニュー） */
 function EventSheetView({ events, year, month, holidays, onRefresh }: {
   events: EventSummary[]; year: number; month: number; holidays: Record<string, string>; onRefresh: () => void;
 }) {
   const [editId, setEditId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [menuId, setMenuId] = useState<string | null>(null);
 
   const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || '').localeCompare(b.startTime || ''));
 
-  const handleSave = async (id: string) => {
-    await fetch(`${SUPABASE_URL}/rest/v1/calendar_events?id=eq.${id}`, {
-      method: 'PATCH',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ display_title: editValue.trim() || null }),
+  const supaPatch = async (path: string, body: any) => {
+    await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify(body),
     });
+  };
+
+  const handleSave = async (id: string) => {
+    await supaPatch(`calendar_events?id=eq.${id}`, { display_title: editValue.trim() || null });
     setEditId(null);
+    onRefresh();
+  };
+
+  const handleToggleMajor = async (evt: EventSummary) => {
+    await supaPatch(`calendar_events?id=eq.${evt.id}`, { is_major: !evt.isMajor });
+    setMenuId(null);
+    onRefresh();
+  };
+
+  const handleDelete = async (evt: EventSummary) => {
+    if (!confirm(`「${evt.title}」を削除しますか？`)) return;
+    await fetch(`${SUPABASE_URL}/rest/v1/calendar_events?id=eq.${evt.id}`, {
+      method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=minimal' },
+    });
+    setMenuId(null);
     onRefresh();
   };
 
@@ -354,17 +373,20 @@ function EventSheetView({ events, year, month, holidays, onRefresh }: {
               <tr key={evt.id} className="hover:bg-gray-50">
                 <td className={`px-3 py-2 whitespace-nowrap ${isHoliday ? 'text-red-500' : dow === 6 ? 'text-blue-500' : ''}`}>
                   {d.getMonth() + 1}/{d.getDate()}({DOW_LABELS[dow]})
+                  {evt.isMajor && <Star size={10} className="inline ml-1 text-orange-400" fill="currentColor" />}
                 </td>
                 <td className="px-3 py-2 text-gray-500">{evt.originalTitle || evt.title}</td>
-                <td className="px-3 py-2">
+                <td className="px-3 py-2" onClick={() => { setEditId(evt.id); setEditValue(evt.displayTitle || ''); }}>
                   {isEditing ? (
-                    <input value={editValue} onChange={e => setEditValue(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') handleSave(evt.id); if (e.key === 'Escape') setEditId(null); }}
-                      className="w-full px-2 py-1 border border-blue-300 rounded text-sm focus:outline-none focus:border-blue-500"
-                      autoFocus placeholder="空欄で元タイトルを使用" />
+                    <div className="flex items-center gap-1">
+                      <input value={editValue} onChange={e => setEditValue(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSave(evt.id); if (e.key === 'Escape') setEditId(null); }}
+                        className="flex-1 px-1.5 py-0.5 border border-blue-300 rounded text-sm focus:outline-none" autoFocus placeholder="空欄で元タイトルを使用" />
+                      <button onClick={e => { e.stopPropagation(); handleSave(evt.id); }} className="text-blue-500"><Check size={14} /></button>
+                    </div>
                   ) : (
-                    <span className={evt.displayTitle ? 'font-medium text-gray-900' : 'text-gray-300 italic'}>
-                      {evt.displayTitle || '（元タイトルを使用）'}
+                    <span className={`cursor-text hover:underline ${evt.displayTitle ? 'font-medium text-gray-900' : 'text-gray-300 italic'}`}>
+                      {evt.displayTitle || '（クリックして設定）'}
                     </span>
                   )}
                 </td>
@@ -374,16 +396,22 @@ function EventSheetView({ events, year, month, holidays, onRefresh }: {
                 <td className="px-3 py-2 text-gray-500 text-xs">
                   {evt.location && evt.rooms.length > 0 ? `${evt.location}（${evt.rooms.map(r => shortRoomName(r)).join('・')}）` : evt.location || (evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : '')}
                 </td>
-                <td className="px-3 py-2 text-right">
-                  {isEditing ? (
-                    <button onClick={() => handleSave(evt.id)} className="text-blue-500 hover:text-blue-700">
-                      <Check size={14} />
-                    </button>
-                  ) : (
-                    <button onClick={() => { setEditId(evt.id); setEditValue(evt.displayTitle || ''); }}
-                      className="text-gray-300 hover:text-gray-500">
-                      <Pencil size={14} />
-                    </button>
+                <td className="px-3 py-2 text-right relative">
+                  <button onClick={e => { e.stopPropagation(); setMenuId(menuId === evt.id ? null : evt.id); }} className="p-1 hover:bg-gray-200 rounded-full">
+                    <MoreVertical size={14} className="text-gray-400" />
+                  </button>
+                  {menuId === evt.id && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setMenuId(null)} />
+                      <div className="absolute right-0 top-8 z-50 bg-white rounded-xl shadow-lg border border-gray-200 py-1 w-40">
+                        <button onClick={() => handleToggleMajor(evt)} className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50">
+                          {evt.isMajor ? '☆ 主な予定を解除' : '★ 主な予定にする'}
+                        </button>
+                        {evt.eventType !== 'facility' && (
+                          <button onClick={() => handleDelete(evt)} className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-red-50">削除</button>
+                        )}
+                      </div>
+                    </>
                   )}
                 </td>
               </tr>

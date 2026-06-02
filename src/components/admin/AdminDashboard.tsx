@@ -461,6 +461,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   setInitialEditBookingId(b.id);
                   setShowDayPanel(true);
                 }}
+                onRefreshBookings={handleDayPanelRefresh}
                 holidays={holidays}
                 closures={closures}
                 disableModal

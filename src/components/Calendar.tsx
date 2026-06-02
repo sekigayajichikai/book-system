@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, X, Clock, MapPin, Pencil } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Clock, MapPin, MoreVertical, Check } from 'lucide-react';
 import { Booking } from '../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../constants';
 
@@ -13,6 +13,7 @@ interface CalendarProps {
   onItemClick?: (booking: Booking, rect: DOMRect) => void;
   onOverflowClick?: (date: Date, rect: DOMRect) => void;
   onEditBooking?: (booking: Booking) => void;
+  onRefreshBookings?: () => void;
   holidays?: Record<string, string>;
   closures?: Set<string>;
   disableModal?: boolean;
@@ -113,13 +114,24 @@ const BookingSheetView: React.FC<{
   holidays: Record<string, string>;
   onItemClick?: (booking: Booking, rect: DOMRect) => void;
   onEditClick?: (booking: Booking) => void;
-}> = ({ bookings, year, month, holidays, onItemClick, onEditClick }) => {
+  onRefresh?: () => void;
+}> = ({ bookings, year, month, holidays, onItemClick, onEditClick, onRefresh }) => {
   const [orgMap, setOrgMap] = useState<Record<string, string>>({});
+  const [editCell, setEditCell] = useState<{ id: string; field: 'title' | 'org' } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [menuId, setMenuId] = useState<string | null>(null);
 
-  // 団体名マップを取得
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+  const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+  const supaPatch = async (path: string, body: any) => {
+    await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify(body),
+    });
+  };
+
   useEffect(() => {
-    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-    const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
     fetch(`${SUPABASE_URL}/rest/v1/bookings?date=gte.${year}-${String(month + 1).padStart(2, '0')}-01&date=lt.${month === 11 ? year + 1 : year}-${String(month === 11 ? 1 : month + 2).padStart(2, '0')}-01&select=id,booking_organizations(name)`, {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
     }).then(r => r.json()).then(data => {
@@ -129,20 +141,45 @@ const BookingSheetView: React.FC<{
     }).catch(() => {});
   }, [year, month, bookings]);
 
-  // 当月の予約を日付・時間帯・部屋でソート
   const slotOrder: Record<string, number> = { '09:00': 0, '13:00': 1, '17:00': 2 };
   const monthBookings = bookings
-    .filter(b => {
-      const d = new Date(b.date + 'T00:00:00');
-      return d.getFullYear() === year && d.getMonth() === month;
-    })
+    .filter(b => { const d = new Date(b.date + 'T00:00:00'); return d.getFullYear() === year && d.getMonth() === month; })
     .sort((a, b) => a.date.localeCompare(b.date) || (slotOrder[a.startTime] ?? 0) - (slotOrder[b.startTime] ?? 0) || a.room.localeCompare(b.room));
 
   const slotLabel = (startTime: string) => startTime === '09:00' ? '午前' : startTime === '13:00' ? '午後' : '夜間';
 
+  const handleSave = async (b: Booking) => {
+    if (!editCell) return;
+    if (editCell.field === 'title') {
+      if (editValue.trim()) await supaPatch(`bookings?id=eq.${b.id}`, { title: editValue.trim() });
+    } else {
+      // 団体名からorg_idを検索
+      let orgId: string | null = null;
+      if (editValue.trim()) {
+        try {
+          const res = await fetch(`${SUPABASE_URL}/rest/v1/booking_organizations?name=eq.${encodeURIComponent(editValue.trim())}&select=id&limit=1`, {
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+          });
+          const d = await res.json(); orgId = d[0]?.id || null;
+        } catch {}
+      }
+      await supaPatch(`bookings?id=eq.${b.id}`, { org_id: orgId });
+    }
+    setEditCell(null);
+    onRefresh?.();
+  };
+
+  const handleDelete = async (b: Booking) => {
+    if (!confirm(`「${b.title}」を削除しますか？`)) return;
+    await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${b.id}`, {
+      method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=minimal' },
+    });
+    setMenuId(null);
+    onRefresh?.();
+  };
+
   return (
     <div>
-      {/* テーブル */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 sticky top-0">
@@ -163,11 +200,10 @@ const BookingSheetView: React.FC<{
               const dow = d.getDay();
               const isHoliday = !!holidays[b.date] || dow === 0;
               const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
+              const isEditingOrg = editCell?.id === b.id && editCell.field === 'org';
+              const isEditingTitle = editCell?.id === b.id && editCell.field === 'title';
               return (
-                <tr key={b.id}
-                  onClick={() => { if (onEditClick) onEditClick(b); }}
-                  className="hover:bg-gray-50 cursor-pointer transition-colors"
-                >
+                <tr key={b.id} className="hover:bg-gray-50 transition-colors">
                   <td className={`px-3 py-2 whitespace-nowrap ${isHoliday ? 'text-red-500' : dow === 6 ? 'text-blue-500' : ''}`}>
                     {d.getMonth() + 1}/{d.getDate()}({DOW_LABELS[dow]})
                   </td>
@@ -178,10 +214,43 @@ const BookingSheetView: React.FC<{
                       {shortRoomName(b.room)}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-gray-500">{orgMap[b.id] || '—'}</td>
-                  <td className="px-3 py-2 font-medium text-gray-800">{b.title}</td>
-                  <td className="px-3 py-2 text-right">
-                    <Pencil size={14} className="text-gray-300" />
+                  <td className="px-3 py-2" onClick={e => { e.stopPropagation(); setEditCell({ id: b.id, field: 'org' }); setEditValue(orgMap[b.id] || ''); }}>
+                    {isEditingOrg ? (
+                      <div className="flex items-center gap-1">
+                        <input value={editValue} onChange={e => setEditValue(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleSave(b); if (e.key === 'Escape') setEditCell(null); }}
+                          className="flex-1 px-1.5 py-0.5 border border-blue-300 rounded text-sm focus:outline-none" autoFocus />
+                        <button onClick={e => { e.stopPropagation(); handleSave(b); }} className="text-blue-500"><Check size={14} /></button>
+                      </div>
+                    ) : (
+                      <span className="text-gray-500 hover:text-gray-800 hover:underline cursor-text">{orgMap[b.id] || '—'}</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2" onClick={e => { e.stopPropagation(); setEditCell({ id: b.id, field: 'title' }); setEditValue(b.title); }}>
+                    {isEditingTitle ? (
+                      <div className="flex items-center gap-1">
+                        <input value={editValue} onChange={e => setEditValue(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleSave(b); if (e.key === 'Escape') setEditCell(null); }}
+                          className="flex-1 px-1.5 py-0.5 border border-blue-300 rounded text-sm focus:outline-none" autoFocus />
+                        <button onClick={e => { e.stopPropagation(); handleSave(b); }} className="text-blue-500"><Check size={14} /></button>
+                      </div>
+                    ) : (
+                      <span className="font-medium text-gray-800 hover:underline cursor-text">{b.title}</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right relative">
+                    <button onClick={e => { e.stopPropagation(); setMenuId(menuId === b.id ? null : b.id); }} className="p-1 hover:bg-gray-200 rounded-full">
+                      <MoreVertical size={14} className="text-gray-400" />
+                    </button>
+                    {menuId === b.id && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setMenuId(null)} />
+                        <div className="absolute right-0 top-8 z-50 bg-white rounded-xl shadow-lg border border-gray-200 py-1 w-36">
+                          <button onClick={e => { e.stopPropagation(); setMenuId(null); if (onEditClick) onEditClick(b); }} className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50">詳細編集</button>
+                          <button onClick={e => { e.stopPropagation(); handleDelete(b); }} className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-red-50">削除</button>
+                        </div>
+                      </>
+                    )}
                   </td>
                 </tr>
               );
@@ -305,7 +374,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const Calendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBooking, holidays = {}, closures = new Set(), disableModal, loading,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBooking, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [modalDate, setModalDate] = useState<Date | null>(null);
@@ -507,6 +576,7 @@ const Calendar: React.FC<CalendarProps> = ({
             holidays={holidays}
             onItemClick={onItemClick}
             onEditClick={onEditBooking}
+            onRefresh={onRefreshBookings}
           />
         ) : (
           <div className="p-4">
