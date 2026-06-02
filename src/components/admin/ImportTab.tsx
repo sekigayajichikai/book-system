@@ -547,14 +547,6 @@ export default function ImportTab() {
           >
             全て取消
           </button>
-          {approvedCount > 0 && (
-            <button
-              onClick={resetApproval}
-              className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-bold hover:bg-amber-600"
-            >
-              承認を取消
-            </button>
-          )}
           <button
             onClick={approveAll}
             disabled={pendingCount === 0}
@@ -661,13 +653,19 @@ export default function ImportTab() {
             />
             <span className="text-xs text-gray-400">（閲覧者に表示される更新日）</span>
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
             <button
               onClick={handleApply}
               disabled={applying || !sourceDate}
               className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50 shadow-sm"
             >
               {applying ? '反映中...' : `反映する（承認済み: ${approvedCount}件）`}
+            </button>
+            <button
+              onClick={resetApproval}
+              className="px-6 py-2.5 bg-gray-500 text-white rounded-lg text-sm font-bold hover:bg-gray-600"
+            >
+              キャンセル
             </button>
           </div>
         </div>
