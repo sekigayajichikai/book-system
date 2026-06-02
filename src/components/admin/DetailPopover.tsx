@@ -1,6 +1,13 @@
 import { Pencil, Trash2, X, Clock, MapPin, Users, AlignLeft, Star } from 'lucide-react';
 import Popover from './Popover';
 
+const ROOM_COLORS: Record<string, string> = {
+  '会議室': 'bg-yellow-400',
+  '和室（畳側）': 'bg-sky-400',
+  '和室（椅子側）': 'bg-sky-400',
+  '図書室': 'bg-pink-400',
+};
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
@@ -111,7 +118,9 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       <div className="px-4 pb-4 space-y-3">
         {/* タイトル */}
         <div className="flex items-start gap-3">
-          <div className={`w-3 h-3 rounded-sm mt-1.5 flex-shrink-0 ${data.type === 'booking' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+          <div className={`w-3 h-3 rounded-sm mt-1.5 flex-shrink-0 ${
+            data.type === 'booking' && data.room ? (ROOM_COLORS[data.room] || 'bg-gray-400') : 'bg-blue-500'
+          }`} />
           <div>
             <h3 className="text-lg font-medium text-gray-900 leading-tight">{data.title}</h3>
             <p className="text-sm text-gray-500 mt-0.5">{dateLabel}</p>
