@@ -455,11 +455,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
                 const activeOrgs = orgs.filter(o => {
                   const last = orgLastUsed[o.id];
-                  return !last || last >= cutoff;
+                  return last && last >= cutoff;
                 });
                 const archivedOrgs = orgs.filter(o => {
                   const last = orgLastUsed[o.id];
-                  return last && last < cutoff;
+                  return !last || last < cutoff;
                 });
 
                 const sortOrgs = (list: Org[]) => {
