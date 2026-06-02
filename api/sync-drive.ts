@@ -99,6 +99,7 @@ function parseWorkbook(buffer: ArrayBuffer): ParsedMonth[] {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method === 'GET') return handleGetMeta(req, res);
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -234,4 +235,32 @@ async function processMonth(supabase: any, year: number, month: number, rows: Pa
   await supabase.from('import_batches').update({ stats, total_rows: importRows.length }).eq('id', batch.id);
 
   return stats;
+}
+
+/** GET: Driveファイルの最終更新日時を取得 */
+async function handleGetMeta(_req: VercelRequest, res: VercelResponse) {
+  try {
+    // oEmbed APIでファイル情報を取得
+    const url = `https://docs.google.com/spreadsheets/d/${DRIVE_FILE_ID}/edit`;
+    const oembedUrl = `https://www.google.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+    let metaRes = await fetch(oembedUrl);
+
+    // ファイルの実際の更新日時はoEmbedでは取れないので、HEADリクエストで確認
+    const exportUrl = `https://docs.google.com/spreadsheets/d/${DRIVE_FILE_ID}/export?format=xlsx`;
+    let headRes = await fetch(exportUrl, { method: 'HEAD', redirect: 'manual' });
+    if (headRes.status === 307 || headRes.status === 302) {
+      const redirectUrl = headRes.headers.get('location');
+      if (redirectUrl) headRes = await fetch(redirectUrl, { method: 'HEAD' });
+    }
+
+    const lastModified = headRes.headers.get('last-modified');
+
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.status(200).json({
+      fileId: DRIVE_FILE_ID,
+      lastModified: lastModified || null,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err?.message });
+  }
 }

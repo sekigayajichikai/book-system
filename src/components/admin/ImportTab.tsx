@@ -135,6 +135,7 @@ export default function ImportTab() {
   const [uploading, setUploading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncingGeneral, setSyncingGeneral] = useState(false);
+  const [driveLastModified, setDriveLastModified] = useState<string | null>(null);
   const [sourceDate, setSourceDate] = useState(() => {
     // デフォルト: 直近の金曜日
     const d = new Date();
@@ -160,7 +161,12 @@ export default function ImportTab() {
     }
   }, []);
 
-  useEffect(() => { fetchImport(); }, [fetchImport]);
+  useEffect(() => {
+    fetchImport();
+    fetch('/api/sync-drive').then(r => r.json()).then(d => {
+      if (d.lastModified) setDriveLastModified(d.lastModified);
+    }).catch(() => {});
+  }, [fetchImport]);
 
   // Excelファイルアップロード処理
   const handleFileUpload = async (file: File) => {
@@ -373,85 +379,102 @@ export default function ImportTab() {
 
   if (loading) return <div className="text-gray-400 text-sm py-12 text-center">読み込み中...</div>;
 
+  const driveModifiedStr = driveLastModified
+    ? new Date(driveLastModified).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : null;
+
   // アップロードエリア（常に表示）
   const uploadArea = (
-    <div className="space-y-3">
-    {/* 更新日入力 */}
-    <div className="flex items-center gap-3">
-      <label className="text-sm font-bold text-gray-600">予定表の更新日：</label>
-      <input
-        type="date"
-        value={sourceDate}
-        onChange={e => setSourceDate(e.target.value)}
-        className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
-      />
-      <span className="text-xs text-gray-400">（Excelが最後に更新された日）</span>
+    <div className="space-y-4">
+
+    {/* ===== 会館予約のインポート ===== */}
+    <div className="bg-white rounded-xl border border-blue-200 p-4 space-y-3">
+      <h3 className="text-sm font-bold text-blue-700">会館予約のインポート</h3>
+
+      {/* 更新日入力 */}
+      <div className="flex items-center gap-3">
+        <label className="text-xs font-bold text-gray-500">予定表の更新日：</label>
+        <input
+          type="date"
+          value={sourceDate}
+          onChange={e => setSourceDate(e.target.value)}
+          className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm"
+        />
+      </div>
+
+      <div className="flex gap-3">
+        {/* Googleドライブから取込 */}
+        <button
+          onClick={handleSyncDrive}
+          disabled={syncing || uploading}
+          className="flex-1 border-2 border-dashed border-blue-200 rounded-xl p-4 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Cloud size={24} className="mx-auto text-blue-300 mb-1" />
+          {syncing ? (
+            <p className="text-blue-600 font-bold text-sm">取込中...</p>
+          ) : (
+            <>
+              <p className="text-blue-500 text-sm font-bold">Googleドライブから取込</p>
+              <div className="text-left inline-block mt-1.5 text-xs text-gray-400">
+                <p><span className="text-gray-500">アカウント：</span>関ヶ谷自治会DX委員会</p>
+                <p><span className="text-gray-500">ファイル　：</span>カレンダー &gt; 会館予定表 &gt; 会館日程表（新）.xlsx</p>
+                {driveModifiedStr && <p><span className="text-gray-500">最終更新　：</span>{driveModifiedStr}</p>}
+              </div>
+            </>
+          )}
+        </button>
+
+        {/* ファイルアップロード */}
+        <div
+          onDrop={handleDrop}
+          onDragOver={e => e.preventDefault()}
+          className="flex-1 border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors cursor-pointer"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.xls"
+            className="hidden"
+            onChange={e => {
+              const file = e.target.files?.[0];
+              if (file) handleFileUpload(file);
+            }}
+          />
+          <Upload size={24} className="mx-auto text-gray-300 mb-1" />
+          {uploading ? (
+            <p className="text-emerald-600 font-bold text-sm">読み取り中...</p>
+          ) : (
+            <>
+              <p className="text-gray-500 text-sm font-bold">Excelファイルをアップロード</p>
+              <p className="text-gray-400 text-xs mt-1">ドラッグ＆ドロップまたはクリック</p>
+            </>
+          )}
+        </div>
+      </div>
     </div>
-    <div className="flex gap-3">
-      {/* Googleドライブから取込 */}
+
+    {/* ===== 一般予定のインポート ===== */}
+    <div className="bg-white rounded-xl border border-violet-200 p-4">
+      <h3 className="text-sm font-bold text-violet-700 mb-3">一般予定・休館日のインポート</h3>
       <button
-        onClick={handleSyncDrive}
-        disabled={syncing || uploading}
-        className="flex-1 border-2 border-dashed border-blue-300 rounded-xl p-6 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        onClick={handleSyncGeneral}
+        disabled={syncingGeneral}
+        className="w-full border-2 border-dashed border-violet-200 rounded-xl p-4 text-center hover:border-violet-400 hover:bg-violet-50/30 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <Cloud size={32} className="mx-auto text-blue-300 mb-2" />
-        {syncing ? (
-          <p className="text-blue-600 font-bold text-sm">取込中...</p>
+        {syncingGeneral ? (
+          <p className="text-violet-600 font-bold text-sm">取込中...</p>
         ) : (
           <>
-            <p className="text-blue-500 text-sm font-bold">Googleドライブから取込</p>
-            <div className="text-left inline-block mt-2 text-xs text-gray-400">
+            <p className="text-violet-500 text-sm font-bold">予定スプレッドシートから取込</p>
+            <div className="text-left inline-block mt-1.5 text-xs text-gray-400">
               <p><span className="text-gray-500">アカウント：</span>関ヶ谷自治会DX委員会</p>
-              <p><span className="text-gray-500">ファイル　：</span>カレンダー &gt; 会館予定表 &gt; 会館日程表（新）.xlsx</p>
+              <p><span className="text-gray-500">ファイル　：</span>カレンダー &gt; 予定スプレッドシート</p>
             </div>
           </>
         )}
       </button>
-
-      {/* ファイルアップロード */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={e => e.preventDefault()}
-        className="flex-1 border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors cursor-pointer"
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls"
-          className="hidden"
-          onChange={e => {
-            const file = e.target.files?.[0];
-            if (file) handleFileUpload(file);
-          }}
-        />
-        <Upload size={32} className="mx-auto text-gray-300 mb-2" />
-        {uploading ? (
-          <p className="text-emerald-600 font-bold text-sm">読み取り中...</p>
-        ) : (
-          <>
-            <p className="text-gray-500 text-sm font-bold">Excelファイルをアップロード</p>
-            <p className="text-gray-400 text-xs mt-1">ドラッグ＆ドロップまたはクリック</p>
-          </>
-        )}
-      </div>
     </div>
-
-    {/* 予定スプレッドシートから取込 */}
-    <button
-      onClick={handleSyncGeneral}
-      disabled={syncingGeneral}
-      className="w-full border-2 border-dashed border-violet-300 rounded-xl p-4 text-center hover:border-violet-400 hover:bg-violet-50/30 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {syncingGeneral ? (
-        <p className="text-violet-600 font-bold text-sm">取込中...</p>
-      ) : (
-        <>
-          <p className="text-violet-500 text-sm font-bold">予定スプレッドシートから取込（一般予定・休館日）</p>
-          <p className="text-gray-400 text-xs mt-1">Googleスプレッドシートの予定を一括インポート</p>
-        </>
-      )}
-    </button>
 
     </div>
   );
