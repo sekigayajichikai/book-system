@@ -121,7 +121,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
             {dayEvents.filter(e => isMajorEvent(e)).map(evt => (
               <div key={evt.id} onClick={e => { if (onItemClick) { e.stopPropagation(); setSelectedEventId(evt.id); onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }}
                 className={`text-xs font-bold rounded px-1 py-0.5 truncate cursor-pointer transition-colors ${
-                  selectedEventId === evt.id ? 'bg-blue-200 text-blue-800' : 'text-blue-700 bg-blue-100 hover:bg-blue-200'
+                  selectedEventId === evt.id ? 'bg-blue-300 text-blue-900 border-l-2 border-blue-600' : 'text-blue-700 bg-blue-100 hover:bg-blue-200'
                 }`}>
                 {evt.title}
               </div>
@@ -129,7 +129,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
             {dayEvents.filter(e => !isMajorEvent(e)).slice(0, MAX_DISPLAY).map(evt => (
               <div key={evt.id} onClick={e => { if (onItemClick) { e.stopPropagation(); setSelectedEventId(evt.id); onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }}
                 className={`text-xs text-gray-700 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${
-                  selectedEventId === evt.id ? 'bg-blue-50 font-bold' : 'hover:bg-gray-200'
+                  selectedEventId === evt.id ? 'bg-blue-100 border-l-2 border-blue-500 pl-1 font-bold' : 'hover:bg-gray-200'
                 }`}>
                 <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300" />
                 <span className="truncate">{evt.title}</span>
