@@ -478,10 +478,21 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 const sortedActive = sortOrgs(activeOrgs);
                 const sortedArchived = sortOrgs(archivedOrgs);
 
+                const groupColors: Record<string, { border: string; text: string; bg: string }> = {
+                  '自治会': { border: 'border-red-400', text: 'text-red-600', bg: 'bg-red-50' },
+                  '委員会': { border: 'border-blue-400', text: 'text-blue-600', bg: 'bg-blue-50' },
+                  '自主活動部': { border: 'border-emerald-400', text: 'text-emerald-600', bg: 'bg-emerald-50' },
+                  '会員団体': { border: 'border-amber-400', text: 'text-amber-600', bg: 'bg-amber-50' },
+                  '一般団体': { border: 'border-violet-400', text: 'text-violet-600', bg: 'bg-violet-50' },
+                  'その他': { border: 'border-gray-400', text: 'text-gray-500', bg: 'bg-gray-50' },
+                };
+                const defaultColor = { border: 'border-gray-300', text: 'text-gray-500', bg: 'bg-gray-50' };
+
                 let lastGroup = '';
                 const renderOrgItem = (o: Org, showGroupHeader: boolean) => {
+                  const gc = groupColors[o.group_name || ''] || defaultColor;
                   const groupHeader = orgSortByGroup && showGroupHeader ? (
-                    <div className="px-4 py-1.5 bg-gray-50 text-xs font-bold text-gray-500 border-b border-gray-100">
+                    <div className={`px-4 py-1.5 ${gc.bg} text-xs font-bold ${gc.text} border-b border-gray-100 border-l-4 ${gc.border}`}>
                       {o.group_name || '未分類'}
                     </div>
                   ) : null;
