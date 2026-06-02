@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { Pencil, Trash2, X, Clock, MapPin, Users, AlignLeft, Star, Check, Type } from 'lucide-react';
 import Popover from './Popover';
 
+const TIME_OPTIONS: string[] = [];
+for (let h = 7; h <= 21; h++) {
+  for (let m = 0; m < 60; m += 15) {
+    TIME_OPTIONS.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+  }
+}
+
 const ROOM_COLORS: Record<string, string> = {
   '会議室': 'bg-yellow-400',
   '和室（畳側）': 'bg-sky-400',
@@ -62,6 +69,19 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   const dateLabel = `${d.getMonth() + 1}月${d.getDate()}日 (${DOW[d.getDay()]})`;
   const [editingDisplayTitle, setEditingDisplayTitle] = useState(false);
   const [displayTitleValue, setDisplayTitleValue] = useState('');
+  const [editingTime, setEditingTime] = useState(false);
+  const [timeStart, setTimeStart] = useState('');
+  const [timeEnd, setTimeEnd] = useState('');
+
+  const handleSaveTime = async () => {
+    await supaFetch(`calendar_events?id=eq.${data.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ start_time: timeStart || null, end_time: timeEnd || null }),
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    });
+    setEditingTime(false);
+    onRefresh();
+  };
 
   const handleSaveDisplayTitle = async () => {
     await supaFetch(`calendar_events?id=eq.${data.id}`, {
@@ -243,6 +263,40 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
                 className="w-full text-left px-2 py-1.5 text-sm border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
                 <span className={data.displayTitle ? 'text-gray-800' : 'text-gray-400 italic'}>
                   {data.displayTitle || '（クリックして設定）'}
+                </span>
+              </button>
+            )}
+          </div>
+        )}
+        {/* カレンダー用時間（facility型イベント） */}
+        {isFacilityEvent && data.type === 'event' && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <Clock size={12} />
+              <span>カレンダー用時間</span>
+            </div>
+            {editingTime ? (
+              <div className="flex items-center gap-1.5">
+                <select value={timeStart} onChange={e => setTimeStart(e.target.value)}
+                  className="flex-1 px-1.5 py-1 border border-blue-300 rounded text-sm focus:outline-none">
+                  <option value="">開始</option>
+                  {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <span className="text-gray-400 text-xs">〜</span>
+                <select value={timeEnd} onChange={e => setTimeEnd(e.target.value)}
+                  className="flex-1 px-1.5 py-1 border border-blue-300 rounded text-sm focus:outline-none">
+                  <option value="">終了</option>
+                  {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <button onClick={handleSaveTime} className="p-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                  <Check size={14} />
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => { setEditingTime(true); setTimeStart(data.startTime || ''); setTimeEnd(data.endTime || ''); }}
+                className="w-full text-left px-2 py-1.5 text-sm border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                <span className={data.startTime ? 'text-gray-800' : 'text-gray-400 italic'}>
+                  {data.startTime && data.endTime ? `${data.startTime}〜${data.endTime}` : '（クリックして設定）'}
                 </span>
               </button>
             )}
