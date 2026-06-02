@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronLeft, ChevronRight, X, Clock, MapPin, Check, MoreVertical, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Clock, MapPin, Check, MoreVertical, Star, AlignLeft } from 'lucide-react';
 import { EventSummary } from '../types';
 import { shortRoomName, ROOMS, TIME_SLOTS } from '../constants';
 
@@ -211,7 +211,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         </div>
         </>
         ) : (
-        <EventSheetView events={events} year={year} month={month} holidays={holidays} onRefresh={() => fetchEvents(year, month)} />
+        <EventSheetView events={events} year={year} month={month} holidays={holidays} onRefresh={() => fetchEvents(year, month)} onItemClick={onItemClick} />
         )}
       </div>
 
@@ -221,7 +221,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         const evt = itemDetail.event;
         const d = new Date(evt.date + 'T00:00:00');
         const dow = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
-        const timeStr = evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : null;
+        const timeStr = evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : evt.slots.length > 0 ? evt.slots.join('・') : null;
         const roomStr = evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : null;
         const locationStr = evt.location && roomStr ? `${evt.location}（${roomStr}）` : evt.location || roomStr;
         const vw = window.innerWidth; const vh = window.innerHeight;
@@ -229,7 +229,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         if (left + 300 > vw - 16) left = itemDetail.anchor.left - 300 - 8;
         if (left < 16) left = 16;
         let top = itemDetail.anchor.top;
-        if (top + 160 > vh - 16) top = vh - 160 - 16;
+        if (top + 200 > vh - 16) top = vh - 200 - 16;
         if (top < 16) top = 16;
         return (
           <>
@@ -258,6 +258,12 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <MapPin size={14} className="text-gray-500" />
                     <span>{locationStr}</span>
+                  </div>
+                )}
+                {evt.description && (
+                  <div className="flex items-start gap-3 text-sm text-gray-600">
+                    <AlignLeft size={14} className="text-gray-500 mt-0.5" />
+                    <span className="whitespace-pre-wrap">{evt.description}</span>
                   </div>
                 )}
               </div>
@@ -345,12 +351,12 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 /** カレンダー一覧ビュー（display_title編集対応 + ⋮メニュー） */
-function EventSheetView({ events, year, month, holidays, onRefresh }: {
+function EventSheetView({ events, year, month, holidays, onRefresh, onItemClick }: {
   events: EventSummary[]; year: number; month: number; holidays: Record<string, string>; onRefresh: () => void;
+  onItemClick?: (event: EventSummary, rect: DOMRect) => void;
 }) {
   const [editId, setEditId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
-  const [menuId, setMenuId] = useState<string | null>(null);
   const [editSlotId, setEditSlotId] = useState<string | null>(null);
   const [editRoomId, setEditRoomId] = useState<string | null>(null);
 
@@ -371,16 +377,6 @@ function EventSheetView({ events, year, month, holidays, onRefresh }: {
 
   const handleToggleMajor = async (evt: EventSummary) => {
     await supaPatch(`calendar_events?id=eq.${evt.id}`, { is_major: !evt.isMajor });
-    setMenuId(null);
-    onRefresh();
-  };
-
-  const handleDelete = async (evt: EventSummary) => {
-    if (!confirm(`「${evt.title}」を削除しますか？`)) return;
-    await fetch(`${SUPABASE_URL}/rest/v1/calendar_events?id=eq.${evt.id}`, {
-      method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=minimal' },
-    });
-    setMenuId(null);
     onRefresh();
   };
 
@@ -493,23 +489,10 @@ function EventSheetView({ events, year, month, holidays, onRefresh }: {
                     evt.location && evt.rooms.length > 0 ? `${evt.location}（${evt.rooms.map(r => shortRoomName(r)).join('・')}）` : evt.location || (evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : '')
                   )}
                 </td>
-                <td className="px-3 py-2 text-right relative">
-                  <button onClick={e => { e.stopPropagation(); setMenuId(menuId === evt.id ? null : evt.id); }} className="p-1 hover:bg-gray-200 rounded-full">
+                <td className="px-3 py-2 text-right">
+                  <button onClick={e => { e.stopPropagation(); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }} className="p-1 hover:bg-gray-200 rounded-full">
                     <MoreVertical size={14} className="text-gray-400" />
                   </button>
-                  {menuId === evt.id && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setMenuId(null)} />
-                      <div className="absolute right-0 top-8 z-50 bg-white rounded-xl shadow-lg border border-gray-200 py-1 w-40">
-                        <button onClick={() => handleToggleMajor(evt)} className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50">
-                          {evt.isMajor ? '☆ 主な予定を解除' : '★ 主な予定にする'}
-                        </button>
-                        {evt.eventType !== 'facility' && (
-                          <button onClick={() => handleDelete(evt)} className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-red-50">削除</button>
-                        )}
-                      </div>
-                    </>
-                  )}
                 </td>
               </tr>
             );
