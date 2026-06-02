@@ -240,25 +240,22 @@ async function processMonth(supabase: any, year: number, month: number, rows: Pa
 /** GET: Driveファイルの最終更新日時を取得 */
 async function handleGetMeta(_req: VercelRequest, res: VercelResponse) {
   try {
-    // oEmbed APIでファイル情報を取得
-    const url = `https://docs.google.com/spreadsheets/d/${DRIVE_FILE_ID}/edit`;
-    const oembedUrl = `https://www.google.com/oembed?url=${encodeURIComponent(url)}&format=json`;
-    let metaRes = await fetch(oembedUrl);
-
-    // ファイルの実際の更新日時はoEmbedでは取れないので、HEADリクエストで確認
+    // exportのリダイレクトURLにタイムスタンプが含まれる
     const exportUrl = `https://docs.google.com/spreadsheets/d/${DRIVE_FILE_ID}/export?format=xlsx`;
-    let headRes = await fetch(exportUrl, { method: 'HEAD', redirect: 'manual' });
-    if (headRes.status === 307 || headRes.status === 302) {
-      const redirectUrl = headRes.headers.get('location');
-      if (redirectUrl) headRes = await fetch(redirectUrl, { method: 'HEAD' });
-    }
+    const headRes = await fetch(exportUrl, { method: 'HEAD', redirect: 'manual' });
+    const location = headRes.headers.get('location') || '';
 
-    const lastModified = headRes.headers.get('last-modified');
+    // URLからタイムスタンプを抽出: .../1780370305000/...
+    let lastModified: string | null = null;
+    const tsMatch = location.match(/\/(\d{13})\//);
+    if (tsMatch) {
+      lastModified = new Date(Number(tsMatch[1])).toISOString();
+    }
 
     res.setHeader('Cache-Control', 'no-cache');
     return res.status(200).json({
       fileId: DRIVE_FILE_ID,
-      lastModified: lastModified || null,
+      lastModified,
     });
   } catch (err: any) {
     return res.status(500).json({ error: err?.message });
