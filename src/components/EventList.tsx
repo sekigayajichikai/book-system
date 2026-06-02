@@ -161,7 +161,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         </div>
 
         {loading && (
-          <div className="p-4 text-center text-gray-500 text-sm">読み込み中...</div>
+          <div className="h-1 bg-blue-100 overflow-hidden"><div className="h-full w-1/3 bg-blue-400 animate-pulse rounded" /></div>
         )}
 
         {/* 曜日ヘッダー */}
