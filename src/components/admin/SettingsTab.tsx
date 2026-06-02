@@ -210,6 +210,20 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
       />
 
       <MasterSection
+        title="利用区分マスタ"
+        table="booking_usage_categories"
+        items={cats}
+        setItems={setCats}
+        columns={[
+          { key: 'name', label: '区分名' },
+          { key: 'price_large', label: '会議室(円)', type: 'number', width: '80px' },
+          { key: 'price_small', label: '和室等(円)', type: 'number', width: '80px' },
+          { key: 'sort_order', label: '順', type: 'number', width: '80px' },
+        ]}
+        defaultRow={{ name: '', tier: '', price_type: 'other', price_large: 0, price_small: 0, sort_order: 0 }}
+      />
+
+      <MasterSection
         title="部屋マスタ"
         table="booking_rooms"
         items={rooms}
@@ -251,19 +265,6 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
         defaultRow={{ name: '', price: 300, sort_order: 0 }}
       />
 
-      <MasterSection
-        title="利用区分マスタ"
-        table="booking_usage_categories"
-        items={cats}
-        setItems={setCats}
-        columns={[
-          { key: 'name', label: '区分名' },
-          { key: 'price_large', label: '会議室(円)', type: 'number', width: '80px' },
-          { key: 'price_small', label: '和室等(円)', type: 'number', width: '80px' },
-          { key: 'sort_order', label: '順', type: 'number', width: '80px' },
-        ]}
-        defaultRow={{ name: '', tier: '', price_type: 'other', price_large: 0, price_small: 0, sort_order: 0 }}
-      />
     </div>
   );
 }
