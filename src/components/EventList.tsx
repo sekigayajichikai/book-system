@@ -99,6 +99,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
               setModalAnchor(rect);
             }
           }}
+          data-cell
           className={`min-h-[8rem] border border-gray-200 relative transition-colors flex flex-col ${
             onCellClick || onDateClick || dayEvents.length > 0 ? 'cursor-pointer hover:bg-blue-50/30' : ''
           } ${isToday ? 'outline outline-2 outline-blue-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
@@ -119,7 +120,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
           {/* イベント: 主要=カラー背景ラベル、詳細=グレードット */}
           <div className="flex-1 px-0.5 py-0.5 overflow-hidden space-y-px">
             {dayEvents.filter(e => isMajorEvent(e)).map(evt => (
-              <div key={evt.id} onClick={e => { if (onItemClick) { e.stopPropagation(); setSelectedEventId(evt.id); onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }}
+              <div key={evt.id} onClick={e => { e.stopPropagation(); setSelectedEventId(evt.id); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } else { const d = new Date(year, month, day); setModalDate(d); setModalAnchor((e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || null); } }}
                 className={`text-xs font-bold rounded px-1 py-0.5 truncate cursor-pointer transition-colors ${
                   selectedEventId === evt.id ? 'bg-blue-200 text-blue-900' : 'text-blue-700 bg-blue-100 hover:bg-blue-200'
                 }`}>
@@ -127,7 +128,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
               </div>
             ))}
             {dayEvents.filter(e => !isMajorEvent(e)).slice(0, MAX_DISPLAY).map(evt => (
-              <div key={evt.id} onClick={e => { if (onItemClick) { e.stopPropagation(); setSelectedEventId(evt.id); onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }}
+              <div key={evt.id} onClick={e => { e.stopPropagation(); setSelectedEventId(evt.id); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } else { const d = new Date(year, month, day); setModalDate(d); setModalAnchor((e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || null); } }}
                 className={`text-xs text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${
                   selectedEventId === evt.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] rounded-sm relative z-10' : 'hover:bg-gray-200'
                 }`}>

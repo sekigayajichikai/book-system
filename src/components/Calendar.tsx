@@ -345,11 +345,20 @@ const Calendar: React.FC<CalendarProps> = ({
   };
 
   const handleItemClick = (e: React.MouseEvent, booking: Booking) => {
-    if (!onItemClick) return;
     e.stopPropagation();
     setSelectedBookingId(booking.id);
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    onItemClick(booking, rect);
+    if (onItemClick) {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      onItemClick(booking, rect);
+    } else {
+      // ユーザー側: セルのポップオーバーを開く
+      const date = new Date(booking.date + 'T00:00:00');
+      const cell = (e.currentTarget as HTMLElement).closest('[data-cell]') as HTMLElement;
+      if (cell) {
+        setModalDate(date);
+        setModalAnchor(cell.getBoundingClientRect());
+      }
+    }
   };
 
   const generateCalendarDays = () => {
