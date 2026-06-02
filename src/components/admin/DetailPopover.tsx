@@ -79,8 +79,9 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       body: JSON.stringify({ start_time: timeStart || null, end_time: timeEnd || null }),
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
     });
+    data.startTime = timeStart || null;
+    data.endTime = timeEnd || null;
     setEditingTime(false);
-    onClose();
     onRefresh();
   };
 
@@ -90,8 +91,8 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       body: JSON.stringify({ display_title: displayTitleValue.trim() || null }),
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
     });
+    data.displayTitle = displayTitleValue.trim() || null;
     setEditingDisplayTitle(false);
-    onClose();
     onRefresh();
   };
 
