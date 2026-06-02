@@ -31,6 +31,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
   const [modalDate, setModalDate] = useState<Date | null>(null);
   const [modalAnchor, setModalAnchor] = useState<DOMRect | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [itemDetail, setItemDetail] = useState<{ event: EventSummary; anchor: DOMRect } | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -132,7 +133,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
               if (aTime && !bTime) return 1;
               return aTime.localeCompare(bTime);
             }).map(evt => (
-              <div key={evt.id} onClick={e => { e.stopPropagation(); setSelectedEventId(evt.id); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } else { const d = new Date(year, month, day); setModalDate(d); setModalAnchor((e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || null); } }}
+              <div key={evt.id} onClick={e => { e.stopPropagation(); setSelectedEventId(evt.id); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } else { setItemDetail({ event: evt, anchor: (e.currentTarget as HTMLElement).getBoundingClientRect() }); } }}
                 className={`text-xs font-bold rounded px-1 py-0.5 truncate cursor-pointer transition-colors ${
                   selectedEventId === evt.id ? 'bg-blue-200 text-blue-900 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] relative z-10' : 'text-blue-700 bg-blue-100 hover:bg-blue-200'
                 }`}>
@@ -140,7 +141,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
               </div>
             ))}
             {dayEvents.filter(e => !isMajorEvent(e)).slice(0, MAX_DISPLAY).map(evt => (
-              <div key={evt.id} onClick={e => { e.stopPropagation(); setSelectedEventId(evt.id); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } else { const d = new Date(year, month, day); setModalDate(d); setModalAnchor((e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || null); } }}
+              <div key={evt.id} onClick={e => { e.stopPropagation(); setSelectedEventId(evt.id); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } else { setItemDetail({ event: evt, anchor: (e.currentTarget as HTMLElement).getBoundingClientRect() }); } }}
                 className={`text-xs text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${
                   selectedEventId === evt.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] rounded-sm relative z-10' : 'hover:bg-gray-200'
                 }`}>
@@ -230,6 +231,56 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
           onClose={() => { setModalDate(null); setModalAnchor(null); }}
         />
       )}
+
+      {/* 個別アイテム詳細ポップオーバー（ユーザー側） */}
+      {itemDetail && (() => {
+        const evt = itemDetail.event;
+        const d = new Date(evt.date + 'T00:00:00');
+        const dow = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+        const timeStr = evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : null;
+        const roomStr = evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : null;
+        const locationStr = evt.location && roomStr ? `${evt.location}（${roomStr}）` : evt.location || roomStr;
+        const vw = window.innerWidth; const vh = window.innerHeight;
+        let left = itemDetail.anchor.left + itemDetail.anchor.width + 8;
+        if (left + 300 > vw - 16) left = itemDetail.anchor.left - 300 - 8;
+        if (left < 16) left = 16;
+        let top = itemDetail.anchor.top;
+        if (top + 160 > vh - 16) top = vh - 160 - 16;
+        if (top < 16) top = 16;
+        return (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => { setItemDetail(null); setSelectedEventId(null); }} />
+            <div className="bg-gray-50 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] border border-gray-200 overflow-hidden" style={{ position: 'fixed', left, top, zIndex: 50, width: 300 }}>
+              <div className="flex items-center justify-end px-3 pt-2">
+                <button onClick={() => { setItemDetail(null); setSelectedEventId(null); }} className="p-1 hover:bg-gray-200 rounded-full">
+                  <X size={14} className="text-gray-400" />
+                </button>
+              </div>
+              <div className="px-4 pb-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className={`w-3 h-3 rounded-sm shrink-0 ${evt.isMajor ? 'bg-blue-500' : 'bg-blue-400'}`} />
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">{evt.title}</h3>
+                    <p className="text-xs text-gray-500">{d.getMonth() + 1}月{d.getDate()}日 ({dow})</p>
+                  </div>
+                </div>
+                {timeStr && (
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                    <Clock size={14} className="text-gray-500" />
+                    <span>{timeStr}</span>
+                  </div>
+                )}
+                {locationStr && (
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                    <MapPin size={14} className="text-gray-500" />
+                    <span>{locationStr}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </>
   );
 }

@@ -380,6 +380,7 @@ const Calendar: React.FC<CalendarProps> = ({
   const [modalDate, setModalDate] = useState<Date | null>(null);
   const [modalAnchor, setModalAnchor] = useState<DOMRect | null>(null);
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [itemDetail, setItemDetail] = useState<{ booking: Booking; anchor: DOMRect } | null>(null);
   const [weekStart, setWeekStart] = useState(() => {
     const d = new Date();
     const dow = d.getDay();
@@ -420,13 +421,9 @@ const Calendar: React.FC<CalendarProps> = ({
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       onItemClick(booking, rect);
     } else {
-      // ユーザー側: セルのポップオーバーを開く
-      const date = new Date(booking.date + 'T00:00:00');
-      const cell = (e.currentTarget as HTMLElement).closest('[data-cell]') as HTMLElement;
-      if (cell) {
-        setModalDate(date);
-        setModalAnchor(cell.getBoundingClientRect());
-      }
+      // ユーザー側: 個別アイテム詳細ポップオーバー
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+      setItemDetail({ booking, anchor: rect });
     }
   };
 
@@ -608,6 +605,51 @@ const Calendar: React.FC<CalendarProps> = ({
           onClose={() => { setModalDate(null); setModalAnchor(null); }}
         />
       )}
+
+      {/* 個別アイテム詳細ポップオーバー（ユーザー側） */}
+      {itemDetail && (() => {
+        const b = itemDetail.booking;
+        const d = new Date(b.date + 'T00:00:00');
+        const dow = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+        const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        let left = itemDetail.anchor.left + itemDetail.anchor.width + 8;
+        if (left + 300 > vw - 16) left = itemDetail.anchor.left - 300 - 8;
+        if (left < 16) left = 16;
+        let top = itemDetail.anchor.top;
+        if (top + 160 > vh - 16) top = vh - 160 - 16;
+        if (top < 16) top = 16;
+        return (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => { setItemDetail(null); setSelectedBookingId(null); }} />
+            <div className="bg-gray-50 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] border border-gray-200 overflow-hidden" style={{ position: 'fixed', left, top, zIndex: 50, width: 300 }}>
+              <div className="flex items-center justify-end px-3 pt-2">
+                <button onClick={() => { setItemDetail(null); setSelectedBookingId(null); }} className="p-1 hover:bg-gray-200 rounded-full">
+                  <X size={14} className="text-gray-400" />
+                </button>
+              </div>
+              <div className="px-4 pb-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className={`${colors.bar} w-3 h-3 rounded-sm shrink-0`} />
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">{b.title}</h3>
+                    <p className="text-xs text-gray-500">{d.getMonth() + 1}月{d.getDate()}日 ({dow})</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <Clock size={14} className="text-gray-500" />
+                  <span>{b.startTime}〜{b.endTime}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <MapPin size={14} className="text-gray-500" />
+                  <span>{shortRoomName(b.room)}</span>
+                </div>
+              </div>
+            </div>
+          </>
+        );
+      })()}
     </>
   );
 };
