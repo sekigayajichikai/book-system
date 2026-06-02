@@ -258,6 +258,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     if (editOrg) {
       await supaFetch(`booking_organizations?id=eq.${editOrg.id}`, { method: 'PATCH', body: JSON.stringify(body) });
     } else {
+      body.is_active = true;
       await supaFetch('booking_organizations', { method: 'POST', body: JSON.stringify(body) });
     }
     setOrgEditing(false);
