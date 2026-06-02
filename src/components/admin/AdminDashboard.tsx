@@ -428,6 +428,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     {editOrg && !orgEditing && (
                       <button onClick={() => setOrgEditing(true)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-100"><Pencil size={12} /> 編集</button>
                     )}
+                    {(!editOrg || orgEditing) && (
+                      <>
+                        <button onClick={() => editOrg ? setOrgEditing(false) : setShowOrgPanel(false)} className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50">キャンセル</button>
+                        <button onClick={handleSaveOrg} className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700">{editOrg ? '更新' : '登録'}</button>
+                      </>
+                    )}
                     <button onClick={() => setShowOrgPanel(false)} className="p-1 hover:bg-gray-100 rounded-full"><X size={18} className="text-gray-400" /></button>
                   </div>
                 </div>
@@ -520,10 +526,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           })}
                         </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2 mt-5">
-                      <button onClick={() => editOrg ? setOrgEditing(false) : setShowOrgPanel(false)} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">キャンセル</button>
-                      <button onClick={handleSaveOrg} className="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700">{editOrg ? '更新' : '登録'}</button>
                     </div>
                   </>
                 )}
