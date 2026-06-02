@@ -139,6 +139,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     activity_description: '', has_monthly_fee: false, registration_date: '',
     default_equipment: [] as string[], presets: [] as string[],
     group_name: '',
+    keywords: [] as string[],
   });
 
   useEffect(() => {
@@ -198,6 +199,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         registration_date: org.registration_date || '',
         default_equipment: org.default_equipment || [], presets: org.presets || [],
         group_name: org.group_name || '',
+        keywords: (org as any).keywords || [],
       });
       setOrgEditing(false);
     } else {
@@ -207,7 +209,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         name: '', furigana: '', category: '2', passcode: '', contact_email: '',
         registration_no: '', representative: '', rep_last_name: '', rep_first_name: '', rep_last_name_kana: '', rep_first_name_kana: '', han_ko: '', phone: '',
         activity_description: '', has_monthly_fee: false, registration_date: '',
-        default_equipment: [], presets: [], group_name: '',
+        default_equipment: [], presets: [], group_name: '', keywords: [],
       });
     }
     setShowOrgPanel(true);
@@ -258,6 +260,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       registration_date: orgForm.registration_date || null,
       default_equipment: orgForm.default_equipment, presets: orgForm.presets,
       group_name: orgForm.group_name || null,
+      keywords: orgForm.keywords || [],
     };
     if (editOrg) {
       await supaFetch(`booking_organizations?id=eq.${editOrg.id}`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -626,6 +629,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <div><span className="text-xs text-gray-400">利用区分</span><div className="text-gray-800">{categories.find(c => c.tier === orgForm.category)?.name || orgForm.category}</div></div>
                     <div><span className="text-xs text-gray-400">活動内容</span><div className="text-gray-800">{orgForm.activity_description || '—'}</div></div>
                     <div><span className="text-xs text-gray-400">月謝</span><div className="text-gray-800">{orgForm.has_monthly_fee ? 'あり' : 'なし'}</div></div>
+                    <div><span className="text-xs text-gray-400">紐づけキーワード</span><div className="flex flex-wrap gap-1 mt-1">{(orgForm as any).keywords?.length > 0 ? (orgForm as any).keywords.map((k: string) => <span key={k} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{k}</span>) : <span className="text-gray-400">—</span>}</div></div>
                     <div><span className="text-xs text-gray-400">パスコード</span><div className="text-gray-800 font-mono">{orgForm.passcode || '—'}</div></div>
                     {orgForm.default_equipment.length > 0 && (
                       <div><span className="text-xs text-gray-400">利用設備</span><div className="flex flex-wrap gap-1 mt-1">{orgForm.default_equipment.map(e => <span key={e} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">{e}</span>)}</div></div>
@@ -690,6 +694,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         const checked = e.target.checked;
                         setOrgForm(f => ({ ...f, has_monthly_fee: checked, category: checked ? '3' : (orgGroups.find(g => g.name === f.group_name)?.default_tier || f.category) }));
                       }} className="rounded" /><label htmlFor="monthly_fee" className="text-xs text-gray-600">月謝あり</label></div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">紐づけキーワード（カンマ区切り）</label>
+                        <input
+                          value={orgForm.keywords.join(', ')}
+                          onChange={e => setOrgForm(f => ({ ...f, keywords: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          placeholder="例: カラオケ, からおけ"
+                        />
+                        <p className="text-xs text-gray-400 mt-0.5">インポート時にタイトルとマッチして自動紐づけされます</p>
+                      </div>
                       <div><label className="block text-xs font-medium text-gray-500 mb-1">パスコード</label><input value={orgForm.passcode} onChange={e => setOrgForm(f => ({ ...f, passcode: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono" placeholder="4桁の数字など" /></div>
                       <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1">主に利用予定の設備（予約ごとに変更できます）</label>
