@@ -170,7 +170,15 @@ function DayCard({ dateStr, events, todayStr, todayRef, holidays, closures }: {
         {isToday && <span className="text-sm bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
       </div>
       <div className="space-y-2">
-        {events.map(evt => (
+        {[...events].sort((a, b) => {
+          // 主な予定を先に
+          if (a.isMajor !== b.isMajor) return a.isMajor ? -1 : 1;
+          // 終日（startTime無し）を先に
+          if (!a.startTime && b.startTime) return -1;
+          if (a.startTime && !b.startTime) return 1;
+          // 開始時間順
+          return (a.startTime || '').localeCompare(b.startTime || '');
+        }).map(evt => (
           <MobileEventCard key={evt.id} event={evt} highlight={evt.isMajor} />
         ))}
       </div>
