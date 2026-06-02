@@ -503,7 +503,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 const defaultColor = { border: 'border-gray-300', text: 'text-gray-500', bg: 'bg-gray-50' };
 
                 let lastGroup = '';
-                const renderOrgItem = (o: Org, showGroupHeader: boolean) => {
+                const renderOrgItem = (o: Org, showGroupHeader: boolean, isArchived?: boolean) => {
                   const gc = groupColors[o.group_name || ''] || defaultColor;
                   const groupHeader = orgSortByGroup && showGroupHeader ? (
                     <div className={`px-4 py-1.5 ${gc.bg} text-xs font-bold ${gc.text} border-b border-gray-100 border-l-4 ${gc.border}`}>
@@ -522,7 +522,22 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           <div className="text-sm font-bold text-gray-800">{o.name}</div>
                           {!orgSortByGroup && <div className="text-xs text-gray-400">{o.group_name || '未分類'}</div>}
                         </div>
-                        <button onClick={e => { e.stopPropagation(); handleDeleteOrg(o.id, o.name); }} className="text-red-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                        <div className="flex items-center gap-1">
+                          {isArchived && (
+                            <input
+                              type="checkbox"
+                              checked={false}
+                              title="アクティブにする"
+                              onClick={e => e.stopPropagation()}
+                              onChange={async () => {
+                                await supaFetch(`booking_organizations?id=eq.${o.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: true }) });
+                                setOrgs(prev => prev.map(org => org.id === o.id ? { ...org, is_active: true } : org));
+                              }}
+                              className="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-400 cursor-pointer"
+                            />
+                          )}
+                          <button onClick={e => { e.stopPropagation(); handleDeleteOrg(o.id, o.name); }} className="text-red-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -555,7 +570,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             const group = o.group_name || '未分類';
                             const showHeader = orgSortByGroup && group !== lastGroup;
                             lastGroup = group;
-                            return renderOrgItem(o, showHeader);
+                            return renderOrgItem(o, showHeader, true);
                           })}
                         </div>
                       )}
