@@ -272,7 +272,7 @@ function EventDayPopover({ date, events, anchorRect, onClose }: { date: Date; ev
           {events.map(evt => {
             const timeStr = evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : null;
             const roomStr = evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : null;
-            const locationStr = evt.eventType === 'facility' ? roomStr : evt.location;
+            const locationStr = evt.location && roomStr ? `${evt.location}（${roomStr}）` : evt.location || roomStr;
 
             return (
               <div key={evt.id} className="py-2.5 first:pt-0">
@@ -372,7 +372,7 @@ function EventSheetView({ events, year, month, holidays, onRefresh }: {
                   {evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : '終日'}
                 </td>
                 <td className="px-3 py-2 text-gray-500 text-xs">
-                  {evt.location || (evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : '')}
+                  {evt.location && evt.rooms.length > 0 ? `${evt.location}（${evt.rooms.map(r => shortRoomName(r)).join('・')}）` : evt.location || (evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : '')}
                 </td>
                 <td className="px-3 py-2 text-right">
                   {isEditing ? (
