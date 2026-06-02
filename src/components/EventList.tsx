@@ -125,7 +125,13 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
 
           {/* イベント: 主要=カラー背景ラベル、詳細=グレードット */}
           <div className="flex-1 px-0.5 py-0.5 overflow-hidden space-y-px">
-            {dayEvents.filter(e => isMajorEvent(e)).map(evt => (
+            {dayEvents.filter(e => isMajorEvent(e)).sort((a, b) => {
+              const aTime = a.startTime || '';
+              const bTime = b.startTime || '';
+              if (!aTime && bTime) return -1;
+              if (aTime && !bTime) return 1;
+              return aTime.localeCompare(bTime);
+            }).map(evt => (
               <div key={evt.id} onClick={e => { e.stopPropagation(); setSelectedEventId(evt.id); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } else { const d = new Date(year, month, day); setModalDate(d); setModalAnchor((e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || null); } }}
                 className={`text-xs font-bold rounded px-1 py-0.5 truncate cursor-pointer transition-colors ${
                   selectedEventId === evt.id ? 'bg-blue-200 text-blue-900' : 'text-blue-700 bg-blue-100 hover:bg-blue-200'
