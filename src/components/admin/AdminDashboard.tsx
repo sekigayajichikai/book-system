@@ -114,6 +114,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   }, []);
 
   const [showDayPanel, setShowDayPanel] = useState(false);
+  const [eventListRefreshKey, setEventListRefreshKey] = useState(0);
 
   // ポップオーバー状態
   type PopoverState = {
@@ -165,6 +166,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const handleDayPanelRefresh = () => {
     fetchEvents(currentDate.getFullYear(), currentDate.getMonth());
+    setEventListRefreshKey(k => k + 1);
   };
 
   // === 団体マスタ ===
@@ -423,7 +425,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             </div>
 
             {calendarSubView === 'schedule' ? (
-              <EventList holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} />
+              <EventList holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} refreshKey={eventListRefreshKey} />
             ) : (
               <Calendar
                 currentDate={currentDate}

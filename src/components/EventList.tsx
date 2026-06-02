@@ -15,13 +15,14 @@ interface EventListProps {
   onDateClick?: (date: Date) => void;
   onCellClick?: (date: Date, rect: DOMRect) => void;
   onItemClick?: (event: EventSummary, rect: DOMRect) => void;
+  refreshKey?: number;
 }
 
 function isMajorEvent(evt: { isMajor?: boolean }): boolean {
   return evt.isMajor === true;
 }
 
-export default function EventList({ holidays, closures, onDateClick, onCellClick, onItemClick }: EventListProps) {
+export default function EventList({ holidays, closures, onDateClick, onCellClick, onItemClick, refreshKey }: EventListProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,7 +48,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
 
   useEffect(() => {
     fetchEvents(year, month);
-  }, [year, month, fetchEvents]);
+  }, [year, month, fetchEvents, refreshKey]);
 
   const handlePrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));
   const handleNextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
