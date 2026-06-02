@@ -196,74 +196,84 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
     <div className="space-y-8">
       <h2 className="text-lg font-bold text-gray-800">設定</h2>
 
-      <MasterSection
-        title="団体カテゴリ"
-        table="booking_org_groups"
-        items={orgGroups}
-        setItems={setOrgGroups}
-        columns={[
-          { key: 'name', label: 'カテゴリ名' },
-          { key: 'default_tier', label: 'デフォルト利用区分', width: '120px' },
-          { key: 'sort_order', label: '順', type: 'number', width: '80px' },
-        ]}
-        defaultRow={{ name: '', default_tier: '1', sort_order: 0 }}
-      />
+      {/* ===== 共通 ===== */}
+      <div className="border-l-4 border-gray-400 pl-4 space-y-6">
+        <h3 className="text-sm font-bold text-gray-700">共通</h3>
 
-      <MasterSection
-        title="利用区分マスタ"
-        table="booking_usage_categories"
-        items={cats}
-        setItems={setCats}
-        columns={[
-          { key: 'name', label: '区分名' },
-          { key: 'price_large', label: '会議室(円)', type: 'number', width: '80px' },
-          { key: 'price_small', label: '和室等(円)', type: 'number', width: '80px' },
-          { key: 'sort_order', label: '順', type: 'number', width: '80px' },
-        ]}
-        defaultRow={{ name: '', tier: '', price_type: 'other', price_large: 0, price_small: 0, sort_order: 0 }}
-      />
+        <MasterSection
+          title="団体カテゴリ"
+          table="booking_org_groups"
+          items={orgGroups}
+          setItems={setOrgGroups}
+          columns={[
+            { key: 'name', label: 'カテゴリ名' },
+            { key: 'default_tier', label: 'デフォルト利用区分', width: '120px' },
+            { key: 'sort_order', label: '順', type: 'number', width: '80px' },
+          ]}
+          defaultRow={{ name: '', default_tier: '1', sort_order: 0 }}
+        />
 
-      <MasterSection
-        title="部屋マスタ"
-        table="booking_rooms"
-        items={rooms}
-        setItems={setRooms}
-        columns={[
-          { key: 'name', label: '部屋名' },
-          { key: 'short_name', label: '略称' },
-          { key: 'capacity', label: '定員', type: 'number', width: '80px' },
-          { key: 'sort_order', label: '順', type: 'number', width: '80px' },
-        ]}
-        defaultRow={{ name: '', short_name: '', capacity: 0, description: '', sort_order: 0 }}
-      />
+        <MasterSection
+          title="利用区分マスタ"
+          table="booking_usage_categories"
+          items={cats}
+          setItems={setCats}
+          columns={[
+            { key: 'name', label: '区分名' },
+            { key: 'price_large', label: '会議室(円)', type: 'number', width: '80px' },
+            { key: 'price_small', label: '和室等(円)', type: 'number', width: '80px' },
+            { key: 'sort_order', label: '順', type: 'number', width: '80px' },
+          ]}
+          defaultRow={{ name: '', tier: '', price_type: 'other', price_large: 0, price_small: 0, sort_order: 0 }}
+        />
+      </div>
 
-      <MasterSection
-        title="時間帯マスタ"
-        table="booking_time_slots"
-        items={timeSlots}
-        setItems={setTimeSlots}
-        columns={[
-          { key: 'slot_key', label: 'キー' },
-          { key: 'label', label: '表示名' },
-          { key: 'start_time', label: '開始' },
-          { key: 'end_time', label: '終了' },
-          { key: 'sort_order', label: '順', type: 'number', width: '80px' },
-        ]}
-        defaultRow={{ slot_key: '', label: '', start_time: '09:00', end_time: '12:00', sort_order: 0 }}
-      />
+      {/* ===== 会館予約 ===== */}
+      <div className="border-l-4 border-blue-400 pl-4 space-y-6">
+        <h3 className="text-sm font-bold text-blue-700">会館予約</h3>
 
-      <MasterSection
-        title="設備マスタ"
-        table="booking_equipment"
-        items={equipment}
-        setItems={setEquipment}
-        columns={[
-          { key: 'name', label: '設備名' },
-          { key: 'price', label: '料金', type: 'number', width: '80px' },
-          { key: 'sort_order', label: '順', type: 'number', width: '80px' },
-        ]}
-        defaultRow={{ name: '', price: 300, sort_order: 0 }}
-      />
+        <MasterSection
+          title="部屋マスタ"
+          table="booking_rooms"
+          items={rooms}
+          setItems={setRooms}
+          columns={[
+            { key: 'name', label: '部屋名' },
+            { key: 'short_name', label: '略称' },
+            { key: 'capacity', label: '定員', type: 'number', width: '80px' },
+            { key: 'sort_order', label: '順', type: 'number', width: '80px' },
+          ]}
+          defaultRow={{ name: '', short_name: '', capacity: 0, description: '', sort_order: 0 }}
+        />
+
+        <MasterSection
+          title="時間帯マスタ"
+          table="booking_time_slots"
+          items={timeSlots}
+          setItems={setTimeSlots}
+          columns={[
+            { key: 'slot_key', label: 'キー' },
+            { key: 'label', label: '表示名' },
+            { key: 'start_time', label: '開始' },
+            { key: 'end_time', label: '終了' },
+            { key: 'sort_order', label: '順', type: 'number', width: '80px' },
+          ]}
+          defaultRow={{ slot_key: '', label: '', start_time: '09:00', end_time: '12:00', sort_order: 0 }}
+        />
+
+        <MasterSection
+          title="設備マスタ"
+          table="booking_equipment"
+          items={equipment}
+          setItems={setEquipment}
+          columns={[
+            { key: 'name', label: '設備名' },
+            { key: 'price', label: '料金', type: 'number', width: '80px' },
+            { key: 'sort_order', label: '順', type: 'number', width: '80px' },
+          ]}
+          defaultRow={{ name: '', price: 300, sort_order: 0 }}
+        />
+      </div>
 
     </div>
   );
