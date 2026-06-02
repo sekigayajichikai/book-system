@@ -20,7 +20,7 @@ interface ImportRow {
   room: string;
   title: string;
   org_guess: string | null;
-  diff_type: 'add' | 'update' | 'delete' | 'skip';
+  diff_type: 'add' | 'update' | 'delete' | 'skip' | 'title_diff';
   existing_booking_id: string | null;
   existing_title: string | null;
   review_status: 'pending' | 'approved' | 'rejected' | 'skipped';
@@ -30,6 +30,7 @@ interface ImportRow {
 const DIFF_LABELS: Record<string, { label: string; bg: string; text: string }> = {
   add: { label: '新規', bg: 'bg-emerald-50', text: 'text-emerald-700' },
   update: { label: '変更', bg: 'bg-amber-50', text: 'text-amber-700' },
+  title_diff: { label: 'タイトル差異', bg: 'bg-yellow-50', text: 'text-yellow-700' },
   delete: { label: '削除', bg: 'bg-red-50', text: 'text-red-700' },
   skip: { label: 'スキップ', bg: 'bg-gray-50', text: 'text-gray-500' },
 };
@@ -596,11 +597,11 @@ export default function ImportTab() {
                         <td className="px-3 py-2 w-16">{row.slot}</td>
                         <td className="px-3 py-2 w-24">{shortRoomName(row.room)}</td>
                         <td className="px-3 py-2">
-                          {row.diff_type === 'update' ? (
+                          {row.diff_type === 'update' || row.diff_type === 'title_diff' ? (
                             <span>
                               <span className="line-through text-gray-400">{row.existing_title}</span>
                               <span className="mx-1">→</span>
-                              <span className="font-bold">{row.title}</span>
+                              <span className={row.diff_type === 'title_diff' ? 'text-yellow-700' : 'font-bold'}>{row.title}</span>
                             </span>
                           ) : row.diff_type === 'delete' ? (
                             <span className="line-through">{row.title}</span>
@@ -613,6 +614,7 @@ export default function ImportTab() {
                           <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${diff.text} border ${
                             row.diff_type === 'add' ? 'border-emerald-200 bg-emerald-50' :
                             row.diff_type === 'update' ? 'border-amber-200 bg-amber-50' :
+                            row.diff_type === 'title_diff' ? 'border-yellow-200 bg-yellow-50' :
                             'border-red-200 bg-red-50'
                           }`}>
                             {diff.label}
@@ -626,6 +628,8 @@ export default function ImportTab() {
                             </div>
                           ) : row.review_status === 'approved' ? (
                             <span className="text-xs text-emerald-600 font-bold">承認済</span>
+                          ) : row.review_status === 'skipped' && row.diff_type === 'title_diff' ? (
+                            <button onClick={() => updateRowStatus(row.id, 'approved')} className="text-xs text-yellow-600 hover:text-emerald-600" title="承認して上書き">適用する</button>
                           ) : (
                             <span className="text-xs text-red-400">却下</span>
                           )}

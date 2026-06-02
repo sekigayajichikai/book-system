@@ -79,7 +79,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
 
     // 差分計算
     const importRows: any[] = [];
-    const stats = { add: 0, update: 0, delete: 0, skip: 0 };
+    const stats = { add: 0, update: 0, title_diff: 0, delete: 0, skip: 0 };
 
     for (const row of rows) {
       const key = `${row.date}|${row.slot}|${row.room}`;
@@ -122,8 +122,8 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
             review_status: 'skipped',
           });
         } else {
-          // タイトル変更
-          stats.update++;
+          // タイトル差異（デフォルトskip、手動承認で上書き可能）
+          stats.title_diff++;
           importRows.push({
             batch_id: batch.id,
             date: row.date,
@@ -131,10 +131,10 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
             room: row.room,
             title: row.title,
             org_guess: row.org_guess || null,
-            diff_type: 'update',
+            diff_type: 'title_diff',
             existing_booking_id: existing.id,
             existing_title: existing.title,
-            review_status: 'pending',
+            review_status: 'skipped',
           });
         }
       } else {
