@@ -31,6 +31,7 @@ interface Org {
   default_equipment: string[];
   presets: string[];
   group_name: string | null;
+  is_active: boolean;
 }
 
 interface Category {
@@ -463,10 +464,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 const cutoff = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-${String(sixMonthsAgo.getDate()).padStart(2, '0')}`;
 
                 const activeOrgs = orgs.filter(o => {
+                  if (o.is_active) return true;
                   const last = orgLastUsed[o.id];
                   return last && last >= cutoff;
                 });
                 const archivedOrgs = orgs.filter(o => {
+                  if (o.is_active) return false;
                   const last = orgLastUsed[o.id];
                   return !last || last < cutoff;
                 });
@@ -519,7 +522,21 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           <div className="text-sm font-bold text-gray-800">{o.name}</div>
                           {!orgSortByGroup && <div className="text-xs text-gray-400">{o.group_name || '未分類'}</div>}
                         </div>
-                        <button onClick={e => { e.stopPropagation(); handleDeleteOrg(o.id, o.name); }} className="text-red-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="checkbox"
+                            checked={o.is_active}
+                            title={o.is_active ? 'アクティブ（常に上に表示）' : 'アクティブにする'}
+                            onClick={e => e.stopPropagation()}
+                            onChange={async e => {
+                              const checked = e.target.checked;
+                              await supaFetch(`booking_organizations?id=eq.${o.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: checked }) });
+                              setOrgs(prev => prev.map(org => org.id === o.id ? { ...org, is_active: checked } : org));
+                            }}
+                            className="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-400 cursor-pointer opacity-40 hover:opacity-100"
+                          />
+                          <button onClick={e => { e.stopPropagation(); handleDeleteOrg(o.id, o.name); }} className="text-red-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
+                        </div>
                       </div>
                     </div>
                   );
