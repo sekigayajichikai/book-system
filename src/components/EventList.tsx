@@ -98,13 +98,13 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
             }
           }}
           className={`min-h-[8rem] border border-gray-200 relative transition-colors flex flex-col ${
-            onCellClick || onDateClick || dayEvents.length > 0 ? 'cursor-pointer hover:bg-emerald-50/30' : ''
-          } ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
+            onCellClick || onDateClick || dayEvents.length > 0 ? 'cursor-pointer hover:bg-blue-50/30' : ''
+          } ${isToday ? 'outline outline-2 outline-blue-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
         >
           {/* 日付 */}
           <div className="px-1 pt-0.5 shrink-0 flex items-center gap-1 overflow-hidden">
             <span className={`text-xs font-bold ${
-              isToday ? 'bg-emerald-600 text-white px-1 rounded' :
+              isToday ? 'bg-blue-600 text-white px-1 rounded' :
               (isHoliday || dow === 0) ? 'text-red-500' :
               dow === 6 ? 'text-blue-500' : 'text-gray-600'
             }`}>

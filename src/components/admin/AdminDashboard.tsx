@@ -115,6 +115,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const [showDayPanel, setShowDayPanel] = useState(false);
   const [initialEditId, setInitialEditId] = useState<string | null>(null);
+  const [initialEditBookingId, setInitialEditBookingId] = useState<string | null>(null);
   const [eventListRefreshKey, setEventListRefreshKey] = useState(0);
 
   // ポップオーバー状態
@@ -842,7 +843,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             closePopover();
             const d = new Date(data.date + 'T00:00:00');
             setSelectedDate(d);
-            setInitialEditId(data.id);
+            if (data.type === 'event') {
+              setInitialEditId(data.id);
+            } else {
+              setInitialEditBookingId(data.id);
+            }
             setShowDayPanel(true);
           }}
           onRefresh={handleDayPanelRefresh}
@@ -855,10 +860,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           date={selectedDate}
           bookings={bookings}
           isClosure={closures.has(`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`)}
-          onClose={() => { setShowDayPanel(false); setInitialEditId(null); }}
+          onClose={() => { setShowDayPanel(false); setInitialEditId(null); setInitialEditBookingId(null); }}
           onRefresh={handleDayPanelRefresh}
           mode={calendarSubView}
           initialEditId={initialEditId}
+          initialEditBookingId={initialEditBookingId}
           onClosureChange={() => {
             supaFetch('calendar_events?is_closure=eq.true&select=date')
               .then(r => r.json())

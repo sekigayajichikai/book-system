@@ -46,11 +46,12 @@ interface AdminDayPanelProps {
   onClosureChange?: () => void;
   mode?: 'facility' | 'schedule';
   initialEditId?: string | null;
+  initialEditBookingId?: string | null;
 }
 
 type FormMode = 'none' | 'add-booking' | 'add-event' | 'add-banner' | 'edit' | 'edit-event';
 
-export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRefresh, onClosureChange, mode = 'facility', initialEditId }: AdminDayPanelProps) {
+export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRefresh, onClosureChange, mode = 'facility', initialEditId, initialEditBookingId }: AdminDayPanelProps) {
   const dateStr = formatDate(date);
   const dow = date.getDay();
   const dayBookings = bookings.filter(b => b.date === dateStr);
@@ -78,10 +79,11 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
           setEditingEventId(ev.id);
           setEventForm({
             title: ev.title,
+            org: ev.memo || '',
             location: ev.location || '',
             start_time: ev.start_time ? ev.start_time.slice(0, 5) : '',
             end_time: ev.end_time ? ev.end_time.slice(0, 5) : '',
-            memo: ev.memo || '',
+            description: (ev as any).description || '',
             is_major: ev.is_major || false,
           });
           setFormMode('edit-event');
@@ -92,45 +94,71 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
 
   useState(() => { if (mode === 'schedule' || initialEditId) fetchCalEvents(); });
 
+  // 会館予約の初期編集モード
+  useEffect(() => {
+    if (initialEditBookingId && dayBookings.length > 0) {
+      const b = dayBookings.find(bk => bk.id === initialEditBookingId);
+      if (b) {
+        const slot = TIME_SLOTS.find(s => s.startTime === b.startTime);
+        setEditId(b.id);
+        // memoを取得
+        supaFetch(`bookings?id=eq.${b.id}&select=memo`)
+          .then(r => r.json())
+          .then(d => {
+            setForm({ slot: slot?.gasKey || '午前', room: b.room, org: '', title: b.title, description: d[0]?.memo || '' });
+            setFormMode('edit');
+          });
+      }
+    }
+  }, [initialEditBookingId]);
+
   const [formMode, setFormMode] = useState<FormMode>('none');
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ slot: '午前', room: ROOMS[0].id as string, title: '' });
-  const [eventForm, setEventForm] = useState({ title: '', location: '', start_time: '', end_time: '', memo: '', is_major: false });
+  const [form, setForm] = useState({ slot: '午前', room: ROOMS[0].id as string, org: '', title: '', description: '' });
+  const [eventForm, setEventForm] = useState({ title: '', org: '', location: '', start_time: '', end_time: '', description: '', is_major: false });
   const [bannerForm, setBannerForm] = useState({ title: '', description: '', event_time: '', event_location: '', style: 'green', display_days: '7', image_url: '' });
 
   const resetForm = () => {
     setFormMode('none');
     setEditId(null);
-    setForm({ slot: '午前', room: ROOMS[0].id as string, title: '' });
-    setEventForm({ title: '', location: '', start_time: '', end_time: '', memo: '', is_major: false });
+    setForm({ slot: '午前', room: ROOMS[0].id as string, org: '', title: '', description: '' });
+    setEventForm({ title: '', org: '', location: '', start_time: '', end_time: '', description: '', is_major: false });
     setBannerForm({ title: '', description: '', event_time: '', event_location: '', style: 'green', display_days: '7', image_url: '' });
   };
 
   // 予約追加
   const handleAddBooking = async () => {
-    if (!form.title.trim()) return alert('タイトルを入力してください');
+    const effectiveTitle = form.title.trim() || form.org.trim();
+    if (!effectiveTitle) return alert('団体名またはタイトルを入力してください');
     await fetch('/api/booking', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: dateStr, slot: form.slot, room: form.room, title: form.title.trim() }),
+      body: JSON.stringify({ date: dateStr, slot: form.slot, room: form.room, title: effectiveTitle, memo: form.description || null }),
     });
     resetForm();
     onRefresh();
   };
 
   // 予約編集
-  const startEdit = (b: Booking) => {
+  const startEdit = async (b: Booking) => {
     const slot = TIME_SLOTS.find(s => s.startTime === b.startTime);
     setEditId(b.id);
-    setForm({ slot: slot?.gasKey || '午前', room: b.room, title: b.title });
+    // memoを取得
+    let memo = '';
+    try {
+      const res = await supaFetch(`bookings?id=eq.${b.id}&select=memo`);
+      if (res.ok) { const d = await res.json(); memo = d[0]?.memo || ''; }
+    } catch {}
+    setForm({ slot: slot?.gasKey || '午前', room: b.room, org: '', title: b.title, description: memo });
     setFormMode('edit');
   };
 
   const handleSaveEdit = async () => {
-    if (!editId || !form.title.trim()) return;
+    const effectiveTitle = form.title.trim() || form.org.trim();
+    if (!editId || !effectiveTitle) return;
     const res = await supaFetch(`bookings?id=eq.${editId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ slot: form.slot, room: form.room, title: form.title.trim() }),
+      body: JSON.stringify({ slot: form.slot, room: form.room, title: effectiveTitle, memo: form.description || null }),
     });
     if (!res.ok) {
       const err = await res.text();
@@ -184,10 +212,11 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
     setEditingEventId(ev.id);
     setEventForm({
       title: ev.title,
+      org: ev.memo || '',
       location: ev.location || '',
       start_time: ev.start_time ? ev.start_time.slice(0, 5) : '',
       end_time: ev.end_time ? ev.end_time.slice(0, 5) : '',
-      memo: ev.memo || '',
+      description: (ev as any).description || '',
       is_major: (ev as any).is_major || false,
     });
     setFormMode('edit-event');
@@ -203,7 +232,8 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
         location: eventForm.location || null,
         start_time: eventForm.start_time || null,
         end_time: eventForm.end_time || null,
-        memo: eventForm.memo || null,
+        memo: eventForm.org || null,
+        description: eventForm.description || null,
         is_major: eventForm.is_major,
       }),
     });
@@ -224,7 +254,8 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
         location: eventForm.location || null,
         start_time: eventForm.start_time || null,
         end_time: eventForm.end_time || null,
-        memo: eventForm.memo || null,
+        memo: eventForm.org || null,
+        description: eventForm.description || null,
         event_type: 'general',
         visibility: 'public',
         is_major: eventForm.is_major,
@@ -331,8 +362,16 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
               </div>
             </div>
             <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">団体</label>
+              <input value={form.org} onChange={e => setForm(f => ({ ...f, org: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="団体名" autoFocus />
+            </div>
+            <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">タイトル</label>
-              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="団体名やイベント名" autoFocus />
+              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder={form.org ? `${form.org}（自動設定）` : 'タイトル（空欄で団体名を使用）'} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">説明</label>
+              <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="補足情報" />
             </div>
             <div className="flex gap-2">
               <button onClick={resetForm} className="flex-1 py-2 border border-gray-300 rounded-lg text-sm font-bold text-gray-600">キャンセル</button>
@@ -403,6 +442,10 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
               <input value={eventForm.title} onChange={e => setEventForm(f => ({ ...f, title: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="夏祭り、防災訓練など" autoFocus />
             </div>
             <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">団体</label>
+              <input value={eventForm.org} onChange={e => setEventForm(f => ({ ...f, org: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="主催団体名" />
+            </div>
+            <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">場所</label>
               <select value={eventForm.location} onChange={e => setEventForm(f => ({ ...f, location: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
                 <option value="">-- 選択 --</option>
@@ -420,8 +463,8 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
               </div>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">メモ</label>
-              <input value={eventForm.memo} onChange={e => setEventForm(f => ({ ...f, memo: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="補足情報" />
+              <label className="block text-xs font-medium text-gray-500 mb-1">説明</label>
+              <input value={eventForm.description} onChange={e => setEventForm(f => ({ ...f, description: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="補足情報" />
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={eventForm.is_major} onChange={e => setEventForm(f => ({ ...f, is_major: e.target.checked }))} className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500" />
