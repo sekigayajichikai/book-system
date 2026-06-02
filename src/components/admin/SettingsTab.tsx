@@ -138,7 +138,7 @@ function MasterSection<T extends MasterItem>({
                 ) : (
                   <>
                     {columns.map(c => (
-                      <td key={c.key} className={`px-3 py-2 ${c.width ? 'text-center' : ''}`}>{String(item[c.key] ?? '')}</td>
+                      <td key={c.key} className={`px-3 py-2 ${c.width ? 'text-center' : ''}`}>{(() => { const v = String(item[c.key] ?? ''); return /^\d{2}:\d{2}:\d{2}$/.test(v) ? v.slice(0, 5) : v; })()}</td>
                     ))}
                     <td className="px-3 py-2 text-right whitespace-nowrap flex items-center justify-end gap-2">
                       <button onClick={() => handleSwap(idx, 'up')} disabled={idx === 0} className={`${idx === 0 ? 'text-gray-200' : 'text-gray-400 hover:text-gray-600'}`}><ChevronUp size={14} /></button>
