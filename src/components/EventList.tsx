@@ -118,7 +118,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
           <div className="flex-1 px-0.5 py-0.5 overflow-hidden space-y-px">
             {dayEvents.filter(e => isMajorEvent(e)).map(evt => (
               <div key={evt.id} onClick={e => { if (onItemClick) { e.stopPropagation(); onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } }}
-                className="text-xs font-bold text-emerald-700 bg-emerald-100 rounded px-1 py-0.5 truncate hover:bg-emerald-200 cursor-pointer transition-colors">
+                className="text-xs font-bold text-blue-700 bg-blue-100 rounded px-1 py-0.5 truncate hover:bg-blue-200 cursor-pointer transition-colors">
                 {evt.title}
               </div>
             ))}
@@ -177,7 +177,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
 
         {/* 凡例 */}
         <div className="flex flex-wrap gap-3 p-3 border-t border-gray-100 text-xs text-gray-500 items-center">
-          <span className="flex items-center gap-1"><span className="w-4 h-3 bg-emerald-100 rounded text-[8px] text-emerald-700 font-bold flex items-center justify-center">例</span>主な予定</span>
+          <span className="flex items-center gap-1"><span className="w-4 h-3 bg-blue-100 rounded text-[8px] text-blue-700 font-bold flex items-center justify-center">例</span>主な予定</span>
           <span className="text-gray-300">|</span>
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-gray-300 rounded-full" />詳細予定</span>
         </div>
@@ -240,7 +240,7 @@ function EventDayPopover({ date, events, anchorRect, onClose }: { date: Date; ev
               <div key={evt.id} className="py-2.5 first:pt-0">
                 <div className="flex items-center gap-2">
                   <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${
-                    evt.isMajor ? 'bg-emerald-500' : evt.eventType === 'general' ? 'bg-blue-500' : 'bg-gray-400'
+                    evt.isMajor ? 'bg-blue-500' : evt.eventType === 'general' ? 'bg-blue-400' : 'bg-gray-400'
                   }`} />
                   <span className="text-sm font-medium text-gray-900">{evt.title}</span>
                 </div>
