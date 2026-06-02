@@ -309,7 +309,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
                     if (isClosure) {
                       await supaFetch(`calendar_events?date=eq.${dateStr}&is_closure=eq.true`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
                     } else {
-                      await supaFetch('calendar_events', { method: 'POST', body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true }) });
+                      await supaFetch('calendar_events', { method: 'POST', body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true, event_type: 'closure' }) });
                     }
                     onClosureChange?.();
                   }}

@@ -114,7 +114,7 @@ export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, is
                 } else {
                   await supaFetch('calendar_events', {
                     method: 'POST',
-                    body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true }),
+                    body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true, event_type: 'closure' }),
                   });
                 }
                 onClosureChange?.();
