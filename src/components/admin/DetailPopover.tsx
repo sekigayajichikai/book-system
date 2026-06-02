@@ -63,9 +63,10 @@ interface DetailPopoverProps {
   onEdit?: (data: DetailData) => void;
   onRefresh: () => void;
   onSwitchToFacility?: (eventId: string, date: string) => void;
+  initialEditing?: boolean;
 }
 
-export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRefresh, onSwitchToFacility }: DetailPopoverProps) {
+export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRefresh, onSwitchToFacility, initialEditing }: DetailPopoverProps) {
   const d = new Date(data.date + 'T00:00:00');
   const dateLabel = `${d.getMonth() + 1}月${d.getDate()}日 (${DOW[d.getDay()]})`;
   // ローカルstate（即反映用）
@@ -95,7 +96,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   });
 
   // インライン編集
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(initialEditing || false);
   const [editForm, setEditForm] = useState({
     title: data.title,
     description: data.description || '',
@@ -274,9 +275,11 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         )}
         {!isFacilityEvent && (
           <>
-            <button onClick={() => onEdit ? onEdit(data) : setEditing(!editing)} className={`p-1.5 hover:bg-gray-100 rounded-full ${editing ? 'bg-blue-100' : ''}`} title="編集">
-              <Pencil size={16} className={editing ? 'text-blue-500' : 'text-gray-500'} />
-            </button>
+            {!initialEditing && (
+              <button onClick={() => onEdit ? onEdit(data) : setEditing(!editing)} className={`p-1.5 hover:bg-gray-100 rounded-full ${editing ? 'bg-blue-100' : ''}`} title="編集">
+                <Pencil size={16} className={editing ? 'text-blue-500' : 'text-gray-500'} />
+              </button>
+            )}
             <button onClick={handleDelete} className="p-1.5 hover:bg-gray-100 rounded-full" title="削除">
               <Trash2 size={16} className="text-gray-500" />
             </button>

@@ -12,7 +12,7 @@ interface CalendarProps {
   onCellClick?: (date: Date, rect: DOMRect) => void;
   onItemClick?: (booking: Booking, rect: DOMRect) => void;
   onOverflowClick?: (date: Date, rect: DOMRect) => void;
-  onEditBooking?: (booking: Booking) => void;
+  onEditBookingClick?: (booking: Booking, rect: DOMRect) => void;
   onRefreshBookings?: () => void;
   holidays?: Record<string, string>;
   closures?: Set<string>;
@@ -113,8 +113,9 @@ const BookingSheetView: React.FC<{
   month: number;
   holidays: Record<string, string>;
   onItemClick?: (booking: Booking, rect: DOMRect) => void;
+  onEditClick?: (booking: Booking, rect: DOMRect) => void;
   onRefresh?: () => void;
-}> = ({ bookings, year, month, holidays, onItemClick, onRefresh }) => {
+}> = ({ bookings, year, month, holidays, onItemClick, onEditClick, onRefresh }) => {
   const [orgMap, setOrgMap] = useState<Record<string, string>>({});
   const [editCell, setEditCell] = useState<{ id: string; field: 'title' | 'org' } | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -228,7 +229,7 @@ const BookingSheetView: React.FC<{
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">
-                    <button onClick={e => { e.stopPropagation(); if (onItemClick) onItemClick(b, (e.currentTarget as HTMLElement).getBoundingClientRect()); }} className="p-1 hover:bg-gray-200 rounded-full">
+                    <button onClick={e => { e.stopPropagation(); const rect = (e.currentTarget as HTMLElement).getBoundingClientRect(); if (onEditClick) onEditClick(b, rect); else if (onItemClick) onItemClick(b, rect); }} className="p-1 hover:bg-gray-200 rounded-full">
                       <MoreVertical size={14} className="text-gray-400" />
                     </button>
                   </td>
@@ -354,7 +355,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const Calendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBooking, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
@@ -546,6 +547,7 @@ const Calendar: React.FC<CalendarProps> = ({
             month={month}
             holidays={holidays}
             onItemClick={onItemClick}
+            onEditClick={onEditBookingClick}
             onRefresh={onRefreshBookings}
           />
         ) : (

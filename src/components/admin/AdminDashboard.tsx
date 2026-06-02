@@ -121,6 +121,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     anchorRect: { top: number; left: number; width: number; height: number };
     date?: Date;
     data?: DetailData;
+    initialEditing?: boolean;
   } | null;
   const [popover, setPopover] = useState<PopoverState>(null);
 
@@ -445,6 +446,19 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 onCellClick={handleCellClick}
                 onItemClick={handleBookingItemClick}
                 onOverflowClick={handleOverflowClick}
+                onEditBookingClick={async (booking, rect) => {
+                  const slot = booking.startTime === '09:00' ? '午前' : booking.startTime === '13:00' ? '午後' : '夜間';
+                  let orgName: string | null = null;
+                  try {
+                    const res = await supaFetch(`bookings?id=eq.${booking.id}&select=org_id,booking_organizations(name)`);
+                    const data = res.ok ? await res.json() : [];
+                    orgName = data[0]?.booking_organizations?.name || null;
+                  } catch {}
+                  setPopover({
+                    type: 'detail', anchorRect: rect, initialEditing: true,
+                    data: { type: 'booking', id: booking.id, title: booking.title, date: booking.date, room: booking.room, slot, startTime: booking.startTime, endTime: booking.endTime, orgName },
+                  });
+                }}
                 onRefreshBookings={handleDayPanelRefresh}
                 holidays={holidays}
                 closures={closures}
@@ -878,6 +892,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           data={popover.data}
           onClose={closePopover}
           onRefresh={handleDayPanelRefresh}
+          initialEditing={popover.initialEditing}
           onSwitchToFacility={async (eventId, eventDate) => {
             closePopover();
             setCalendarSubView('facility');
