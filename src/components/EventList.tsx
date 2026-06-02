@@ -35,10 +35,11 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const fetchEvents = useCallback(async (y: number, m: number) => {
+  const fetchEvents = useCallback(async (y: number, m: number, bustCache?: boolean) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/events?year=${y}&month=${m + 1}&visibility=public`);
+      const cacheBust = bustCache ? `&nocache=${Date.now()}` : '';
+      const res = await fetch(`/api/events?year=${y}&month=${m + 1}&visibility=public${cacheBust}`);
       if (!res.ok) throw new Error('API error');
       const data: EventSummary[] = await res.json();
       setEvents(data);
@@ -49,8 +50,11 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
     }
   }, []);
 
+  const [prevRefreshKey, setPrevRefreshKey] = useState(refreshKey);
   useEffect(() => {
-    fetchEvents(year, month);
+    const bustCache = refreshKey !== prevRefreshKey;
+    if (bustCache) setPrevRefreshKey(refreshKey);
+    fetchEvents(year, month, bustCache);
   }, [year, month, fetchEvents, refreshKey]);
 
   const handlePrevMonth = () => setCurrentDate(new Date(year, month - 1, 1));

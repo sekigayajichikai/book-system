@@ -115,7 +115,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       };
     });
 
-    res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=30');
+    // no-cacheパラメータがある場合はキャッシュなし（管理側の即時反映用）
+    if (req.query.nocache) {
+      res.setHeader('Cache-Control', 'no-cache');
+    } else {
+      res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=30');
+    }
     return res.status(200).json(result);
   } catch (err: any) {
     console.error('Events fetch error:', err);
