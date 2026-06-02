@@ -155,12 +155,37 @@ async function applyUpdate(supabase: any, row: any) {
   }
 }
 
-/** 削除: bookings DELETE */
+/** 削除: bookings DELETE + 孤立したcalendar_eventsも削除 */
 async function applyDelete(supabase: any, row: any) {
   if (!row.existing_booking_id) return;
 
+  // 先にevent_idを取得
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('event_id')
+    .eq('id', row.existing_booking_id)
+    .single();
+
+  // bookings削除
   await supabase
     .from('bookings')
     .delete()
     .eq('id', row.existing_booking_id);
+
+  // 紐づくcalendar_eventsに他のbookingsが残っていなければ削除
+  if (booking?.event_id) {
+    const { data: remaining } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('event_id', booking.event_id)
+      .in('status', ['CONFIRMED', 'PENDING'])
+      .limit(1);
+
+    if (!remaining || remaining.length === 0) {
+      await supabase
+        .from('calendar_events')
+        .delete()
+        .eq('id', booking.event_id);
+    }
+  }
 }
