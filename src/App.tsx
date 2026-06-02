@@ -403,10 +403,10 @@ function App() {
                 ))}
                 {/* 右寄せ: 部屋別 + 月/週トグル */}
                 <div className="flex items-center gap-2 ml-auto">
-                  <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+                  <div className="flex items-center bg-gray-100 rounded-full p-0.5">
                     <button
                       onClick={() => setBookingSubView('monthly')}
-                      className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
                         bookingSubView === 'monthly' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >
@@ -414,7 +414,7 @@ function App() {
                     </button>
                     <button
                       onClick={() => setBookingSubView('weekly')}
-                      className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
                         bookingSubView === 'weekly' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                       }`}
                     >

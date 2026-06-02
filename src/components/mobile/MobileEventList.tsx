@@ -228,10 +228,10 @@ function PatternC({ majorEvents, grouped, sortedDates, todayStr, todayRef, holid
   return (
     <div className="space-y-3">
       {/* タブ */}
-      <div className="flex bg-gray-100 rounded-lg p-1">
+      <div className="flex bg-gray-100 rounded-full p-1">
         <button
           onClick={() => setTab('major')}
-          className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${
+          className={`flex-1 py-2 rounded-full text-sm font-bold transition-all ${
             tab === 'major' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
           }`}
         >
@@ -239,7 +239,7 @@ function PatternC({ majorEvents, grouped, sortedDates, todayStr, todayRef, holid
         </button>
         <button
           onClick={() => setTab('all')}
-          className={`flex-1 py-2 rounded-md text-sm font-bold transition-all ${
+          className={`flex-1 py-2 rounded-full text-sm font-bold transition-all ${
             tab === 'all' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500'
           }`}
         >

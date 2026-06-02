@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { ChevronLeft, ChevronRight, X, Clock, MapPin } from 'lucide-react';
 import { Booking } from '../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../constants';
 
@@ -28,57 +28,77 @@ function formatDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** --- Day Detail Modal (月カレンダーのセルクリック用) --- */
-const DayDetailModal: React.FC<{
+/** --- Day Detail Popover (月カレンダーのセルクリック用・ポップオーバー) --- */
+const DayDetailPopover: React.FC<{
   date: Date;
   bookings: Booking[];
+  anchorRect: DOMRect | null;
   onClose: () => void;
-}> = ({ date, bookings, onClose }) => {
+}> = ({ date, bookings, anchorRect, onClose }) => {
   const dow = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+  const ref = useRef<HTMLDivElement>(null);
 
-  const slotGroups = TIME_SLOTS.map(slot => ({
-    slot,
-    items: bookings.filter(b => b.startTime === slot.startTime),
-  })).filter(g => g.items.length > 0);
+  const dayBookings = bookings.filter(b => {
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return b.date === dateStr;
+  });
+
+  if (dayBookings.length === 0) return null;
+
+  // ポップオーバー位置計算
+  let style: React.CSSProperties = {};
+  if (anchorRect) {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = anchorRect.left + anchorRect.width + 8;
+    if (left + 340 > vw - 16) left = anchorRect.left - 340 - 8;
+    if (left < 16) left = 16;
+    let top = anchorRect.top;
+    if (top + 300 > vh - 16) top = vh - 300 - 16;
+    if (top < 16) top = 16;
+    style = { position: 'fixed', left, top, zIndex: 50, width: 340 };
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-          <h3 className="text-lg font-bold text-gray-800">
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div ref={ref} className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden max-h-[70vh] flex flex-col" style={style}>
+        {/* ヘッダー */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-2">
+          <h3 className="text-base font-bold text-gray-800">
             {date.getMonth() + 1}月{date.getDate()}日({dow})
           </h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-            <X size={20} className="text-gray-500" />
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
+            <X size={16} className="text-gray-400" />
           </button>
         </div>
-        <div className="flex-1 overflow-auto p-4 space-y-4">
-          {slotGroups.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-6">予約はありません</p>
-          ) : (
-            slotGroups.map(({ slot, items }) => (
-              <div key={slot.id}>
-                <div className="text-xs font-bold text-gray-500 mb-1.5">
-                  {slot.gasKey} {slot.startTime}〜{slot.endTime}
+
+        {/* イベント一覧 */}
+        <div className="flex-1 overflow-auto px-4 pb-3 divide-y divide-gray-100">
+          {dayBookings.map((b, i) => {
+            const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
+            return (
+              <div key={i} className="py-2.5 first:pt-0">
+                <div className="flex items-center gap-2">
+                  <span className={`${colors.bar} w-2.5 h-2.5 rounded-sm shrink-0`} />
+                  <span className="text-sm font-medium text-gray-900">{b.title}</span>
                 </div>
-                <div className="space-y-1">
-                  {items.map((b, i) => {
-                    const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
-                    return (
-                      <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                        <span className={`${colors.bar} w-2.5 h-2.5 rounded-full shrink-0`} />
-                        <span className="text-sm font-medium text-gray-800 flex-1">{b.title}</span>
-                        <span className="text-xs text-gray-400">{shortRoomName(b.room)}</span>
-                      </div>
-                    );
-                  })}
+                <div className="flex items-center gap-4 mt-1 pl-[18px]">
+                  <span className="flex items-center gap-1 text-xs text-gray-500">
+                    <Clock size={12} className="text-gray-400" />
+                    {b.startTime}〜{b.endTime}
+                  </span>
+                  <span className="flex items-center gap-1 text-xs text-gray-500">
+                    <MapPin size={12} className="text-gray-400" />
+                    {shortRoomName(b.room)}
+                  </span>
                 </div>
               </div>
-            ))
-          )}
+            );
+          })}
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -198,6 +218,7 @@ const Calendar: React.FC<CalendarProps> = ({
 }) => {
   const [subView, setSubView] = useState<'month' | 'week'>('month');
   const [modalDate, setModalDate] = useState<Date | null>(null);
+  const [modalAnchor, setModalAnchor] = useState<DOMRect | null>(null);
   const [weekStart, setWeekStart] = useState(() => {
     const d = new Date();
     const dow = d.getDay();
@@ -224,7 +245,9 @@ const Calendar: React.FC<CalendarProps> = ({
     } else if (disableModal) {
       onDateClick(date);
     } else {
+      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       setModalDate(date);
+      setModalAnchor(rect);
     }
   };
 
@@ -332,10 +355,10 @@ const Calendar: React.FC<CalendarProps> = ({
           </div>
 
           {/* Month / Week toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+          <div className="flex items-center bg-gray-100 rounded-full p-0.5">
             <button
               onClick={() => setSubView('month')}
-              className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
                 subView === 'month' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -343,7 +366,7 @@ const Calendar: React.FC<CalendarProps> = ({
             </button>
             <button
               onClick={() => setSubView('week')}
-              className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+              className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
                 subView === 'week' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
@@ -402,12 +425,13 @@ const Calendar: React.FC<CalendarProps> = ({
         )}
       </div>
 
-      {/* Day detail modal */}
+      {/* Day detail popover */}
       {modalDate && (
-        <DayDetailModal
+        <DayDetailPopover
           date={modalDate}
-          bookings={bookings.filter(b => b.date === formatDate(modalDate))}
-          onClose={() => setModalDate(null)}
+          bookings={bookings}
+          anchorRect={modalAnchor}
+          onClose={() => { setModalDate(null); setModalAnchor(null); }}
         />
       )}
     </>

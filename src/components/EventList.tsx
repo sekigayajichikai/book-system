@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { ChevronLeft, ChevronRight, X, Clock, MapPin } from 'lucide-react';
 import { EventSummary } from '../types';
 import { shortRoomName } from '../constants';
 
@@ -26,6 +26,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalDate, setModalDate] = useState<Date | null>(null);
+  const [modalAnchor, setModalAnchor] = useState<DOMRect | null>(null);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -89,7 +90,11 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
               onCellClick(d, rect);
             } else if (onDateClick) { onDateClick(d); }
-            else if (dayEvents.length > 0) { setModalDate(d); }
+            else if (dayEvents.length > 0) {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              setModalDate(d);
+              setModalAnchor(rect);
+            }
           }}
           className={`min-h-[8rem] border border-gray-200 relative transition-colors flex flex-col ${
             onCellClick || onDateClick || dayEvents.length > 0 ? 'cursor-pointer hover:bg-emerald-50/30' : ''
@@ -180,65 +185,86 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         </div>
       </div>
 
-      {/* 日付クリック時のモーダル */}
+      {/* 日付クリック時のポップオーバー */}
       {modalDate && (
-        <EventDayModal
+        <EventDayPopover
           date={modalDate}
           events={eventsByDate[formatDate(modalDate)] || []}
-          onClose={() => setModalDate(null)}
+          anchorRect={modalAnchor}
+          onClose={() => { setModalDate(null); setModalAnchor(null); }}
         />
       )}
     </>
   );
 }
 
-/** 日別イベント詳細モーダル */
-function EventDayModal({ date, events, onClose }: { date: Date; events: EventSummary[]; onClose: () => void }) {
+/** 日別イベント詳細ポップオーバー */
+function EventDayPopover({ date, events, anchorRect, onClose }: { date: Date; events: EventSummary[]; anchorRect: DOMRect | null; onClose: () => void }) {
   const dow = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
 
+  if (events.length === 0) return null;
+
+  let style: React.CSSProperties = {};
+  if (anchorRect) {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = anchorRect.left + anchorRect.width + 8;
+    if (left + 340 > vw - 16) left = anchorRect.left - 340 - 8;
+    if (left < 16) left = 16;
+    let top = anchorRect.top;
+    if (top + 300 > vh - 16) top = vh - 300 - 16;
+    if (top < 16) top = 16;
+    style = { position: 'fixed', left, top, zIndex: 50, width: 340 };
+  }
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-40 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-          <h3 className="text-lg font-bold text-gray-800">
-            {date.getMonth() + 1}月{date.getDate()}日({dow})の予定
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden max-h-[70vh] flex flex-col" style={style}>
+        {/* ヘッダー */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-2">
+          <h3 className="text-base font-bold text-gray-800">
+            {date.getMonth() + 1}月{date.getDate()}日({dow})
           </h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-            <X size={20} className="text-gray-500" />
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
+            <X size={16} className="text-gray-400" />
           </button>
         </div>
-        <div className="flex-1 overflow-auto p-4 space-y-3">
-          {events.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-6">予定はありません</p>
-          ) : (
-            events.map(evt => {
-              const timeStr = evt.startTime && evt.endTime
-                ? `${evt.startTime}〜${evt.endTime}`
-                : null;
-              const roomStr = evt.rooms.length > 0
-                ? evt.rooms.map(r => shortRoomName(r)).join('・')
-                : null;
 
-              return (
-                <div key={evt.id} className="bg-gray-50 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                      evt.eventType === 'general' ? 'bg-emerald-400' : 'bg-gray-400'
-                    }`} />
-                    <span className="font-bold text-gray-800">{evt.title}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 ml-4 text-xs text-gray-500">
-                    {timeStr && <span>{timeStr}</span>}
-                    {evt.eventType === 'facility' && roomStr && <span>{roomStr}</span>}
-                    {evt.eventType === 'general' && evt.location && <span>{evt.location}</span>}
-                  </div>
-                  {evt.memo && <div className="mt-1 ml-4 text-xs text-gray-400">{evt.memo}</div>}
+        {/* イベント一覧 */}
+        <div className="flex-1 overflow-auto px-4 pb-3 divide-y divide-gray-100">
+          {events.map(evt => {
+            const timeStr = evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : null;
+            const roomStr = evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : null;
+            const locationStr = evt.eventType === 'facility' ? roomStr : evt.location;
+
+            return (
+              <div key={evt.id} className="py-2.5 first:pt-0">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${
+                    evt.isMajor ? 'bg-emerald-500' : evt.eventType === 'general' ? 'bg-blue-500' : 'bg-gray-400'
+                  }`} />
+                  <span className="text-sm font-medium text-gray-900">{evt.title}</span>
                 </div>
-              );
-            })
-          )}
+                <div className="flex items-center gap-4 mt-1 pl-[18px]">
+                  {timeStr && (
+                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                      <Clock size={12} className="text-gray-400" />
+                      {timeStr}
+                    </span>
+                  )}
+                  {locationStr && (
+                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                      <MapPin size={12} className="text-gray-400" />
+                      {locationStr}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
-    </div>
+    </>
   );
 }

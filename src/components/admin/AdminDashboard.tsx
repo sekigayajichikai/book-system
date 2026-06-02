@@ -402,10 +402,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           <div className="space-y-4">
             {/* カレンダー/会館予約 切り替え */}
             <div className="flex items-center gap-2">
-              <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+              <div className="flex items-center bg-gray-100 rounded-full p-0.5">
                 <button
                   onClick={() => setCalendarSubView('schedule')}
-                  className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${
+                  className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${
                     calendarSubView === 'schedule' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
@@ -413,7 +413,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 </button>
                 <button
                   onClick={() => setCalendarSubView('facility')}
-                  className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${
+                  className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all ${
                     calendarSubView === 'facility' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >

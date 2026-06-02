@@ -50,7 +50,7 @@ export default function Popover({ anchorRect, onClose, children, width = 380 }: 
       {/* ポップオーバー本体 */}
       <div
         ref={ref}
-        className="fixed z-50 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden"
+        className="fixed z-50 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden"
         style={{ width: `${width}px` }}
         onClick={e => e.stopPropagation()}
       >
