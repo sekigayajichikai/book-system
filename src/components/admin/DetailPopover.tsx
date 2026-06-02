@@ -41,6 +41,7 @@ export interface DetailData {
   eventType?: string;
   isMajor?: boolean;
   displayTitle?: string | null;
+  rooms?: string[];
   // booking fields
   room?: string;
   slot?: string;
@@ -112,8 +113,15 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
     if (data.endTime) timeLabel += `〜${data.endTime}`;
   }
 
-  // 場所/部屋
-  const locationLabel = data.type === 'booking' ? data.room : data.location;
+  // 場所/部屋（結合表示）
+  let locationLabel: string | undefined;
+  if (data.type === 'booking') {
+    locationLabel = data.room;
+  } else if (data.location && data.rooms && data.rooms.length > 0) {
+    locationLabel = `${data.location}（${data.rooms.map(r => { const m: Record<string,string> = {'会議室':'会議室','和室（畳側）':'和室(畳)','和室（椅子側）':'和室(椅子)','図書室':'図書室'}; return m[r] || r; }).join('・')}）`;
+  } else {
+    locationLabel = data.location || undefined;
+  }
 
   const isFacilityEvent = data.type === 'event' && data.eventType === 'facility';
 
