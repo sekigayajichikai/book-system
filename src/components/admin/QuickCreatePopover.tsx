@@ -64,6 +64,7 @@ export function EventCreatePopover({ date, onClose, onSaved, anchorRect }: Event
     title: '', org: '', start_time: '', end_time: '',
     location: '', description: '', is_major: false,
   });
+  const [allDay, setAllDay] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -113,8 +114,44 @@ export function EventCreatePopover({ date, onClose, onSaved, anchorRect }: Event
           autoFocus
         />
 
-        {/* 日付 */}
-        <div className="text-sm text-gray-500 pl-9">{dateLabel}</div>
+        {/* 日時 */}
+        <IconField icon={<Clock size={18} />}>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-700 bg-gray-100 px-2 py-1 rounded">{dateLabel}</span>
+              {allDay ? (
+                <button onClick={() => setAllDay(false)}
+                  className="text-sm text-blue-600 font-medium border border-gray-200 px-3 py-1 rounded-lg hover:bg-blue-50">
+                  時間を追加
+                </button>
+              ) : (
+                <>
+                  <select value={form.start_time}
+                    onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
+                    className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:border-blue-400 outline-none">
+                    <option value="">開始</option>
+                    {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <span className="text-gray-400">-</span>
+                  <select value={form.end_time}
+                    onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
+                    className="px-2 py-1 text-sm border border-gray-200 rounded-lg focus:border-blue-400 outline-none">
+                    <option value="">終了</option>
+                    {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </>
+              )}
+            </div>
+            {!allDay && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={false}
+                  onChange={() => { setAllDay(true); setForm(f => ({ ...f, start_time: '', end_time: '' })); }}
+                  className="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500" />
+                <span className="text-xs text-gray-500">終日</span>
+              </label>
+            )}
+          </div>
+        </IconField>
 
         {/* 団体 */}
         <IconField icon={<Users size={18} />}>
@@ -124,25 +161,6 @@ export function EventCreatePopover({ date, onClose, onSaved, anchorRect }: Event
             className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-blue-400 outline-none"
             placeholder="団体名"
           />
-        </IconField>
-
-        {/* 時間 */}
-        <IconField icon={<Clock size={18} />}>
-          <div className="flex items-center gap-2">
-            <select value={form.start_time}
-              onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
-              className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-blue-400 outline-none">
-              <option value="">開始</option>
-              {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            <span className="text-gray-400">〜</span>
-            <select value={form.end_time}
-              onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
-              className="px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-blue-400 outline-none">
-              <option value="">終了</option>
-              {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          </div>
         </IconField>
 
         {/* 場所 */}
