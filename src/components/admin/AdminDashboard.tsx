@@ -444,7 +444,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             </div>
 
             {calendarSubView === 'schedule' ? (
-              <EventList holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} refreshKey={eventListRefreshKey} />
+              <EventList holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} refreshKey={eventListRefreshKey} isAdmin />
             ) : (
               <Calendar
                 currentDate={currentDate}

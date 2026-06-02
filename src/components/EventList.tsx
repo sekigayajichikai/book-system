@@ -16,13 +16,14 @@ interface EventListProps {
   onCellClick?: (date: Date, rect: DOMRect) => void;
   onItemClick?: (event: EventSummary, rect: DOMRect) => void;
   refreshKey?: number;
+  isAdmin?: boolean;
 }
 
 function isMajorEvent(evt: { isMajor?: boolean }): boolean {
   return evt.isMajor === true;
 }
 
-export default function EventList({ holidays, closures, onDateClick, onCellClick, onItemClick, refreshKey }: EventListProps) {
+export default function EventList({ holidays, closures, onDateClick, onCellClick, onItemClick, refreshKey, isAdmin }: EventListProps) {
   const [subView, setSubView] = useState<'month' | 'list'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<EventSummary[]>([]);
@@ -167,18 +168,19 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
               </button>
             </div>
           </div>
-          {/* 月/一覧トグル */}
-          <div className="flex items-center bg-gray-100 rounded-full p-0.5">
-            {(['month', 'list'] as const).map(v => (
-              <button key={v} onClick={() => setSubView(v)}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                  subView === v ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {v === 'month' ? '月' : '一覧'}
-              </button>
-            ))}
-          </div>
+          {isAdmin && (
+            <div className="flex items-center bg-gray-100 rounded-full p-0.5">
+              {(['month', 'list'] as const).map(v => (
+                <button key={v} onClick={() => setSubView(v)}
+                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                    subView === v ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {v === 'month' ? '月' : '一覧'}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {subView === 'month' ? (
