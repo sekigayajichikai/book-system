@@ -83,7 +83,7 @@ export default function MobileEventList({ holidays, closures }: MobileEventListP
           {/* 主な予定カード（1枚にまとめる） */}
           {majorEvents.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="text-xs font-bold text-gray-400 mb-3">主な予定</div>
+              <div className="text-sm font-bold text-gray-600 mb-3">主な予定</div>
               <div className="space-y-2.5">
                 {majorEvents.map(evt => {
                   const d = new Date(evt.date + 'T00:00:00');
@@ -115,7 +115,7 @@ export default function MobileEventList({ holidays, closures }: MobileEventListP
           )}
 
           {/* 全予定リスト */}
-          <div className="text-xs font-bold text-gray-400 px-1">すべての予定</div>
+          <div className="text-sm font-bold text-gray-600 px-1">すべての予定</div>
           {sortedDates.map(dateStr => (
             <DayCard key={dateStr} dateStr={dateStr} events={grouped[dateStr]} todayStr={todayStr} todayRef={todayRef} holidays={holidays} closures={closures} />
           ))}
