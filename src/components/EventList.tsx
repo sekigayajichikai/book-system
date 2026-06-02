@@ -28,8 +28,6 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [loading, setLoading] = useState(false);
-  const [modalDate, setModalDate] = useState<Date | null>(null);
-  const [modalAnchor, setModalAnchor] = useState<DOMRect | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [itemDetail, setItemDetail] = useState<{ event: EventSummary; anchor: DOMRect } | null>(null);
 
@@ -100,11 +98,6 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
               onCellClick(d, rect);
             } else if (onDateClick) { onDateClick(d); }
-            else if (dayEvents.length > 0) {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              setModalDate(d);
-              setModalAnchor(rect);
-            }
           }}
           data-cell
           className={`min-h-[8rem] border border-gray-200 relative transition-colors flex flex-col ${
@@ -223,15 +216,6 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
       </div>
 
       {/* 日付クリック時のポップオーバー */}
-      {modalDate && (
-        <EventDayPopover
-          date={modalDate}
-          events={eventsByDate[formatDate(modalDate)] || []}
-          anchorRect={modalAnchor}
-          onClose={() => { setModalDate(null); setModalAnchor(null); }}
-        />
-      )}
-
       {/* 個別アイテム詳細ポップオーバー（ユーザー側） */}
       {itemDetail && (() => {
         const evt = itemDetail.event;

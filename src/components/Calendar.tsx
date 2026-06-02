@@ -377,8 +377,6 @@ const Calendar: React.FC<CalendarProps> = ({
   currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBooking, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
-  const [modalDate, setModalDate] = useState<Date | null>(null);
-  const [modalAnchor, setModalAnchor] = useState<DOMRect | null>(null);
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [itemDetail, setItemDetail] = useState<{ booking: Booking; anchor: DOMRect } | null>(null);
   const [weekStart, setWeekStart] = useState(() => {
@@ -407,10 +405,6 @@ const Calendar: React.FC<CalendarProps> = ({
       onCellClick(date, rect);
     } else if (disableModal) {
       onDateClick(date);
-    } else {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      setModalDate(date);
-      setModalAnchor(rect);
     }
   };
 
@@ -595,16 +589,6 @@ const Calendar: React.FC<CalendarProps> = ({
           </div>
         )}
       </div>
-
-      {/* Day detail popover */}
-      {modalDate && (
-        <DayDetailPopover
-          date={modalDate}
-          bookings={bookings}
-          anchorRect={modalAnchor}
-          onClose={() => { setModalDate(null); setModalAnchor(null); }}
-        />
-      )}
 
       {/* 個別アイテム詳細ポップオーバー（ユーザー側） */}
       {itemDetail && (() => {
