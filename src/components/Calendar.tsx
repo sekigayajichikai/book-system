@@ -8,7 +8,7 @@ interface CalendarProps {
   onPrevMonth: () => void;
   onNextMonth: () => void;
   bookings: Booking[];
-  onDateClick: (date: Date) => void;
+  onDateClick?: (date: Date) => void;
   onCellClick?: (date: Date, rect: DOMRect) => void;
   onItemClick?: (booking: Booking, rect: DOMRect) => void;
   onOverflowClick?: (date: Date, rect: DOMRect) => void;
@@ -403,7 +403,7 @@ const Calendar: React.FC<CalendarProps> = ({
     if (onCellClick) {
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       onCellClick(date, rect);
-    } else if (disableModal) {
+    } else if (disableModal && onDateClick) {
       onDateClick(date);
     }
   };

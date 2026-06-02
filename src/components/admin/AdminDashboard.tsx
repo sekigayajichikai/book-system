@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { CalendarDays, ClipboardList, Settings, LogOut, Plus, Trash2, Pencil, X, Users, Check, Upload, List } from 'lucide-react';
 import Calendar from '../Calendar';
 import EventList from '../EventList';
-import AdminDayPanel from './AdminDayPanel';
 import SettingsTab from './SettingsTab';
 import ImportTab from './ImportTab';
 import DetailPopover, { DetailData } from './DetailPopover';
@@ -114,9 +113,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       .catch(() => {});
   }, []);
 
-  const [showDayPanel, setShowDayPanel] = useState(false);
-  const [initialEditId, setInitialEditId] = useState<string | null>(null);
-  const [initialEditBookingId, setInitialEditBookingId] = useState<string | null>(null);
   const [eventListRefreshKey, setEventListRefreshKey] = useState(0);
 
   // ポップオーバー状態
@@ -127,11 +123,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     data?: DetailData;
   } | null;
   const [popover, setPopover] = useState<PopoverState>(null);
-
-  const handleDateClick = (date: Date) => {
-    setSelectedDate(date);
-    setShowDayPanel(true);
-  };
 
   // 空セルクリック → 作成ポップオーバー
   const handleCellClick = (date: Date, rect: DOMRect) => {
@@ -451,16 +442,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
                 onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
                 bookings={bookings}
-                onDateClick={handleDateClick}
                 onCellClick={handleCellClick}
                 onItemClick={handleBookingItemClick}
                 onOverflowClick={handleOverflowClick}
-                onEditBooking={(b) => {
-                  const d = new Date(b.date + 'T00:00:00');
-                  setSelectedDate(d);
-                  setInitialEditBookingId(b.id);
-                  setShowDayPanel(true);
-                }}
                 onRefreshBookings={handleDayPanelRefresh}
                 holidays={holidays}
                 closures={closures}
@@ -893,29 +877,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           anchorRect={popover.anchorRect}
           data={popover.data}
           onClose={closePopover}
-          onEdit={(data) => {
-            closePopover();
-            const d = new Date(data.date + 'T00:00:00');
-            setSelectedDate(d);
-            if (data.type === 'event') {
-              setInitialEditId(data.id);
-            } else {
-              setInitialEditBookingId(data.id);
-            }
-            setShowDayPanel(true);
-          }}
           onRefresh={handleDayPanelRefresh}
-          onSwitchToFacility={async (eventId, eventDate) => {
-            // event_idからbookingを特定
-            const res = await supaFetch(`bookings?event_id=eq.${eventId}&status=in.(CONFIRMED,PENDING)&select=id&limit=1`);
-            const bookings = res.ok ? await res.json() : [];
+          onSwitchToFacility={(_, __) => {
             setCalendarSubView('facility');
-            if (bookings.length > 0) {
-              const d = new Date(eventDate + 'T00:00:00');
-              setSelectedDate(d);
-              setInitialEditBookingId(bookings[0].id);
-              setShowDayPanel(true);
-            }
           }}
         />
       )}
@@ -946,24 +910,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         );
       })()}
 
-      {/* 日付パネル（予約一覧+追加+削除） */}
-      {showDayPanel && selectedDate && (
-        <AdminDayPanel
-          date={selectedDate}
-          bookings={bookings}
-          isClosure={closures.has(`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`)}
-          onClose={() => { setShowDayPanel(false); setInitialEditId(null); setInitialEditBookingId(null); }}
-          onRefresh={handleDayPanelRefresh}
-          mode={calendarSubView}
-          initialEditId={initialEditId}
-          initialEditBookingId={initialEditBookingId}
-          onClosureChange={() => {
-            supaFetch('calendar_events?is_closure=eq.true&select=date')
-              .then(r => r.json())
-              .then((data: { date: string }[]) => setClosures(new Set(data.map(d => d.date))));
-          }}
-        />
-      )}
     </div>
   );
 }

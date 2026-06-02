@@ -59,7 +59,7 @@ interface DetailPopoverProps {
   anchorRect: { top: number; left: number; width: number; height: number };
   data: DetailData;
   onClose: () => void;
-  onEdit: (data: DetailData) => void;
+  onEdit?: (data: DetailData) => void;
   onRefresh: () => void;
   onSwitchToFacility?: (eventId: string, date: string) => void;
 }
@@ -77,6 +77,20 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   const [editingTime, setEditingTime] = useState(false);
   const [timeStart, setTimeStart] = useState('');
   const [timeEnd, setTimeEnd] = useState('');
+  const [localDescription, setLocalDescription] = useState(data.description);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [descriptionValue, setDescriptionValue] = useState('');
+
+  // 一般イベント インライン編集
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: data.title,
+    description: data.description || '',
+    location: data.location || '',
+    startTime: data.startTime || '',
+    endTime: data.endTime || '',
+    isMajor: data.isMajor || false,
+  });
 
   const handleSaveTime = async () => {
     const s = timeStart || null;
@@ -101,6 +115,35 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       body: JSON.stringify({ display_title: val }),
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
     });
+    onRefresh();
+  };
+
+  const handleSaveDescription = async () => {
+    const val = descriptionValue.trim() || null;
+    setLocalDescription(val);
+    setEditingDescription(false);
+    await supaFetch(`calendar_events?id=eq.${data.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ description: val }),
+    });
+    onRefresh();
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editForm.title.trim()) return;
+    await supaFetch(`calendar_events?id=eq.${data.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        title: editForm.title.trim(),
+        description: editForm.description.trim() || null,
+        location: editForm.location || null,
+        start_time: editForm.startTime || null,
+        end_time: editForm.endTime || null,
+        is_major: editForm.isMajor,
+      }),
+    });
+    setEditing(false);
+    onClose();
     onRefresh();
   };
 
@@ -177,8 +220,8 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         )}
         {!isFacilityEvent && (
           <>
-            <button onClick={() => onEdit(data)} className="p-1.5 hover:bg-gray-100 rounded-full" title="編集">
-              <Pencil size={16} className="text-gray-500" />
+            <button onClick={() => onEdit ? onEdit(data) : setEditing(!editing)} className={`p-1.5 hover:bg-gray-100 rounded-full ${editing ? 'bg-blue-100' : ''}`} title="編集">
+              <Pencil size={16} className={editing ? 'text-blue-500' : 'text-gray-500'} />
             </button>
             <button onClick={handleDelete} className="p-1.5 hover:bg-gray-100 rounded-full" title="削除">
               <Trash2 size={16} className="text-gray-500" />
@@ -254,6 +297,54 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
             )}
           </div>
         )}
+        {/* 一般イベント インライン編集 */}
+        {editing && !isFacilityEvent && data.type === 'event' && (
+          <div className="space-y-3 border-t border-gray-200 pt-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">タイトル</label>
+              <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">説明</label>
+              <textarea value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400" rows={3} placeholder="補足情報" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">場所</label>
+              <input value={editForm.location} onChange={e => setEditForm(f => ({ ...f, location: e.target.value }))}
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400" placeholder="自治会館、公園など" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">開始</label>
+                <select value={editForm.startTime} onChange={e => setEditForm(f => ({ ...f, startTime: e.target.value }))}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400">
+                  <option value="">--</option>
+                  {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">終了</label>
+                <select value={editForm.endTime} onChange={e => setEditForm(f => ({ ...f, endTime: e.target.value }))}
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400">
+                  <option value="">--</option>
+                  {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={editForm.isMajor} onChange={e => setEditForm(f => ({ ...f, isMajor: e.target.checked }))}
+                className="w-4 h-4 rounded border-gray-300 text-orange-500 focus:ring-orange-500" />
+              <span className="text-sm text-gray-700">主な予定</span>
+            </label>
+            <div className="flex gap-2">
+              <button onClick={() => setEditing(false)} className="flex-1 py-1.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">キャンセル</button>
+              <button onClick={handleSaveEdit} className="flex-1 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">保存</button>
+            </div>
+          </div>
+        )}
+
         {/* display_title編集（facility型イベント） */}
         {isFacilityEvent && data.type === 'event' && (
           <div className="space-y-1.5">
@@ -310,6 +401,33 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
                 className="w-full text-left px-2 py-1.5 text-sm border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
                 <span className={localStartTime ? 'text-gray-800' : 'text-gray-400 italic'}>
                   {localStartTime && localEndTime ? `${localStartTime}〜${localEndTime}` : '（クリックして設定）'}
+                </span>
+              </button>
+            )}
+          </div>
+        )}
+        {/* 説明（facility型イベント） */}
+        {isFacilityEvent && data.type === 'event' && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <AlignLeft size={12} />
+              <span>説明</span>
+            </div>
+            {editingDescription ? (
+              <div className="space-y-1.5">
+                <textarea value={descriptionValue} onChange={e => setDescriptionValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Escape') setEditingDescription(false); }}
+                  className="w-full px-2 py-1.5 text-sm border border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  autoFocus rows={3} placeholder="補足情報" />
+                <button onClick={handleSaveDescription} className="w-full py-1.5 bg-blue-500 text-white rounded-lg text-sm font-bold hover:bg-blue-600">
+                  <Check size={14} className="inline -mt-0.5 mr-1" />保存
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => { setEditingDescription(true); setDescriptionValue(localDescription || ''); }}
+                className="w-full text-left px-2 py-1.5 text-sm border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                <span className={localDescription ? 'text-gray-800 whitespace-pre-wrap' : 'text-gray-400 italic'}>
+                  {localDescription || '（クリックして設定）'}
                 </span>
               </button>
             )}

@@ -3,7 +3,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Booking } from '../../types';
 import { useSwipe } from '../../hooks/useSwipe';
 import MobileDayCard from './MobileDayCard';
-import MobileBanner from './MobileBanner';
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -27,12 +26,11 @@ interface MobileCalendarViewProps {
   onNextWeek: () => void;
   holidays?: Record<string, string>;
   closures?: Set<string>;
-  banners?: any[];
   loading?: boolean;
 }
 
 export default function MobileCalendarView({
-  weekStart, bookings, onPrevWeek, onNextWeek, holidays = {}, closures = new Set(), banners = [], loading,
+  weekStart, bookings, onPrevWeek, onNextWeek, holidays = {}, closures = new Set(), loading,
 }: MobileCalendarViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const todayRef = useRef<HTMLDivElement>(null);
@@ -77,14 +75,12 @@ export default function MobileCalendarView({
 
       {loading && <div className="text-center text-sm text-gray-400 py-4">読み込み中...</div>}
 
-      {/* Day cards + banners */}
+      {/* Day cards */}
       {days.map(date => {
         const today = isToday(date);
         const dateStr = formatDate(date);
-        const dayBanners = banners.filter(b => b.event_date === dateStr);
         return (
-          <div key={date.toISOString()} ref={today ? todayRef : undefined} className="space-y-3">
-            {dayBanners.map(b => <MobileBanner key={b.id} banner={b} />)}
+          <div key={date.toISOString()} ref={today ? todayRef : undefined}>
             <MobileDayCard
               date={date}
               bookings={bookings}

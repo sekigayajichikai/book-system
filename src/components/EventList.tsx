@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, X, Clock, MapPin, Check, MoreVertical, Star } from 'lucide-react';
 import { EventSummary } from '../types';
-import { shortRoomName } from '../constants';
+import { shortRoomName, ROOMS, TIME_SLOTS } from '../constants';
 
 const WEEK_DAYS = ['月', '火', '水', '木', '金', '土', '日'];
 
@@ -351,11 +351,13 @@ function EventSheetView({ events, year, month, holidays, onRefresh }: {
   const [editId, setEditId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [menuId, setMenuId] = useState<string | null>(null);
+  const [editSlotId, setEditSlotId] = useState<string | null>(null);
+  const [editRoomId, setEditRoomId] = useState<string | null>(null);
 
   const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || '').localeCompare(b.startTime || ''));
 
   const supaPatch = async (path: string, body: any) => {
-    await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
       method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
       body: JSON.stringify(body),
     });
@@ -379,6 +381,43 @@ function EventSheetView({ events, year, month, holidays, onRefresh }: {
       method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=minimal' },
     });
     setMenuId(null);
+    onRefresh();
+  };
+
+  const handleSaveSlot = async (evtId: string, newSlot: string) => {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings?event_id=eq.${evtId}&status=in.(CONFIRMED,PENDING)&select=id`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+    });
+    const bks = res.ok ? await res.json() : [];
+    if (bks.length === 0) { setEditSlotId(null); return; }
+    const slot = TIME_SLOTS.find(s => s.gasKey === newSlot);
+    if (!slot) return;
+    const patchRes = await supaPatch(`bookings?id=eq.${bks[0].id}`, { slot: newSlot });
+    if (!patchRes.ok) {
+      const err = await patchRes.text();
+      alert(err.includes('23505') ? 'この時間帯・部屋は既に予約されています' : '保存に失敗しました');
+      setEditSlotId(null);
+      return;
+    }
+    await supaPatch(`calendar_events?id=eq.${evtId}`, { start_time: slot.startTime, end_time: slot.endTime });
+    setEditSlotId(null);
+    onRefresh();
+  };
+
+  const handleSaveRoom = async (evtId: string, newRoom: string) => {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/bookings?event_id=eq.${evtId}&status=in.(CONFIRMED,PENDING)&select=id`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+    });
+    const bks = res.ok ? await res.json() : [];
+    if (bks.length === 0) { setEditRoomId(null); return; }
+    const patchRes = await supaPatch(`bookings?id=eq.${bks[0].id}`, { room: newRoom });
+    if (!patchRes.ok) {
+      const err = await patchRes.text();
+      alert(err.includes('23505') ? 'この時間帯・部屋は既に予約されています' : '保存に失敗しました');
+      setEditRoomId(null);
+      return;
+    }
+    setEditRoomId(null);
     onRefresh();
   };
 
@@ -430,11 +469,29 @@ function EventSheetView({ events, year, month, holidays, onRefresh }: {
                     </span>
                   )}
                 </td>
-                <td className="px-3 py-2 text-gray-500 text-xs">
-                  {evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : '終日'}
+                <td className="px-3 py-2 text-gray-500 text-xs" onClick={() => { if (evt.eventType === 'facility' && evt.slots.length === 1) setEditSlotId(evt.id); }}>
+                  {editSlotId === evt.id ? (
+                    <select defaultValue={evt.slots[0]} onChange={e => handleSaveSlot(evt.id, e.target.value)} onBlur={() => setEditSlotId(null)} autoFocus
+                      className="px-1 py-0.5 border border-blue-300 rounded text-xs focus:outline-none">
+                      {TIME_SLOTS.map(s => <option key={s.id} value={s.gasKey}>{s.gasKey}</option>)}
+                    </select>
+                  ) : evt.eventType === 'facility' && evt.slots.length === 1 ? (
+                    <span className="cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded">{evt.slots[0]}</span>
+                  ) : (
+                    evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : '終日'
+                  )}
                 </td>
-                <td className="px-3 py-2 text-gray-500 text-xs">
-                  {evt.location && evt.rooms.length > 0 ? `${evt.location}（${evt.rooms.map(r => shortRoomName(r)).join('・')}）` : evt.location || (evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : '')}
+                <td className="px-3 py-2 text-gray-500 text-xs" onClick={() => { if (evt.eventType === 'facility' && evt.rooms.length === 1) setEditRoomId(evt.id); }}>
+                  {editRoomId === evt.id ? (
+                    <select defaultValue={evt.rooms[0]} onChange={e => handleSaveRoom(evt.id, e.target.value)} onBlur={() => setEditRoomId(null)} autoFocus
+                      className="px-1 py-0.5 border border-blue-300 rounded text-xs focus:outline-none">
+                      {ROOMS.map(r => <option key={r.id} value={r.id}>{r.shortName}</option>)}
+                    </select>
+                  ) : evt.eventType === 'facility' && evt.rooms.length === 1 ? (
+                    <span className="cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded">{shortRoomName(evt.rooms[0])}</span>
+                  ) : (
+                    evt.location && evt.rooms.length > 0 ? `${evt.location}（${evt.rooms.map(r => shortRoomName(r)).join('・')}）` : evt.location || (evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : '')
+                  )}
                 </td>
                 <td className="px-3 py-2 text-right relative">
                   <button onClick={e => { e.stopPropagation(); setMenuId(menuId === evt.id ? null : evt.id); }} className="p-1 hover:bg-gray-200 rounded-full">
