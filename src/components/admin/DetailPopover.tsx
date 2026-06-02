@@ -107,6 +107,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   // booking編集用
   const [bookingForm, setBookingForm] = useState({
     title: data.title,
+    org: data.orgName || '',
     slot: data.slot || '午前',
     room: data.room || '',
     memo: data.memo || '',
@@ -151,6 +152,17 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
 
   const handleSaveBooking = async () => {
     if (!bookingForm.title.trim()) return;
+    // 団体名からorg_idを検索
+    let orgId: string | null = null;
+    if (bookingForm.org.trim()) {
+      try {
+        const orgRes = await fetch(`${SUPABASE_URL}/rest/v1/booking_organizations?name=eq.${encodeURIComponent(bookingForm.org.trim())}&select=id&limit=1`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        });
+        const d = orgRes.ok ? await orgRes.json() : [];
+        orgId = d[0]?.id || null;
+      } catch {}
+    }
     const res = await supaFetch(`bookings?id=eq.${data.id}`, {
       method: 'PATCH',
       body: JSON.stringify({
@@ -158,6 +170,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         slot: bookingForm.slot,
         room: bookingForm.room,
         memo: bookingForm.memo.trim() || null,
+        org_id: orgId,
       }),
     });
     if (res && !res.ok) {
@@ -393,6 +406,11 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
               <label className="block text-xs font-medium text-gray-500 mb-1">タイトル</label>
               <input value={bookingForm.title} onChange={e => setBookingForm(f => ({ ...f, title: e.target.value }))}
                 className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">団体</label>
+              <input value={bookingForm.org} onChange={e => setBookingForm(f => ({ ...f, org: e.target.value }))}
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400" placeholder="団体名" />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
