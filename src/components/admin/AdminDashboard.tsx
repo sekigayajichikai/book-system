@@ -851,6 +851,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             setShowDayPanel(true);
           }}
           onRefresh={handleDayPanelRefresh}
+          onSwitchToFacility={() => setCalendarSubView('facility')}
         />
       )}
 

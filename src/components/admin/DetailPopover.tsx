@@ -50,9 +50,10 @@ interface DetailPopoverProps {
   onClose: () => void;
   onEdit: (data: DetailData) => void;
   onRefresh: () => void;
+  onSwitchToFacility?: () => void;
 }
 
-export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRefresh }: DetailPopoverProps) {
+export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRefresh, onSwitchToFacility }: DetailPopoverProps) {
   const d = new Date(data.date + 'T00:00:00');
   const dateLabel = `${d.getMonth() + 1}月${d.getDate()}日 (${DOW[d.getDay()]})`;
 
@@ -176,8 +177,13 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
             )}
           </div>
         )}
-        {isFacilityEvent && (
-          <p className="text-xs text-gray-400">編集は「会館予約」タブから行えます</p>
+        {isFacilityEvent && onSwitchToFacility && (
+          <button
+            onClick={() => { onClose(); onSwitchToFacility(); }}
+            className="w-full text-sm text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl py-2 font-medium transition-colors"
+          >
+            会館予約タブに移動する
+          </button>
         )}
       </div>
     </Popover>
