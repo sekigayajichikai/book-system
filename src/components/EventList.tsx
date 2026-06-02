@@ -146,8 +146,9 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         {/* ヘッダー */}
         <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <h2 className="text-[22px] font-normal text-gray-800">
+            <h2 className="text-[22px] font-normal text-gray-800 flex items-center gap-2">
               {year}年 {month + 1}月
+              {loading && <span className="w-4 h-4 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />}
             </h2>
             <div className="flex gap-1">
               <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -159,10 +160,6 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
             </div>
           </div>
         </div>
-
-        {loading && (
-          <div className="h-1 bg-blue-100 overflow-hidden"><div className="h-full w-1/3 bg-blue-400 animate-pulse rounded" /></div>
-        )}
 
         {/* 曜日ヘッダー */}
         <div className="grid grid-cols-7 text-center bg-gray-50 border-b border-gray-200">

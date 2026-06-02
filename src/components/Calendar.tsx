@@ -341,8 +341,9 @@ const Calendar: React.FC<CalendarProps> = ({
         {/* Header with month nav + sub-view toggle */}
         <div className="flex items-center justify-between p-4 bg-white border-b border-[var(--md-outline)]">
           <div className="flex items-center gap-2">
-            <h2 className="text-[22px] font-normal text-[var(--md-on-surface)]">
+            <h2 className="text-[22px] font-normal text-[var(--md-on-surface)] flex items-center gap-2">
               {year}年 {month + 1}月
+              {loading && <span className="w-4 h-4 border-2 border-emerald-300 border-t-emerald-600 rounded-full animate-spin" />}
             </h2>
             <div className="flex gap-1">
               <button onClick={onPrevMonth} className="p-2 hover:bg-[var(--md-surface-1)] rounded-full transition-colors">
@@ -375,9 +376,6 @@ const Calendar: React.FC<CalendarProps> = ({
           </div>
         </div>
 
-        {loading && (
-          <div className="h-1 bg-emerald-100 overflow-hidden"><div className="h-full w-1/3 bg-emerald-400 animate-pulse rounded" /></div>
-        )}
 
         {subView === 'month' ? (
           <>
