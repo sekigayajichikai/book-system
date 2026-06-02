@@ -522,21 +522,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           <div className="text-sm font-bold text-gray-800">{o.name}</div>
                           {!orgSortByGroup && <div className="text-xs text-gray-400">{o.group_name || '未分類'}</div>}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="checkbox"
-                            checked={o.is_active}
-                            title={o.is_active ? 'アクティブ（常に上に表示）' : 'アクティブにする'}
-                            onClick={e => e.stopPropagation()}
-                            onChange={async e => {
-                              const checked = e.target.checked;
-                              await supaFetch(`booking_organizations?id=eq.${o.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: checked }) });
-                              setOrgs(prev => prev.map(org => org.id === o.id ? { ...org, is_active: checked } : org));
-                            }}
-                            className="w-3.5 h-3.5 rounded border-gray-300 text-blue-500 focus:ring-blue-400 cursor-pointer opacity-40 hover:opacity-100"
-                          />
-                          <button onClick={e => { e.stopPropagation(); handleDeleteOrg(o.id, o.name); }} className="text-red-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
-                        </div>
+                        <button onClick={e => { e.stopPropagation(); handleDeleteOrg(o.id, o.name); }} className="text-red-300 hover:text-red-500 p-1"><Trash2 size={14} /></button>
                       </div>
                     </div>
                   );
@@ -623,6 +609,20 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     {orgForm.default_equipment.length > 0 && (
                       <div><span className="text-xs text-gray-400">利用設備</span><div className="flex flex-wrap gap-1 mt-1">{orgForm.default_equipment.map(e => <span key={e} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">{e}</span>)}</div></div>
                     )}
+                    <label className="flex items-center gap-2 pt-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editOrg?.is_active || false}
+                        onChange={async e => {
+                          const checked = e.target.checked;
+                          await supaFetch(`booking_organizations?id=eq.${editOrg!.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: checked }) });
+                          setOrgs(prev => prev.map(o => o.id === editOrg!.id ? { ...o, is_active: checked } : o));
+                          setEditOrg(prev => prev ? { ...prev, is_active: checked } : prev);
+                        }}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-400"
+                      />
+                      <span className="text-xs text-gray-500">アクティブ（利用実績に関わらず上に表示）</span>
+                    </label>
                   </div>
                 ) : (
                   /* === 編集モード === */
