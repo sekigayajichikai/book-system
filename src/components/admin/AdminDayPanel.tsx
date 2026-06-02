@@ -45,11 +45,12 @@ interface AdminDayPanelProps {
   onRefresh: () => void;
   onClosureChange?: () => void;
   mode?: 'facility' | 'schedule';
+  initialEditId?: string | null;
 }
 
 type FormMode = 'none' | 'add-booking' | 'add-event' | 'add-banner' | 'edit' | 'edit-event';
 
-export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRefresh, onClosureChange, mode = 'facility' }: AdminDayPanelProps) {
+export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRefresh, onClosureChange, mode = 'facility', initialEditId }: AdminDayPanelProps) {
   const dateStr = formatDate(date);
   const dow = date.getDay();
   const dayBookings = bookings.filter(b => b.date === dateStr);
@@ -67,10 +68,29 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
 
   const fetchCalEvents = async () => {
     const res = await supaFetch(`calendar_events?date=eq.${dateStr}&event_type=neq.closure&order=start_time.asc`);
-    if (res.ok) setCalEvents(await res.json());
+    if (res.ok) {
+      const data = await res.json();
+      setCalEvents(data);
+      // initialEditId が指定されていれば自動的に編集モードに入る
+      if (initialEditId) {
+        const ev = data.find((e: CalEvent) => e.id === initialEditId);
+        if (ev) {
+          setEditingEventId(ev.id);
+          setEventForm({
+            title: ev.title,
+            location: ev.location || '',
+            start_time: ev.start_time ? ev.start_time.slice(0, 5) : '',
+            end_time: ev.end_time ? ev.end_time.slice(0, 5) : '',
+            memo: ev.memo || '',
+            is_major: ev.is_major || false,
+          });
+          setFormMode('edit-event');
+        }
+      }
+    }
   };
 
-  useState(() => { if (mode === 'schedule') fetchCalEvents(); });
+  useState(() => { if (mode === 'schedule' || initialEditId) fetchCalEvents(); });
 
   const [formMode, setFormMode] = useState<FormMode>('none');
   const [editId, setEditId] = useState<string | null>(null);

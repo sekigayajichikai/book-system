@@ -160,7 +160,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
                   ? 'bg-violet-100 text-violet-700'
                   : 'bg-blue-100 text-blue-700'
               }`}>
-                {data.eventType === 'facility' ? '会館予約由来' : '一般予定'}
+                {data.eventType === 'facility' ? '会館予約由来' : '予定'}
               </span>
             )}
             {data.isMajor && (
