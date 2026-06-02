@@ -171,7 +171,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         type: 'event', id: event.id, title: event.title, date: event.date,
         location: event.location, startTime: event.startTime, endTime: event.endTime,
         memo: event.memo, description: event.description, eventType: event.eventType,
-        isMajor: event.isMajor,
+        isMajor: event.isMajor, displayTitle: event.displayTitle,
       },
     });
   };

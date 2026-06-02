@@ -1,4 +1,5 @@
-import { Pencil, Trash2, X, Clock, MapPin, Users, AlignLeft, Star } from 'lucide-react';
+import { useState } from 'react';
+import { Pencil, Trash2, X, Clock, MapPin, Users, AlignLeft, Star, Check, Type } from 'lucide-react';
 import Popover from './Popover';
 
 const ROOM_COLORS: Record<string, string> = {
@@ -39,6 +40,7 @@ export interface DetailData {
   description?: string | null;
   eventType?: string;
   isMajor?: boolean;
+  displayTitle?: string | null;
   // booking fields
   room?: string;
   slot?: string;
@@ -57,6 +59,18 @@ interface DetailPopoverProps {
 export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRefresh, onSwitchToFacility }: DetailPopoverProps) {
   const d = new Date(data.date + 'T00:00:00');
   const dateLabel = `${d.getMonth() + 1}月${d.getDate()}日 (${DOW[d.getDay()]})`;
+  const [editingDisplayTitle, setEditingDisplayTitle] = useState(false);
+  const [displayTitleValue, setDisplayTitleValue] = useState('');
+
+  const handleSaveDisplayTitle = async () => {
+    await supaFetch(`calendar_events?id=eq.${data.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ display_title: displayTitleValue.trim() || null }),
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+    });
+    setEditingDisplayTitle(false);
+    onRefresh();
+  };
 
   const handleDelete = async () => {
     if (!confirm(`「${data.title}」を削除しますか？`)) return;
@@ -196,6 +210,33 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
               <span className="flex items-center gap-0.5 text-xs text-orange-500">
                 <Star size={12} fill="currentColor" /> 主な予定
               </span>
+            )}
+          </div>
+        )}
+        {/* display_title編集（facility型イベント） */}
+        {isFacilityEvent && data.type === 'event' && (
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <Type size={12} />
+              <span>カレンダー用タイトル</span>
+            </div>
+            {editingDisplayTitle ? (
+              <div className="flex items-center gap-1.5">
+                <input value={displayTitleValue} onChange={e => setDisplayTitleValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSaveDisplayTitle(); if (e.key === 'Escape') setEditingDisplayTitle(false); }}
+                  className="flex-1 px-2 py-1.5 text-sm border border-blue-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  autoFocus placeholder={data.title} />
+                <button onClick={handleSaveDisplayTitle} className="p-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                  <Check size={14} />
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => { setEditingDisplayTitle(true); setDisplayTitleValue(data.displayTitle || ''); }}
+                className="w-full text-left px-2 py-1.5 text-sm border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors">
+                <span className={data.displayTitle ? 'text-gray-800' : 'text-gray-400 italic'}>
+                  {data.displayTitle || '（クリックして設定）'}
+                </span>
+              </button>
             )}
           </div>
         )}
