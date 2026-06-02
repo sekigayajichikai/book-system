@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X, Clock, MapPin, Pencil } from 'lucide-react';
 import { Booking } from '../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../constants';
@@ -112,7 +112,20 @@ const BookingSheetView: React.FC<{
   holidays: Record<string, string>;
   onItemClick?: (booking: Booking, rect: DOMRect) => void;
 }> = ({ bookings, year, month, holidays, onItemClick }) => {
-  const [filter, setFilter] = useState<string>('all');
+  const [orgMap, setOrgMap] = useState<Record<string, string>>({});
+
+  // 団体名マップを取得
+  useEffect(() => {
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
+    const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+    fetch(`${SUPABASE_URL}/rest/v1/bookings?date=gte.${year}-${String(month + 1).padStart(2, '0')}-01&date=lt.${month === 11 ? year + 1 : year}-${String(month === 11 ? 1 : month + 2).padStart(2, '0')}-01&select=id,booking_organizations(name)`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+    }).then(r => r.json()).then(data => {
+      const map: Record<string, string> = {};
+      (data || []).forEach((b: any) => { if (b.booking_organizations?.name) map[b.id] = b.booking_organizations.name; });
+      setOrgMap(map);
+    }).catch(() => {});
+  }, [year, month]);
 
   // 当月の予約を日付・時間帯・部屋でソート
   const slotOrder: Record<string, number> = { '09:00': 0, '13:00': 1, '17:00': 2 };
@@ -121,26 +134,12 @@ const BookingSheetView: React.FC<{
       const d = new Date(b.date + 'T00:00:00');
       return d.getFullYear() === year && d.getMonth() === month;
     })
-    .filter(b => filter === 'all' || b.room === filter)
     .sort((a, b) => a.date.localeCompare(b.date) || (slotOrder[a.startTime] ?? 0) - (slotOrder[b.startTime] ?? 0) || a.room.localeCompare(b.room));
 
   const slotLabel = (startTime: string) => startTime === '09:00' ? '午前' : startTime === '13:00' ? '午後' : '夜間';
 
   return (
     <div>
-      {/* フィルタ */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 bg-gray-50">
-        <span className="text-xs text-gray-500">部屋:</span>
-        {[{ id: 'all', label: '全て' }, ...ROOMS.map(r => ({ id: r.id, label: r.shortName }))].map(r => (
-          <button key={r.id} onClick={() => setFilter(r.id)}
-            className={`px-2 py-0.5 rounded-full text-xs font-bold transition-all ${
-              filter === r.id ? 'bg-emerald-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-200'
-            }`}
-          >{r.label}</button>
-        ))}
-        <span className="ml-auto text-xs text-gray-400">{monthBookings.length}件</span>
-      </div>
-
       {/* テーブル */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -149,13 +148,14 @@ const BookingSheetView: React.FC<{
               <th className="px-3 py-2 text-xs font-bold text-gray-500 w-24">日付</th>
               <th className="px-3 py-2 text-xs font-bold text-gray-500 w-14">時間帯</th>
               <th className="px-3 py-2 text-xs font-bold text-gray-500 w-20">部屋</th>
+              <th className="px-3 py-2 text-xs font-bold text-gray-500">団体</th>
               <th className="px-3 py-2 text-xs font-bold text-gray-500">タイトル</th>
               <th className="px-3 py-2 text-xs font-bold text-gray-500 w-10"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {monthBookings.length === 0 ? (
-              <tr><td colSpan={5} className="px-3 py-8 text-center text-gray-300">予約はありません</td></tr>
+              <tr><td colSpan={6} className="px-3 py-8 text-center text-gray-300">予約はありません</td></tr>
             ) : monthBookings.map(b => {
               const d = new Date(b.date + 'T00:00:00');
               const dow = d.getDay();
@@ -176,6 +176,7 @@ const BookingSheetView: React.FC<{
                       {shortRoomName(b.room)}
                     </span>
                   </td>
+                  <td className="px-3 py-2 text-gray-500">{orgMap[b.id] || '—'}</td>
                   <td className="px-3 py-2 font-medium text-gray-800">{b.title}</td>
                   <td className="px-3 py-2 text-right">
                     <Pencil size={14} className="text-gray-300" />
