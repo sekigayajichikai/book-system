@@ -856,7 +856,18 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             setShowDayPanel(true);
           }}
           onRefresh={handleDayPanelRefresh}
-          onSwitchToFacility={() => setCalendarSubView('facility')}
+          onSwitchToFacility={async (eventId, eventDate) => {
+            // event_idからbookingを特定
+            const res = await supaFetch(`bookings?event_id=eq.${eventId}&status=in.(CONFIRMED,PENDING)&select=id&limit=1`);
+            const bookings = res.ok ? await res.json() : [];
+            setCalendarSubView('facility');
+            if (bookings.length > 0) {
+              const d = new Date(eventDate + 'T00:00:00');
+              setSelectedDate(d);
+              setInitialEditBookingId(bookings[0].id);
+              setShowDayPanel(true);
+            }
+          }}
         />
       )}
 

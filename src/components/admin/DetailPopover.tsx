@@ -50,7 +50,7 @@ interface DetailPopoverProps {
   onClose: () => void;
   onEdit: (data: DetailData) => void;
   onRefresh: () => void;
-  onSwitchToFacility?: () => void;
+  onSwitchToFacility?: (eventId: string, date: string) => void;
 }
 
 export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRefresh, onSwitchToFacility }: DetailPopoverProps) {
@@ -106,6 +106,19 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
     <Popover anchorRect={anchorRect} onClose={onClose} width={340}>
       {/* ヘッダーアクション */}
       <div className="flex items-center justify-end gap-1 px-3 pt-3 pb-1">
+        {data.type === 'event' && (
+          <button onClick={async () => {
+            await supaFetch(`calendar_events?id=eq.${data.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify({ is_major: !data.isMajor }),
+              headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+            });
+            onClose();
+            onRefresh();
+          }} className="p-1.5 hover:bg-gray-100 rounded-full" title={data.isMajor ? '主な予定を解除' : '主な予定にする'}>
+            <Star size={16} className={data.isMajor ? 'text-orange-400' : 'text-gray-300'} fill={data.isMajor ? 'currentColor' : 'none'} />
+          </button>
+        )}
         {!isFacilityEvent && (
           <>
             <button onClick={() => onEdit(data)} className="p-1.5 hover:bg-gray-100 rounded-full" title="編集">
@@ -179,7 +192,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         )}
         {isFacilityEvent && onSwitchToFacility && (
           <button
-            onClick={() => { onClose(); onSwitchToFacility(); }}
+            onClick={() => { onClose(); onSwitchToFacility(data.id, data.date); }}
             className="w-full text-sm text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl py-2 font-medium transition-colors"
           >
             会館予約タブに移動する
