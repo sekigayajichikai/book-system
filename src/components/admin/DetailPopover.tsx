@@ -331,7 +331,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         {(data.memo || data.description) && (
           <div className="flex items-start gap-3 text-sm text-gray-600">
             <AlignLeft size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
-            <span>{data.description || data.memo}</span>
+            <span className="whitespace-pre-wrap">{data.description || data.memo}</span>
           </div>
         )}
 

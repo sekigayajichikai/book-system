@@ -215,7 +215,7 @@ function MobileEventCard({ event, highlight }: { event: EventSummary; highlight?
         <div className="mt-1.5">
           {descExpanded ? (
             <>
-              <div className="text-sm text-gray-400">{descText}</div>
+              <div className="text-sm text-gray-400 whitespace-pre-wrap">{descText}</div>
               <button onClick={() => setDescExpanded(false)} className="text-xs text-blue-500 mt-0.5">閉じる</button>
             </>
           ) : (
