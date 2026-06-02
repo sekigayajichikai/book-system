@@ -140,6 +140,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     default_equipment: [] as string[], presets: [] as string[],
     group_name: '',
     keywords: [] as string[],
+    notes: '',
   });
 
   useEffect(() => {
@@ -200,6 +201,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         default_equipment: org.default_equipment || [], presets: org.presets || [],
         group_name: org.group_name || '',
         keywords: (org as any).keywords || [],
+        notes: (org as any).notes || '',
       });
       setOrgEditing(false);
     } else {
@@ -209,7 +211,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         name: '', furigana: '', category: '2', passcode: '', contact_email: '',
         registration_no: '', representative: '', rep_last_name: '', rep_first_name: '', rep_last_name_kana: '', rep_first_name_kana: '', han_ko: '', phone: '',
         activity_description: '', has_monthly_fee: false, registration_date: '',
-        default_equipment: [], presets: [], group_name: '', keywords: [],
+        default_equipment: [], presets: [], group_name: '', keywords: [], notes: '',
       });
     }
     setShowOrgPanel(true);
@@ -261,6 +263,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       default_equipment: orgForm.default_equipment, presets: orgForm.presets,
       group_name: orgForm.group_name || null,
       keywords: orgForm.keywords || [],
+      notes: orgForm.notes?.trim() || null,
     };
     if (editOrg) {
       await supaFetch(`booking_organizations?id=eq.${editOrg.id}`, { method: 'PATCH', body: JSON.stringify(body) });
@@ -352,7 +355,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         {/* === カレンダー === */}
         {tab === 'calendar' && (
           <div className="space-y-4">
-            {/* カレンダー/会館予約表 切り替え */}
+            {/* カレンダー/会館予約 切り替え */}
             <div className="flex items-center gap-2">
               <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
                 <button
@@ -369,7 +372,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     calendarSubView === 'facility' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  会館予約表
+                  会館予約
                 </button>
               </div>
             </div>
@@ -628,6 +631,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <div><span className="text-xs text-gray-400">メールアドレス</span><div className="text-gray-800">{orgForm.contact_email || '—'}</div></div>
                     <div><span className="text-xs text-gray-400">利用区分</span><div className="text-gray-800">{categories.find(c => c.tier === orgForm.category)?.name || orgForm.category}</div></div>
                     <div><span className="text-xs text-gray-400">活動内容</span><div className="text-gray-800">{orgForm.activity_description || '—'}</div></div>
+                    <div><span className="text-xs text-gray-400">メモ</span><div className="text-gray-800 whitespace-pre-wrap">{(orgForm as any).notes || '—'}</div></div>
                     <div><span className="text-xs text-gray-400">月謝</span><div className="text-gray-800">{orgForm.has_monthly_fee ? 'あり' : 'なし'}</div></div>
                     <div><span className="text-xs text-gray-400">紐づけキーワード</span><div className="flex flex-wrap gap-1 mt-1">{(orgForm as any).keywords?.length > 0 ? (orgForm as any).keywords.map((k: string) => <span key={k} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{k}</span>) : <span className="text-gray-400">—</span>}</div></div>
                     <div><span className="text-xs text-gray-400">パスコード</span><div className="text-gray-800 font-mono">{orgForm.passcode || '—'}</div></div>
@@ -694,6 +698,16 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         const checked = e.target.checked;
                         setOrgForm(f => ({ ...f, has_monthly_fee: checked, category: checked ? '3' : (orgGroups.find(g => g.name === f.group_name)?.default_tier || f.category) }));
                       }} className="rounded" /><label htmlFor="monthly_fee" className="text-xs text-gray-600">月謝あり</label></div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">メモ</label>
+                        <textarea
+                          value={orgForm.notes}
+                          onChange={e => setOrgForm(f => ({ ...f, notes: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                          rows={2}
+                          placeholder="親団体、備考など自由記入"
+                        />
+                      </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1">紐づけキーワード（カンマ区切り）</label>
                         <input
