@@ -352,7 +352,8 @@ function EventSheetView({ events, year, month, holidays, onRefresh }: {
       <table className="w-full text-sm">
         <thead className="bg-gray-50 sticky top-0">
           <tr className="text-left">
-            <th className="px-3 py-2 text-xs font-bold text-gray-500 w-28">日付</th>
+            <th className="px-3 py-2 text-xs font-bold text-gray-500 w-24">日付</th>
+            <th className="px-1 py-2 text-xs font-bold text-gray-500 w-8">★</th>
             <th className="px-3 py-2 text-xs font-bold text-gray-500">元タイトル</th>
             <th className="px-3 py-2 text-xs font-bold text-gray-500">カレンダー用タイトル</th>
             <th className="px-3 py-2 text-xs font-bold text-gray-500 w-14">時間</th>
@@ -362,7 +363,7 @@ function EventSheetView({ events, year, month, holidays, onRefresh }: {
         </thead>
         <tbody className="divide-y divide-gray-100">
           {sorted.length === 0 ? (
-            <tr><td colSpan={6} className="px-3 py-8 text-center text-gray-300">予定はありません</td></tr>
+            <tr><td colSpan={7} className="px-3 py-8 text-center text-gray-300">予定はありません</td></tr>
           ) : sorted.map(evt => {
             const d = new Date(evt.date + 'T00:00:00');
             const dow = d.getDay();
@@ -372,10 +373,12 @@ function EventSheetView({ events, year, month, holidays, onRefresh }: {
             return (
               <tr key={evt.id} className="hover:bg-gray-50">
                 <td className={`px-3 py-2 whitespace-nowrap ${isHoliday ? 'text-red-500' : dow === 6 ? 'text-blue-500' : ''}`}>
-                  <button onClick={e => { e.stopPropagation(); handleToggleMajor(evt); }} className="mr-1 align-middle" title={evt.isMajor ? '主な予定を解除' : '主な予定にする'}>
-                    <Star size={12} className={evt.isMajor ? 'text-orange-400' : 'text-gray-300 hover:text-orange-300'} fill={evt.isMajor ? 'currentColor' : 'none'} />
-                  </button>
                   {d.getMonth() + 1}/{d.getDate()}({DOW_LABELS[dow]})
+                </td>
+                <td className="px-1 py-2 text-center">
+                  <button onClick={e => { e.stopPropagation(); handleToggleMajor(evt); }} title={evt.isMajor ? '主な予定を解除' : '主な予定にする'}>
+                    <Star size={14} className={evt.isMajor ? 'text-orange-400' : 'text-gray-300 hover:text-orange-300'} fill={evt.isMajor ? 'currentColor' : 'none'} />
+                  </button>
                 </td>
                 <td className="px-3 py-2 text-gray-500">{evt.originalTitle || evt.title}</td>
                 <td className="px-3 py-2" onClick={() => { setEditId(evt.id); setEditValue(evt.displayTitle || ''); }}>
