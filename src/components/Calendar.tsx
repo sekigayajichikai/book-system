@@ -12,6 +12,7 @@ interface CalendarProps {
   onCellClick?: (date: Date, rect: DOMRect) => void;
   onItemClick?: (booking: Booking, rect: DOMRect) => void;
   onOverflowClick?: (date: Date, rect: DOMRect) => void;
+  onEditBooking?: (booking: Booking) => void;
   holidays?: Record<string, string>;
   closures?: Set<string>;
   disableModal?: boolean;
@@ -111,7 +112,8 @@ const BookingSheetView: React.FC<{
   month: number;
   holidays: Record<string, string>;
   onItemClick?: (booking: Booking, rect: DOMRect) => void;
-}> = ({ bookings, year, month, holidays, onItemClick }) => {
+  onEditClick?: (booking: Booking) => void;
+}> = ({ bookings, year, month, holidays, onItemClick, onEditClick }) => {
   const [orgMap, setOrgMap] = useState<Record<string, string>>({});
 
   // 団体名マップを取得
@@ -163,7 +165,7 @@ const BookingSheetView: React.FC<{
               const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
               return (
                 <tr key={b.id}
-                  onClick={e => { if (onItemClick) onItemClick(b, (e.currentTarget as HTMLElement).getBoundingClientRect()); }}
+                  onClick={() => { if (onEditClick) onEditClick(b); }}
                   className="hover:bg-gray-50 cursor-pointer transition-colors"
                 >
                   <td className={`px-3 py-2 whitespace-nowrap ${isHoliday ? 'text-red-500' : dow === 6 ? 'text-blue-500' : ''}`}>
@@ -303,7 +305,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const Calendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, holidays = {}, closures = new Set(), disableModal, loading,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBooking, holidays = {}, closures = new Set(), disableModal, loading,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [modalDate, setModalDate] = useState<Date | null>(null);
@@ -492,6 +494,7 @@ const Calendar: React.FC<CalendarProps> = ({
             month={month}
             holidays={holidays}
             onItemClick={onItemClick}
+            onEditClick={onEditBooking}
           />
         ) : (
           <div className="p-4">

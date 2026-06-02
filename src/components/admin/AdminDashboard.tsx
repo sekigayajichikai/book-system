@@ -455,6 +455,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 onCellClick={handleCellClick}
                 onItemClick={handleBookingItemClick}
                 onOverflowClick={handleOverflowClick}
+                onEditBooking={(b) => {
+                  const d = new Date(b.date + 'T00:00:00');
+                  setSelectedDate(d);
+                  setInitialEditBookingId(b.id);
+                  setShowDayPanel(true);
+                }}
                 holidays={holidays}
                 closures={closures}
                 disableModal
