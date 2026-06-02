@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { ChevronLeft, ChevronRight, X, Clock, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Clock, MapPin, Pencil } from 'lucide-react';
 import { Booking } from '../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../constants';
 
@@ -100,6 +100,93 @@ const DayDetailPopover: React.FC<{
         </div>
       </div>
     </>
+  );
+};
+
+/** --- Sheet/List View (一覧表示) --- */
+const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
+const BookingSheetView: React.FC<{
+  bookings: Booking[];
+  year: number;
+  month: number;
+  holidays: Record<string, string>;
+  onItemClick?: (booking: Booking, rect: DOMRect) => void;
+}> = ({ bookings, year, month, holidays, onItemClick }) => {
+  const [filter, setFilter] = useState<string>('all');
+
+  // 当月の予約を日付・時間帯・部屋でソート
+  const slotOrder: Record<string, number> = { '09:00': 0, '13:00': 1, '17:00': 2 };
+  const monthBookings = bookings
+    .filter(b => {
+      const d = new Date(b.date + 'T00:00:00');
+      return d.getFullYear() === year && d.getMonth() === month;
+    })
+    .filter(b => filter === 'all' || b.room === filter)
+    .sort((a, b) => a.date.localeCompare(b.date) || (slotOrder[a.startTime] ?? 0) - (slotOrder[b.startTime] ?? 0) || a.room.localeCompare(b.room));
+
+  const slotLabel = (startTime: string) => startTime === '09:00' ? '午前' : startTime === '13:00' ? '午後' : '夜間';
+
+  return (
+    <div>
+      {/* フィルタ */}
+      <div className="flex items-center gap-2 px-4 py-2 border-b border-gray-100 bg-gray-50">
+        <span className="text-xs text-gray-500">部屋:</span>
+        {[{ id: 'all', label: '全て' }, ...ROOMS.map(r => ({ id: r.id, label: r.shortName }))].map(r => (
+          <button key={r.id} onClick={() => setFilter(r.id)}
+            className={`px-2 py-0.5 rounded-full text-xs font-bold transition-all ${
+              filter === r.id ? 'bg-emerald-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-200'
+            }`}
+          >{r.label}</button>
+        ))}
+        <span className="ml-auto text-xs text-gray-400">{monthBookings.length}件</span>
+      </div>
+
+      {/* テーブル */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 sticky top-0">
+            <tr className="text-left">
+              <th className="px-3 py-2 text-xs font-bold text-gray-500 w-24">日付</th>
+              <th className="px-3 py-2 text-xs font-bold text-gray-500 w-14">時間帯</th>
+              <th className="px-3 py-2 text-xs font-bold text-gray-500 w-20">部屋</th>
+              <th className="px-3 py-2 text-xs font-bold text-gray-500">タイトル</th>
+              <th className="px-3 py-2 text-xs font-bold text-gray-500 w-10"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {monthBookings.length === 0 ? (
+              <tr><td colSpan={5} className="px-3 py-8 text-center text-gray-300">予約はありません</td></tr>
+            ) : monthBookings.map(b => {
+              const d = new Date(b.date + 'T00:00:00');
+              const dow = d.getDay();
+              const isHoliday = !!holidays[b.date] || dow === 0;
+              const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
+              return (
+                <tr key={b.id}
+                  onClick={e => { if (onItemClick) onItemClick(b, (e.currentTarget as HTMLElement).getBoundingClientRect()); }}
+                  className="hover:bg-gray-50 cursor-pointer transition-colors"
+                >
+                  <td className={`px-3 py-2 whitespace-nowrap ${isHoliday ? 'text-red-500' : dow === 6 ? 'text-blue-500' : ''}`}>
+                    {d.getMonth() + 1}/{d.getDate()}({DOW_LABELS[dow]})
+                  </td>
+                  <td className="px-3 py-2">{slotLabel(b.startTime)}</td>
+                  <td className="px-3 py-2">
+                    <span className="flex items-center gap-1.5">
+                      <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
+                      {shortRoomName(b.room)}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 font-medium text-gray-800">{b.title}</td>
+                  <td className="px-3 py-2 text-right">
+                    <Pencil size={14} className="text-gray-300" />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 };
 
@@ -217,7 +304,7 @@ const CalendarWeeklyView: React.FC<{
 const Calendar: React.FC<CalendarProps> = ({
   currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, holidays = {}, closures = new Set(), disableModal, loading,
 }) => {
-  const [subView, setSubView] = useState<'month' | 'week'>('month');
+  const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [modalDate, setModalDate] = useState<Date | null>(null);
   const [modalAnchor, setModalAnchor] = useState<DOMRect | null>(null);
   const [weekStart, setWeekStart] = useState(() => {
@@ -357,24 +444,17 @@ const Calendar: React.FC<CalendarProps> = ({
             </div>
           </div>
 
-          {/* Month / Week toggle */}
+          {/* Month / Week / List toggle */}
           <div className="flex items-center bg-gray-100 rounded-full p-0.5">
-            <button
-              onClick={() => setSubView('month')}
-              className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                subView === 'month' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              月
-            </button>
-            <button
-              onClick={() => setSubView('week')}
-              className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                subView === 'week' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              週
-            </button>
+            {(['month', 'week', 'list'] as const).map(v => (
+              <button key={v} onClick={() => setSubView(v)}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                  subView === v ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {v === 'month' ? '月' : v === 'week' ? '週' : '一覧'}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -404,6 +484,14 @@ const Calendar: React.FC<CalendarProps> = ({
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-pink-400 rounded-full" />図書室</span>
             </div>
           </>
+        ) : subView === 'list' ? (
+          <BookingSheetView
+            bookings={bookings}
+            year={year}
+            month={month}
+            holidays={holidays}
+            onItemClick={onItemClick}
+          />
         ) : (
           <div className="p-4">
             <CalendarWeeklyView
