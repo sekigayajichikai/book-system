@@ -824,6 +824,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             anchorRect={popover.anchorRect}
             onClose={closePopover}
             onSaved={() => { closePopover(); handleDayPanelRefresh(); }}
+            isClosure={closures.has(`${popover.date.getFullYear()}-${String(popover.date.getMonth() + 1).padStart(2, '0')}-${String(popover.date.getDate()).padStart(2, '0')}`)}
             onClosureChange={() => {
               supaFetch('calendar_events?is_closure=eq.true&select=date')
                 .then(r => r.json())

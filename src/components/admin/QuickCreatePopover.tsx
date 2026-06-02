@@ -54,10 +54,11 @@ interface EventCreateProps {
   onClose: () => void;
   onSaved: () => void;
   onClosureChange?: () => void;
+  isClosure?: boolean;
   anchorRect: { top: number; left: number; width: number; height: number };
 }
 
-export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, anchorRect }: EventCreateProps) {
+export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, isClosure, anchorRect }: EventCreateProps) {
   const dateStr = formatDateStr(date);
   const dateLabel = `${date.getMonth() + 1}月${date.getDate()}日 (${DOW[date.getDay()]})`;
   const [locations, setLocations] = useState<string[]>([]);
@@ -106,17 +107,23 @@ export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, an
           <div className="flex items-center gap-1">
             <button
               onClick={async () => {
-                await supaFetch('calendar_events', {
-                  method: 'POST',
-                  body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true }),
-                });
+                if (isClosure) {
+                  await supaFetch(`calendar_events?date=eq.${dateStr}&is_closure=eq.true`, {
+                    method: 'DELETE', headers: { 'Prefer': 'return=minimal' },
+                  });
+                } else {
+                  await supaFetch('calendar_events', {
+                    method: 'POST',
+                    body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true }),
+                  });
+                }
                 onClosureChange?.();
                 onClose();
                 onSaved();
               }}
-              className="text-xs text-gray-500 hover:text-orange-600 hover:bg-orange-50 px-2 py-1 rounded-lg"
+              className={`text-xs px-2 py-1 rounded-lg ${isClosure ? 'text-orange-600 bg-orange-50 hover:bg-orange-100 font-bold' : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'}`}
             >
-              休館にする
+              {isClosure ? '休館を解除' : '休館にする'}
             </button>
             <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full"><X size={16} className="text-gray-400" /></button>
           </div>
