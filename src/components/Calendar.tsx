@@ -113,13 +113,11 @@ const BookingSheetView: React.FC<{
   month: number;
   holidays: Record<string, string>;
   onItemClick?: (booking: Booking, rect: DOMRect) => void;
-  onEditClick?: (booking: Booking) => void;
   onRefresh?: () => void;
-}> = ({ bookings, year, month, holidays, onItemClick, onEditClick, onRefresh }) => {
+}> = ({ bookings, year, month, holidays, onItemClick, onRefresh }) => {
   const [orgMap, setOrgMap] = useState<Record<string, string>>({});
   const [editCell, setEditCell] = useState<{ id: string; field: 'title' | 'org' } | null>(null);
   const [editValue, setEditValue] = useState('');
-  const [menuId, setMenuId] = useState<string | null>(null);
 
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
   const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -166,15 +164,6 @@ const BookingSheetView: React.FC<{
       await supaPatch(`bookings?id=eq.${b.id}`, { org_id: orgId });
     }
     setEditCell(null);
-    onRefresh?.();
-  };
-
-  const handleDelete = async (b: Booking) => {
-    if (!confirm(`「${b.title}」を削除しますか？`)) return;
-    await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${b.id}`, {
-      method: 'DELETE', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Prefer': 'return=minimal' },
-    });
-    setMenuId(null);
     onRefresh?.();
   };
 
@@ -238,19 +227,10 @@ const BookingSheetView: React.FC<{
                       <span className="font-medium text-gray-800 hover:underline cursor-text">{b.title}</span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-right relative">
-                    <button onClick={e => { e.stopPropagation(); setMenuId(menuId === b.id ? null : b.id); }} className="p-1 hover:bg-gray-200 rounded-full">
+                  <td className="px-3 py-2 text-right">
+                    <button onClick={e => { e.stopPropagation(); if (onItemClick) onItemClick(b, (e.currentTarget as HTMLElement).getBoundingClientRect()); }} className="p-1 hover:bg-gray-200 rounded-full">
                       <MoreVertical size={14} className="text-gray-400" />
                     </button>
-                    {menuId === b.id && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setMenuId(null)} />
-                        <div className="absolute right-0 top-8 z-50 bg-white rounded-xl shadow-lg border border-gray-200 py-1 w-36">
-                          <button onClick={e => { e.stopPropagation(); setMenuId(null); if (onEditClick) onEditClick(b); }} className="w-full text-left px-3 py-1.5 text-sm hover:bg-gray-50">詳細編集</button>
-                          <button onClick={e => { e.stopPropagation(); handleDelete(b); }} className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-red-50">削除</button>
-                        </div>
-                      </>
-                    )}
                   </td>
                 </tr>
               );
@@ -566,7 +546,6 @@ const Calendar: React.FC<CalendarProps> = ({
             month={month}
             holidays={holidays}
             onItemClick={onItemClick}
-            onEditClick={onEditBooking}
             onRefresh={onRefreshBookings}
           />
         ) : (

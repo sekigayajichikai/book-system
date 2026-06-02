@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronLeft, ChevronRight, X, Clock, MapPin, Check, MoreVertical, Star, AlignLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Clock, MapPin, Check, MoreVertical, Star, AlignLeft, Users } from 'lucide-react';
 import { EventSummary } from '../types';
 import { shortRoomName, ROOMS, TIME_SLOTS } from '../constants';
 
@@ -248,6 +248,12 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
                     <p className="text-xs text-gray-500">{d.getMonth() + 1}月{d.getDate()}日 ({dow})</p>
                   </div>
                 </div>
+                {evt.memo && (
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                    <Users size={14} className="text-gray-500" />
+                    <span>{evt.memo}</span>
+                  </div>
+                )}
                 {timeStr && (
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <Clock size={14} className="text-gray-500" />
