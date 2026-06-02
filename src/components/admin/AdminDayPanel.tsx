@@ -176,6 +176,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
     }
     resetForm();
     onRefresh();
+    if (initialEditBookingId || initialEditId) onClose();
   };
 
   // 予約削除
@@ -250,6 +251,7 @@ export default function AdminDayPanel({ date, bookings, isClosure, onClose, onRe
     resetForm();
     await fetchCalEvents();
     onRefresh();
+    if (initialEditId) onClose();
   };
 
   // カレンダーイベント追加
