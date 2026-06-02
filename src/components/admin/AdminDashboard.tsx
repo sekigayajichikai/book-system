@@ -60,8 +60,10 @@ async function supaFetch(path: string, options?: RequestInit) {
 }
 
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
-  const [tab, setTab] = useState<Tab>('calendar');
-  const [calendarSubView, setCalendarSubView] = useState<'schedule' | 'facility'>('schedule');
+  const [tab, setTabState] = useState<Tab>(() => (localStorage.getItem('admin_tab') as Tab) || 'calendar');
+  const setTab = (t: Tab) => { setTabState(t); localStorage.setItem('admin_tab', t); };
+  const [calendarSubView, setCalendarSubViewState] = useState<'schedule' | 'facility'>(() => (localStorage.getItem('admin_cal_sub') as 'schedule' | 'facility') || 'schedule');
+  const setCalendarSubView = (v: 'schedule' | 'facility') => { setCalendarSubViewState(v); localStorage.setItem('admin_cal_sub', v); };
   const [loading, setLoading] = useState(false);
 
   // === カレンダー ===
