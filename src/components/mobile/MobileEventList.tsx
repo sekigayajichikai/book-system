@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { ChevronLeft, ChevronRight, MapPin, Clock, Home, ChevronDown } from 'lucide-react';
 import { EventSummary } from '../../types';
 import { shortRoomName } from '../../constants';
@@ -145,21 +145,21 @@ function DayCard({ dateStr, events, todayStr, todayRef, holidays, closures }: {
     <div
       ref={isToday ? todayRef : undefined}
       className={`rounded-xl border p-4 ${
-        isToday ? 'border-emerald-400 bg-emerald-50/50 ring-2 ring-emerald-200' :
+        isToday ? 'border-blue-400 bg-blue-50/50 ring-2 ring-blue-200' :
         isPast ? 'border-gray-200 bg-white opacity-60' :
         'border-gray-200 bg-white'
       }`}
     >
       <div className="flex items-baseline gap-2 mb-2">
         <span className={`text-2xl font-bold ${
-          isToday ? 'text-emerald-600' :
+          isToday ? 'text-blue-600' :
           (holidayName || dow === 0) ? 'text-red-500' :
           dow === 6 ? 'text-blue-500' : 'text-gray-800'
         }`}>
           {d.getMonth() + 1}/{d.getDate()}
         </span>
         <span className={`text-lg ${
-          isToday ? 'text-emerald-500' :
+          isToday ? 'text-blue-500' :
           (holidayName || dow === 0) ? 'text-red-400' :
           dow === 6 ? 'text-blue-400' : 'text-gray-400'
         }`}>
@@ -167,7 +167,7 @@ function DayCard({ dateStr, events, todayStr, todayRef, holidays, closures }: {
         </span>
         {isClosure && <span className="text-sm bg-orange-400 text-white px-2 py-0.5 rounded font-bold">休館</span>}
         {holidayName && <span className="text-sm text-red-500 font-bold">{holidayName}</span>}
-        {isToday && <span className="text-sm bg-emerald-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
+        {isToday && <span className="text-sm bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
       </div>
       <div className="space-y-2">
         {events.map(evt => (
@@ -181,6 +181,8 @@ function DayCard({ dateStr, events, todayStr, todayRef, holidays, closures }: {
 // === イベントカード（説明トグル付き） ===
 function MobileEventCard({ event, highlight }: { event: EventSummary; highlight?: boolean }) {
   const [descExpanded, setDescExpanded] = useState(false);
+  const [isClamped, setIsClamped] = useState(false);
+  const descRef = useRef<HTMLDivElement>(null);
 
   const timeStr = event.startTime && event.endTime
     ? `${event.startTime}〜${event.endTime}`
@@ -192,19 +194,28 @@ function MobileEventCard({ event, highlight }: { event: EventSummary; highlight?
 
   const descText = event.description || null;
 
+  useLayoutEffect(() => {
+    const el = descRef.current;
+    if (el && !descExpanded) {
+      setIsClamped(el.scrollHeight > el.clientHeight + 1);
+    }
+  }, [descText, descExpanded]);
+
   return (
     <div className={`rounded-lg px-3 py-2.5 ${highlight ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'}`}>
       <div className={`text-base ${highlight ? 'font-bold text-blue-800' : 'font-bold text-gray-800'}`}>{event.title}</div>
       {event.memo && <div className="text-sm text-gray-400 mt-0.5">{event.memo}</div>}
       <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-sm text-gray-500">
         {timeStr && <span className="flex items-center gap-1"><Clock size={14} /> {timeStr}</span>}
-        {event.eventType === 'facility' && roomStr && <span className="flex items-center gap-1"><Home size={14} /> {roomStr}</span>}
+        {event.eventType === 'facility' && (event.location || roomStr) && (
+          <span className="flex items-center gap-1"><Home size={14} /> {event.location && roomStr ? `${event.location}（${roomStr}）` : event.location || roomStr}</span>
+        )}
         {event.eventType === 'general' && event.location && <span className="flex items-center gap-1"><MapPin size={14} /> {event.location}</span>}
       </div>
       {descText && (
         <div className="mt-1.5">
-          <div className={`text-sm text-gray-400 ${!descExpanded ? 'line-clamp-1' : ''}`}>{descText}</div>
-          {descText.length > 30 && (
+          <div ref={descRef} className={`text-sm text-gray-400 ${!descExpanded ? 'line-clamp-1' : ''}`}>{descText}</div>
+          {(isClamped || descExpanded) && (
             <button onClick={() => setDescExpanded(!descExpanded)} className="text-xs text-blue-500 mt-0.5 flex items-center gap-0.5">
               {descExpanded ? '閉じる' : <>続きを読む <ChevronDown size={12} /></>}
             </button>
