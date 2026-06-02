@@ -235,6 +235,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const handleSaveOrg = async () => {
     if (!orgForm.name.trim()) return alert('団体名を入力してください');
+    const duplicate = orgs.find(o => o.name === orgForm.name.trim() && o.id !== editOrg?.id);
+    if (duplicate) return alert(`「${orgForm.name.trim()}」は既に登録されています。別の名前にしてください。`);
     const body = {
       name: orgForm.name.trim(),
       furigana: orgForm.furigana ? toKatakana(orgForm.furigana.trim()) : null,
