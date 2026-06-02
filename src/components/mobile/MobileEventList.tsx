@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, MapPin, Clock, Home, ChevronDown } from 'lucide-react';
 import { EventSummary } from '../../types';
 import { shortRoomName } from '../../constants';
@@ -181,8 +181,6 @@ function DayCard({ dateStr, events, todayStr, todayRef, holidays, closures }: {
 // === イベントカード（説明トグル付き） ===
 function MobileEventCard({ event, highlight }: { event: EventSummary; highlight?: boolean }) {
   const [descExpanded, setDescExpanded] = useState(false);
-  const [isClamped, setIsClamped] = useState(false);
-  const descRef = useRef<HTMLDivElement>(null);
 
   const timeStr = event.startTime && event.endTime
     ? `${event.startTime}〜${event.endTime}`
@@ -193,13 +191,6 @@ function MobileEventCard({ event, highlight }: { event: EventSummary; highlight?
     ? event.rooms.map(r => shortRoomName(r)).join('・') : null;
 
   const descText = event.description || null;
-
-  useLayoutEffect(() => {
-    const el = descRef.current;
-    if (el && !descExpanded) {
-      setIsClamped(el.scrollHeight > el.clientHeight + 1);
-    }
-  }, [descText, descExpanded]);
 
   return (
     <div className={`rounded-lg px-3 py-2.5 ${highlight ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'}`}>
@@ -214,10 +205,15 @@ function MobileEventCard({ event, highlight }: { event: EventSummary; highlight?
       </div>
       {descText && (
         <div className="mt-1.5">
-          <div ref={descRef} className={`text-sm text-gray-400 ${!descExpanded ? 'line-clamp-1' : ''}`}>{descText}</div>
-          {(isClamped || descExpanded) && (
-            <button onClick={() => setDescExpanded(!descExpanded)} className="text-xs text-blue-500 mt-0.5 flex items-center gap-0.5">
-              {descExpanded ? '閉じる' : <>続きを読む <ChevronDown size={12} /></>}
+          {descExpanded ? (
+            <>
+              <div className="text-sm text-gray-400">{descText}</div>
+              <button onClick={() => setDescExpanded(false)} className="text-xs text-blue-500 mt-0.5">閉じる</button>
+            </>
+          ) : (
+            <button onClick={() => setDescExpanded(true)} className="text-sm text-gray-400 w-full text-left flex items-baseline gap-0.5">
+              <span className="truncate">{descText}</span>
+              <span className="text-xs text-blue-500 shrink-0 ml-1">続きを読む</span>
             </button>
           )}
         </div>
