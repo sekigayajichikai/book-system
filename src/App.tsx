@@ -10,6 +10,7 @@ import BookingDetailModal from './components/BookingDetailModal';
 import MobileCalendarView from './components/mobile/MobileCalendarView';
 import MobileBookingView from './components/mobile/MobileBookingView';
 import EventList from './components/EventList';
+import OrgFilterSidebar from './components/OrgFilterSidebar';
 import MobileEventList from './components/mobile/MobileEventList';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -40,6 +41,50 @@ function App() {
   if (isAdminRoute) return <AdminApp />;
 
   const isMobile = useIsMobile();
+
+  // 団体フィルタ
+  const [filterOrgs, setFilterOrgs] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('filter_orgs');
+    return saved ? new Set(JSON.parse(saved)) : new Set<string>();
+  });
+  const [filterInitialized, setFilterInitialized] = useState(false);
+  const [showMajor, setShowMajor] = useState(true);
+
+  // フィルタ初期化: 全団体をデフォルトON
+  useEffect(() => {
+    if (filterInitialized || isMobile) return;
+    const sbUrl = import.meta.env.VITE_SUPABASE_URL;
+    const sbKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (!sbUrl || !sbKey) return;
+    const saved = localStorage.getItem('filter_orgs');
+    if (saved) { setFilterInitialized(true); return; }
+    fetch(`${sbUrl}/rest/v1/booking_organizations?select=name&is_active=not.is.false`, {
+      headers: { 'apikey': sbKey, 'Authorization': `Bearer ${sbKey}` },
+    }).then(r => r.json()).then(d => {
+      const all = new Set<string>((d || []).map((o: any) => o.name));
+      setFilterOrgs(all);
+      localStorage.setItem('filter_orgs', JSON.stringify([...all]));
+      setFilterInitialized(true);
+    }).catch(() => setFilterInitialized(true));
+  }, [isMobile, filterInitialized]);
+
+  const handleToggleOrg = (name: string) => {
+    setFilterOrgs(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      localStorage.setItem('filter_orgs', JSON.stringify([...next]));
+      return next;
+    });
+  };
+  const handleToggleGroup = (groupName: string, orgNames: string[]) => {
+    setFilterOrgs(prev => {
+      const next = new Set(prev);
+      const allOn = orgNames.every(n => next.has(n));
+      orgNames.forEach(n => allOn ? next.delete(n) : next.add(n));
+      localStorage.setItem('filter_orgs', JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   // 団体ログイン状態
   const [orgId, setOrgId] = useState<string | null>(() => localStorage.getItem('org_id'));
@@ -445,7 +490,12 @@ function App() {
               isMobile ? (
                 <MobileEventList holidays={holidays} closures={closures} />
               ) : (
-                <EventList holidays={holidays} closures={closures} modeToggle={modeToggleEl} />
+                <div className="flex gap-4">
+                  <OrgFilterSidebar selectedOrgs={filterOrgs} onToggleOrg={handleToggleOrg} onToggleGroup={handleToggleGroup} showMajor={showMajor} onToggleMajor={() => setShowMajor(v => !v)} />
+                  <div className="flex-1 min-w-0">
+                    <EventList holidays={holidays} closures={closures} modeToggle={modeToggleEl} filterOrgs={filterOrgs} showMajor={showMajor} />
+                  </div>
+                </div>
               )
             ) :
 

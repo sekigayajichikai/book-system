@@ -18,13 +18,15 @@ interface EventListProps {
   refreshKey?: number;
   isAdmin?: boolean;
   modeToggle?: React.ReactNode;
+  filterOrgs?: Set<string>;
+  showMajor?: boolean;
 }
 
 function isMajorEvent(evt: { isMajor?: boolean }): boolean {
   return evt.isMajor === true;
 }
 
-export default function EventList({ holidays, closures, onDateClick, onCellClick, onItemClick, refreshKey, isAdmin, modeToggle }: EventListProps) {
+export default function EventList({ holidays, closures, onDateClick, onCellClick, onItemClick, refreshKey, isAdmin, modeToggle, filterOrgs, showMajor = true }: EventListProps) {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekStart, setWeekStart] = useState(() => {
@@ -102,9 +104,30 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
     } else { setWeekExtraEvents([]); }
   }, [subView, weekStart]);
 
+  // フィルタ適用
+  const filterEvent = (e: EventSummary): boolean => {
+    if (!showMajor && e.isMajor) return false;
+    if (!filterOrgs || filterOrgs.size === 0) return true;
+    // memo（団体名）でマッチ
+    if (e.memo && filterOrgs.has(e.memo)) return true;
+    // originalTitle（タイトルが団体名の場合）でマッチ
+    if (e.originalTitle && filterOrgs.has(e.originalTitle)) return true;
+    // title でマッチ
+    if (filterOrgs.has(e.title)) return true;
+    // 団体情報がないイベント（休館、一般予定等）は常に表示
+    if (!e.memo && e.eventType !== 'facility') return true;
+    // facility型でmemoなし→タイトル部分一致でチェック
+    if (e.eventType === 'facility' && !e.memo) {
+      return [...filterOrgs].some(org => e.title.includes(org) || org.includes(e.title));
+    }
+    return false;
+  };
+
+  const filteredEvents = filterOrgs ? events.filter(filterEvent) : events;
+
   // 日付→イベントのマップ
   const eventsByDate: Record<string, EventSummary[]> = {};
-  events.forEach(e => {
+  filteredEvents.forEach(e => {
     if (!eventsByDate[e.date]) eventsByDate[e.date] = [];
     eventsByDate[e.date].push(e);
   });
@@ -258,9 +281,9 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         </div>
         </>
         ) : subView === 'week' ? (
-        <EventWeekView events={[...events, ...weekExtraEvents]} weekStart={weekStart} holidays={holidays} closures={closures} onItemClick={onItemClick} />
+        <EventWeekView events={filterOrgs ? [...events, ...weekExtraEvents].filter(filterEvent) : [...events, ...weekExtraEvents]} weekStart={weekStart} holidays={holidays} closures={closures} onItemClick={onItemClick} />
         ) : (
-        <EventSheetView events={events} year={year} month={month} holidays={holidays} onRefresh={() => fetchEvents(year, month)} onItemClick={onItemClick} />
+        <EventSheetView events={filteredEvents} year={year} month={month} holidays={holidays} onRefresh={() => fetchEvents(year, month)} onItemClick={onItemClick} />
         )}
       </div>
 

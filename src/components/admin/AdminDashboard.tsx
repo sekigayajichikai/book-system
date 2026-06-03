@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { CalendarDays, ClipboardList, Settings, LogOut, Plus, Trash2, Pencil, X, Users, Check, Upload, List } from 'lucide-react';
 import Calendar from '../Calendar';
 import EventList from '../EventList';
+import OrgFilterSidebar from '../OrgFilterSidebar';
 import SettingsTab from './SettingsTab';
 import ImportTab from './ImportTab';
 import DetailPopover, { DetailData } from './DetailPopover';
@@ -69,6 +70,45 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [calendarSubView, setCalendarSubViewState] = useState<'schedule' | 'facility'>(() => (localStorage.getItem('admin_cal_sub') as 'schedule' | 'facility') || 'schedule');
   const setCalendarSubView = (v: 'schedule' | 'facility') => { setCalendarSubViewState(v); localStorage.setItem('admin_cal_sub', v); };
   const [loading, setLoading] = useState(false);
+
+  // 団体フィルタ
+  const [adminFilterOrgs, setAdminFilterOrgs] = useState<Set<string>>(() => {
+    const saved = localStorage.getItem('admin_filter_orgs');
+    return saved ? new Set(JSON.parse(saved)) : new Set<string>();
+  });
+  const [adminFilterInit, setAdminFilterInit] = useState(false);
+  const [adminShowMajor, setAdminShowMajor] = useState(true);
+
+  useEffect(() => {
+    if (adminFilterInit) return;
+    const saved = localStorage.getItem('admin_filter_orgs');
+    if (saved) { setAdminFilterInit(true); return; }
+    supaFetch('booking_organizations?select=name&is_active=not.is.false')
+      .then(r => r.json()).then(d => {
+        const all = new Set<string>((d || []).map((o: any) => o.name));
+        setAdminFilterOrgs(all);
+        localStorage.setItem('admin_filter_orgs', JSON.stringify([...all]));
+        setAdminFilterInit(true);
+      }).catch(() => setAdminFilterInit(true));
+  }, [adminFilterInit]);
+
+  const handleAdminToggleOrg = (name: string) => {
+    setAdminFilterOrgs(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      localStorage.setItem('admin_filter_orgs', JSON.stringify([...next]));
+      return next;
+    });
+  };
+  const handleAdminToggleGroup = (_: string, orgNames: string[]) => {
+    setAdminFilterOrgs(prev => {
+      const next = new Set(prev);
+      const allOn = orgNames.every(n => next.has(n));
+      orgNames.forEach(n => allOn ? next.delete(n) : next.add(n));
+      localStorage.setItem('admin_filter_orgs', JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   // === カレンダー ===
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -425,9 +465,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             </div>
           );
           return (
-          <div>
+          <div className="flex gap-4">
+            <OrgFilterSidebar selectedOrgs={adminFilterOrgs} onToggleOrg={handleAdminToggleOrg} onToggleGroup={handleAdminToggleGroup} showMajor={adminShowMajor} onToggleMajor={() => setAdminShowMajor(v => !v)} />
+            <div className="flex-1 min-w-0">
             {calendarSubView === 'schedule' ? (
-              <EventList holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} refreshKey={eventListRefreshKey} isAdmin modeToggle={adminModeToggle} />
+              <EventList holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} refreshKey={eventListRefreshKey} isAdmin modeToggle={adminModeToggle} filterOrgs={adminFilterOrgs} showMajor={adminShowMajor} />
             ) : (
               <Calendar
                 currentDate={currentDate}
@@ -458,6 +500,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 loading={loading}
               />
             )}
+            </div>
           </div>
           );
         })()}
