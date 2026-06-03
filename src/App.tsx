@@ -437,7 +437,7 @@ function App() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-3">
+      <main className="flex-1 w-full px-4 py-3">
         {showSuccessMessage && (
           <div className="mb-6 p-4 bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl flex items-start gap-3 shadow-sm relative">
             <div className="bg-white p-1 rounded-full mt-0.5"><Info size={20} className="text-emerald-500" /></div>
@@ -610,7 +610,7 @@ function App() {
 
       {/* Footer */}
       <footer className={`bg-slate-800 text-slate-400 ${isMobile ? 'py-4 text-xs' : 'py-8 text-sm'} text-center`}>
-        <div className="max-w-5xl mx-auto px-4">
+        <div className="mx-auto px-4">
           <p>&copy; {new Date().getFullYear()} 関ヶ谷自治会</p>
         </div>
       </footer>

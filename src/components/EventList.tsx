@@ -139,7 +139,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
 
     // 空セル（前月分）
     for (let i = 0; i < mondayOffset; i++) {
-      days.push(<div key={`empty-${i}`} className="min-h-[6.5rem] bg-gray-50 border border-gray-100" />);
+      days.push(<div key={`empty-${i}`} className="min-h-[calc((100vh-10rem)/6)] bg-gray-50 border border-gray-100" />);
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -164,7 +164,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
             } else if (onDateClick) { onDateClick(d); }
           }}
           data-cell
-          className={`min-h-[8rem] border border-gray-200 relative transition-colors flex flex-col ${
+          className={`min-h-[calc((100vh-10rem)/6)] border border-gray-200 relative transition-colors flex flex-col ${
             onCellClick || onDateClick || dayEvents.length > 0 ? 'cursor-pointer hover:bg-blue-50/30' : ''
           } ${isToday ? 'outline outline-2 outline-blue-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
         >
