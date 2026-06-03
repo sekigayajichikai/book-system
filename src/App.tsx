@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CalendarDays, ClipboardList, Info, Users, User, X, LogOut, List } from 'lucide-react';
-import Calendar from './components/Calendar';
+import BookingCalendar from './components/BookingCalendar';
 import DailyScheduleGrid from './components/DailyScheduleGrid';
 import WeeklyView from './components/WeeklyView';
 import BookingForm from './components/BookingForm';
@@ -9,7 +9,7 @@ import RoomMonthWeekly from './components/RoomMonthWeekly';
 import BookingDetailModal from './components/BookingDetailModal';
 import MobileCalendarView from './components/mobile/MobileCalendarView';
 import MobileBookingView from './components/mobile/MobileBookingView';
-import EventList from './components/EventList';
+import CalendarView from './components/CalendarView';
 import OrgFilterSidebar from './components/OrgFilterSidebar';
 import MobileEventList from './components/mobile/MobileEventList';
 import AdminLogin from './components/admin/AdminLogin';
@@ -354,7 +354,7 @@ function App() {
     }
   };
 
-  // モード切替トグル（PC用: EventList/Calendarヘッダーに埋め込む）
+  // モード切替トグル（PC用: CalendarView/BookingCalendarヘッダーに埋め込む）
   const modeToggleEl = !isMobile ? (
     <div className="flex items-center bg-gray-100 rounded-full p-0.5 shrink-0">
       <button onClick={() => { setCalendarMode('schedule'); setShowMyPage(false); }}
@@ -369,7 +369,7 @@ function App() {
   ) : undefined;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-gray-800">
+    <div className="h-screen bg-slate-50 flex flex-col font-sans text-gray-800 overflow-hidden">
       {/* Header: モバイル or ログイン時のみ表示 */}
       {(isMobile || isOrgLoggedIn) && (
       <header className="bg-white shadow-sm sticky top-0 z-30">
@@ -437,7 +437,7 @@ function App() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 w-full px-4 py-3">
+      <main className="flex-1 w-full px-4 py-3 flex flex-col min-h-0">
         {showSuccessMessage && (
           <div className="mb-6 p-4 bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl flex items-start gap-3 shadow-sm relative">
             <div className="bg-white p-1 rounded-full mt-0.5"><Info size={20} className="text-emerald-500" /></div>
@@ -449,7 +449,7 @@ function App() {
           </div>
         )}
 
-        <div className="space-y-6">
+        <div className="space-y-6 flex-1 flex flex-col min-h-0">
             {/* 予約モード: 部屋フィルタ + 月/週トグル + 部屋別（1行） */}
             {calendarMode === 'booking' && (
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -514,7 +514,7 @@ function App() {
                 <div className="flex gap-4">
                   <OrgFilterSidebar selectedOrgs={filterOrgs} onToggleOrg={handleToggleOrg} onToggleGroup={handleToggleGroup} onSelectAll={handleSelectAll} onDeselectAll={handleDeselectAll} onSelectOnly={handleSelectOnly} showMajor={showMajor} onToggleMajor={() => setShowMajor(v => !v)} />
                   <div className="flex-1 min-w-0">
-                    <EventList holidays={holidays} closures={closures} modeToggle={modeToggleEl} filterOrgs={filterOrgs} showMajor={showMajor} />
+                    <CalendarView holidays={holidays} closures={closures} modeToggle={modeToggleEl} filterOrgs={filterOrgs} showMajor={showMajor} />
                   </div>
                 </div>
               )
@@ -549,20 +549,21 @@ function App() {
             ) : (
               /* === PC版（既存） === */
               calendarMode === 'calendar' ? (
-                <>
-                                <Calendar
-                  currentDate={currentDate}
-                  onPrevMonth={handlePrevMonth}
-                  onNextMonth={handleNextMonth}
-                  bookings={bookings}
-                  onDateClick={handleDateClick}
-                  holidays={holidays}
-                  closures={closures}
-                  loading={loading}
-                  modeToggle={modeToggleEl}
-                  subTitle={lastUpdated ? `更新日: ${new Date(lastUpdated + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}` : undefined}
-                />
-                </>
+                <div className="flex gap-4 flex-1 min-h-0">
+                  <OrgFilterSidebar selectedOrgs={filterOrgs} onToggleOrg={handleToggleOrg} onToggleGroup={handleToggleGroup} onSelectAll={handleSelectAll} onDeselectAll={handleDeselectAll} onSelectOnly={handleSelectOnly} showMajor={showMajor} onToggleMajor={() => setShowMajor(v => !v)} />
+                  <BookingCalendar
+                    currentDate={currentDate}
+                    onPrevMonth={handlePrevMonth}
+                    onNextMonth={handleNextMonth}
+                    bookings={bookings}
+                    onDateClick={handleDateClick}
+                    holidays={holidays}
+                    closures={closures}
+                    loading={loading}
+                    modeToggle={modeToggleEl}
+                    subTitle={lastUpdated ? `更新日: ${new Date(lastUpdated + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}` : undefined}
+                  />
+                </div>
               ) : bookingSubView === 'weekly' ? (
                 <WeeklyView
                   weekStart={weekStart}

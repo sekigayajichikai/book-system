@@ -358,7 +358,7 @@ const CalendarWeeklyView: React.FC<{
 };
 
 /** --- Main Calendar Component --- */
-const Calendar: React.FC<CalendarProps> = ({
+const BookingCalendar: React.FC<CalendarProps> = ({
   currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading, modeToggle, subTitle,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
@@ -371,6 +371,21 @@ const Calendar: React.FC<CalendarProps> = ({
     d.setHours(0, 0, 0, 0);
     return d;
   });
+
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [cardHeight, setCardHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const calc = () => {
+      if (cardRef.current) {
+        const top = cardRef.current.getBoundingClientRect().top;
+        setCardHeight(Math.floor(window.innerHeight - top));
+      }
+    };
+    calc();
+    window.addEventListener('resize', calc);
+    return () => window.removeEventListener('resize', calc);
+  }, [subView, currentDate]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -420,7 +435,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
     const mondayOffset = firstDay === 0 ? 6 : firstDay - 1;
     for (let i = 0; i < mondayOffset; i++) {
-      days.push(<div key={`empty-${i}`} className="min-h-[6.5rem] bg-gray-50 border border-gray-100" />);
+      days.push(<div key={`empty-${i}`} className="bg-gray-50 border border-gray-100" />);
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -440,7 +455,7 @@ const Calendar: React.FC<CalendarProps> = ({
           key={day}
           data-cell
           onClick={(e) => handleCellClick(day, e)}
-          className={`min-h-[8rem] border border-gray-200 relative cursor-pointer hover:bg-emerald-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
+          className={`border border-gray-200 relative cursor-pointer hover:bg-emerald-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
         >
           {/* Date number */}
           <div className="px-1 pt-0.5 shrink-0 flex items-center gap-1 overflow-hidden">
@@ -455,7 +470,7 @@ const Calendar: React.FC<CalendarProps> = ({
 
           <div className="flex flex-col flex-1 min-h-0">
             {/* AM */}
-            <div className="flex-1 px-0.5 py-0.5 overflow-hidden space-y-px">
+            <div className="flex-1 px-0.5 py-0.5 space-y-px">
               {amBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
@@ -471,7 +486,7 @@ const Calendar: React.FC<CalendarProps> = ({
             </div>
 
             {/* PM */}
-            <div className="flex-1 px-0.5 py-0.5 bg-gray-100 border-t border-[var(--md-outline)] overflow-hidden space-y-px">
+            <div className="flex-1 px-0.5 py-0.5 bg-gray-100 border-t border-[var(--md-outline)] space-y-px">
               {pmBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
@@ -494,8 +509,7 @@ const Calendar: React.FC<CalendarProps> = ({
   };
 
   return (
-    <>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div ref={cardRef} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex-1 flex flex-col" style={cardHeight ? { height: `${cardHeight}px` } : undefined}>
         {/* Header with month nav + sub-view toggle */}
         <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-[var(--md-outline)]">
           <div className="flex items-center gap-2">
@@ -533,7 +547,7 @@ const Calendar: React.FC<CalendarProps> = ({
         {subView === 'month' ? (
           <>
             {/* Weekday header */}
-            <div className="grid grid-cols-7 text-center bg-gray-50 border-b border-gray-200">
+            <div className="grid grid-cols-7 text-center bg-gray-50 border-b border-gray-200 shrink-0">
               {weekDays.map((d, i) => (
                 <div key={d} className={`py-1 text-sm font-bold ${i === 6 ? 'text-red-500' : i === 5 ? 'text-blue-500' : 'text-gray-600'}`}>
                   {d}
@@ -541,12 +555,12 @@ const Calendar: React.FC<CalendarProps> = ({
               ))}
             </div>
 
-            <div className="grid grid-cols-7">
+            <div className="grid grid-cols-7 flex-1" style={{ gridAutoRows: '1fr' }}>
               {generateCalendarDays()}
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-3 px-3 py-1.5 border-t border-gray-100 text-sm text-gray-700 items-center">
+            <div className="flex flex-wrap gap-3 px-3 py-1.5 border-t border-gray-100 text-sm text-gray-700 items-center shrink-0">
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-white border border-gray-200 rounded" />午前</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-gray-100 rounded" />午後</span>
               <span className="text-gray-300">|</span>
@@ -585,67 +599,66 @@ const Calendar: React.FC<CalendarProps> = ({
             />
           </div>
         )}
-      </div>
 
-      {/* 個別アイテム詳細ポップオーバー（ユーザー側） */}
-      {itemDetail && (() => {
-        const b = itemDetail.booking;
-        const d = new Date(b.date + 'T00:00:00');
-        const dow = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
-        const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
-        const slotLabel = b.startTime === '09:00' ? '午前' : b.startTime === '13:00' ? '午後' : '夜間';
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-        let left = itemDetail.anchor.left + itemDetail.anchor.width + 8;
-        if (left + 300 > vw - 16) left = itemDetail.anchor.left - 300 - 8;
-        if (left < 16) left = 16;
-        let top = itemDetail.anchor.top;
-        if (top + 200 > vh - 16) top = vh - 200 - 16;
-        if (top < 16) top = 16;
-        return (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => { setItemDetail(null); setSelectedBookingId(null); }} />
-            <div className="bg-emerald-50 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] border border-emerald-200 overflow-hidden" style={{ position: 'fixed', left, top, zIndex: 50, width: 300 }}>
-              <div className="flex items-center justify-end px-3 pt-2">
-                <button onClick={() => { setItemDetail(null); setSelectedBookingId(null); }} className="p-1 hover:bg-emerald-100 rounded-full">
-                  <X size={14} className="text-emerald-500" />
-                </button>
-              </div>
-              <div className="px-4 pb-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className={`${colors.bar} w-3 h-3 rounded-sm shrink-0`} />
-                  <div>
-                    <h3 className="text-base font-semibold text-gray-900">{b.title}</h3>
-                    <p className="text-xs text-gray-500">{d.getMonth() + 1}月{d.getDate()}日 ({dow})</p>
-                  </div>
+        {/* 個別アイテム詳細ポップオーバー（ユーザー側） */}
+        {itemDetail && (() => {
+          const b = itemDetail.booking;
+          const d = new Date(b.date + 'T00:00:00');
+          const dow = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
+          const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
+          const slotLabel = b.startTime === '09:00' ? '午前' : b.startTime === '13:00' ? '午後' : '夜間';
+          const vw = window.innerWidth;
+          const vh = window.innerHeight;
+          let left = itemDetail.anchor.left + itemDetail.anchor.width + 8;
+          if (left + 300 > vw - 16) left = itemDetail.anchor.left - 300 - 8;
+          if (left < 16) left = 16;
+          let top = itemDetail.anchor.top;
+          if (top + 200 > vh - 16) top = vh - 200 - 16;
+          if (top < 16) top = 16;
+          return (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => { setItemDetail(null); setSelectedBookingId(null); }} />
+              <div className="bg-emerald-50 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] border border-emerald-200 overflow-hidden" style={{ position: 'fixed', left, top, zIndex: 50, width: 300 }}>
+                <div className="flex items-center justify-end px-3 pt-2">
+                  <button onClick={() => { setItemDetail(null); setSelectedBookingId(null); }} className="p-1 hover:bg-emerald-100 rounded-full">
+                    <X size={14} className="text-emerald-500" />
+                  </button>
                 </div>
-                {itemDetail.orgName && (
+                <div className="px-4 pb-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`${colors.bar} w-3 h-3 rounded-sm shrink-0`} />
+                    <div>
+                      <h3 className="text-base font-semibold text-gray-900">{b.title}</h3>
+                      <p className="text-xs text-gray-500">{d.getMonth() + 1}月{d.getDate()}日 ({dow})</p>
+                    </div>
+                  </div>
+                  {itemDetail.orgName && (
+                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <Users size={14} className="text-emerald-500" />
+                      <span>{itemDetail.orgName}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-3 text-sm text-gray-600">
-                    <Users size={14} className="text-emerald-500" />
-                    <span>{itemDetail.orgName}</span>
+                    <Clock size={14} className="text-emerald-500" />
+                    <span>{slotLabel} {b.startTime}〜{b.endTime}</span>
                   </div>
-                )}
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <Clock size={14} className="text-emerald-500" />
-                  <span>{slotLabel} {b.startTime}〜{b.endTime}</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <MapPin size={14} className="text-emerald-500" />
-                  <span>{shortRoomName(b.room)}</span>
-                </div>
-                {itemDetail.memo && (
-                  <div className="flex items-start gap-3 text-sm text-gray-600">
-                    <AlignLeft size={14} className="text-emerald-500 mt-0.5" />
-                    <span className="whitespace-pre-wrap">{itemDetail.memo}</span>
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                    <MapPin size={14} className="text-emerald-500" />
+                    <span>{shortRoomName(b.room)}</span>
                   </div>
-                )}
+                  {itemDetail.memo && (
+                    <div className="flex items-start gap-3 text-sm text-gray-600">
+                      <AlignLeft size={14} className="text-emerald-500 mt-0.5" />
+                      <span className="whitespace-pre-wrap">{itemDetail.memo}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </>
-        );
-      })()}
-    </>
+            </>
+          );
+        })()}
+      </div>
   );
 };
 
-export default Calendar;
+export default BookingCalendar;

@@ -59,7 +59,7 @@ const DailyScheduleGrid: React.FC<DailyScheduleGridProps> = ({ date, bookings, o
             {/* Table Body */}
             <div className="space-y-2">
               {TIME_SLOTS.map(slot => (
-                <div key={slot.id} className="grid grid-cols-5 gap-2 h-28">
+                <div key={slot.id} className="grid grid-cols-5 gap-2 min-h-28">
                   {/* Time Column */}
                   <div className="bg-gray-100 rounded-lg flex flex-col items-center justify-center text-gray-600 border border-gray-200">
                     <span className="font-bold text-base text-gray-700">{slot.gasKey}</span>
@@ -74,7 +74,7 @@ const DailyScheduleGrid: React.FC<DailyScheduleGridProps> = ({ date, bookings, o
                     if (booking) {
                       return (
                         <div key={`${room.id}-${slot.id}`} className={`${colors.bgBooked} rounded-lg p-2 flex flex-col justify-center items-center text-center overflow-hidden`}>
-                          <div className={`${colors.text} font-bold text-sm line-clamp-2`}>{booking.title}</div>
+                          <div className={`${colors.text} font-bold text-sm`}>{booking.title}</div>
                         </div>
                       );
                     }

@@ -2,7 +2,7 @@
 
 ## モード別フォントサイズ
 
-### ユーザー側PC（EventList / Calendar）
+### ユーザー側PC（CalendarView / BookingCalendar）
 
 | 要素 | サイズ | 色 |
 |------|--------|-----|

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CalendarDays, ClipboardList, Settings, LogOut, Plus, Trash2, Pencil, X, Users, Check, Upload, List } from 'lucide-react';
-import Calendar from '../Calendar';
-import EventList from '../EventList';
+import BookingCalendar from '../BookingCalendar';
+import CalendarView from '../CalendarView';
 import OrgFilterSidebar from '../OrgFilterSidebar';
 import SettingsTab from './SettingsTab';
 import ImportTab from './ImportTab';
@@ -447,9 +447,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-slate-800 text-white sticky top-0 z-30">
-        <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
+      <header className="bg-slate-800 text-white shrink-0 z-30">
+        <div className="mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h1 className="text-base font-bold">管理画面</h1>
             <div className="flex gap-1">
@@ -466,7 +466,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-3">
+      <main className="flex-1 min-h-0 mx-auto px-4 py-3 w-full">
         {/* === カレンダー === */}
         {tab === 'calendar' && (() => {
           const adminModeToggle = (
@@ -482,13 +482,13 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             </div>
           );
           return (
-          <div className="flex gap-4">
+          <div className="flex gap-4 h-full">
             <OrgFilterSidebar selectedOrgs={adminFilterOrgs} onToggleOrg={handleAdminToggleOrg} onToggleGroup={handleAdminToggleGroup} onSelectAll={handleAdminSelectAll} onDeselectAll={handleAdminDeselectAll} onSelectOnly={handleAdminSelectOnly} showMajor={adminShowMajor} onToggleMajor={() => setAdminShowMajor(v => !v)} />
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 min-h-0">
             {calendarSubView === 'schedule' ? (
-              <EventList holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} refreshKey={eventListRefreshKey} isAdmin modeToggle={adminModeToggle} filterOrgs={adminFilterOrgs} showMajor={adminShowMajor} />
+              <CalendarView holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} refreshKey={eventListRefreshKey} isAdmin modeToggle={adminModeToggle} filterOrgs={adminFilterOrgs} showMajor={adminShowMajor} />
             ) : (
-              <Calendar
+              <BookingCalendar
                 currentDate={currentDate}
                 onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
                 onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}

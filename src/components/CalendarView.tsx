@@ -26,7 +26,7 @@ function isMajorEvent(evt: { isMajor?: boolean }): boolean {
   return evt.isMajor === true;
 }
 
-export default function EventList({ holidays, closures, onDateClick, onCellClick, onItemClick, refreshKey, isAdmin, modeToggle, filterOrgs, showMajor = true }: EventListProps) {
+export default function CalendarView({ holidays, closures, onDateClick, onCellClick, onItemClick, refreshKey, isAdmin, modeToggle, filterOrgs, showMajor = true }: EventListProps) {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekStart, setWeekStart] = useState(() => {
@@ -38,6 +38,20 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
   const [loading, setLoading] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [itemDetail, setItemDetail] = useState<{ event: EventSummary; anchor: DOMRect } | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [cardHeight, setCardHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const calc = () => {
+      if (cardRef.current) {
+        const top = cardRef.current.getBoundingClientRect().top;
+        setCardHeight(Math.floor(window.innerHeight - top));
+      }
+    };
+    calc();
+    window.addEventListener('resize', calc);
+    return () => window.removeEventListener('resize', calc);
+  }, [subView, currentDate]);
   const [itemOrgName, setItemOrgName] = useState<string | null>(null);
 
   // ポップオーバー表示時にfacility型なら団体名を取得
@@ -222,9 +236,9 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
 
   return (
     <>
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div ref={cardRef} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col" style={cardHeight ? { height: `${cardHeight}px` } : undefined}>
         {/* ヘッダー */}
-        <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-200 shrink-0">
           <div className="flex items-center gap-2">
             {modeToggle}
             <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -261,7 +275,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         {subView === 'month' ? (
         <>
         {/* 曜日ヘッダー */}
-        <div className="grid grid-cols-7 text-center bg-gray-50 border-b border-gray-200">
+        <div className="grid grid-cols-7 text-center bg-gray-50 border-b border-gray-200 shrink-0">
           {WEEK_DAYS.map((d, i) => (
             <div key={d} className={`py-1 text-sm font-bold ${i === 6 ? 'text-red-500' : i === 5 ? 'text-blue-500' : 'text-gray-600'}`}>
               {d}
@@ -270,12 +284,12 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         </div>
 
         {/* カレンダーグリッド */}
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-7 flex-1 min-h-0" style={{ gridAutoRows: '1fr' }}>
           {generateCalendarDays()}
         </div>
 
         {/* 凡例 */}
-        <div className="flex flex-wrap gap-3 px-3 py-1.5 border-t border-gray-100 text-sm text-gray-700 items-center">
+        <div className="flex flex-wrap gap-3 px-3 py-1.5 border-t border-gray-100 text-sm text-gray-700 items-center shrink-0">
           <span className="flex items-center gap-1"><span className="w-5 h-3.5 bg-blue-100 rounded text-[9px] text-blue-700 font-bold flex items-center justify-center">例</span>主な予定</span>
           <span className="text-gray-300">|</span>
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-gray-300 rounded-full" />詳細予定</span>

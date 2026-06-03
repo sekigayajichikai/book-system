@@ -23,3 +23,8 @@ npm-debug.log*
 *.sw?
 
 .vercel
+
+# Data files
+*.csv
+excel-data.json
+test-data.json
