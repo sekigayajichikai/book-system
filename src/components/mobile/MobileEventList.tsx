@@ -167,7 +167,7 @@ export default function MobileEventList({ holidays, closures }: MobileEventListP
                         <span className="text-base font-bold text-gray-800">{evt.title}</span>
                       </div>
                       {(timeStr || evt.location) && (
-                        <div className="flex gap-3 mt-0.5 ml-0.5 text-sm text-gray-400">
+                        <div className="flex gap-3 mt-0.5 ml-0.5 text-sm text-gray-600">
                           {timeStr && <span>{timeStr}</span>}
                           {evt.location && <span>{evt.location}</span>}
                         </div>
@@ -315,7 +315,7 @@ function WeekEventCard({ event, highlight }: { event: EventSummary; highlight?: 
       {/* タイトル */}
       <div className={`text-lg ${highlight ? 'font-bold text-blue-800' : 'font-bold text-gray-800'}`}>{event.title}</div>
       {/* 場所・団体 */}
-      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-base text-gray-500">
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-base text-gray-600">
         {locationStr && <span className="flex items-center gap-1"><MapPin size={14} /> {locationStr}</span>}
         {event.memo && <span className="flex items-center gap-1"><Users size={14} /> {event.memo}</span>}
       </div>
@@ -355,7 +355,7 @@ function MobileEventCard({ event, highlight }: { event: EventSummary; highlight?
     <div className={`rounded-lg px-3 py-2.5 ${highlight ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'}`}>
       <div className={`text-base ${highlight ? 'font-bold text-blue-800' : 'font-bold text-gray-800'}`}>{event.title}</div>
       {event.memo && <div className="text-sm text-gray-400 mt-0.5">{event.memo}</div>}
-      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-sm text-gray-500">
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-sm text-gray-600">
         {timeStr && <span className="flex items-center gap-1"><Clock size={14} /> {timeStr}</span>}
         {event.eventType === 'facility' && (event.location || roomStr) && (
           <span className="flex items-center gap-1"><Home size={14} /> {event.location && roomStr ? `${event.location}（${roomStr}）` : event.location || roomStr}</span>
