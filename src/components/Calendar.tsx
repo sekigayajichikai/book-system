@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, X, Clock, MapPin, MoreVertical, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Clock, MapPin, MoreVertical, Check, Users, AlignLeft } from 'lucide-react';
 import { Booking } from '../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../constants';
 
@@ -361,7 +361,7 @@ const Calendar: React.FC<CalendarProps> = ({
 }) => {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
-  const [itemDetail, setItemDetail] = useState<{ booking: Booking; anchor: DOMRect } | null>(null);
+  const [itemDetail, setItemDetail] = useState<{ booking: Booking; anchor: DOMRect; orgName?: string; memo?: string } | null>(null);
   const [weekStart, setWeekStart] = useState(() => {
     const d = new Date();
     const dow = d.getDay();
@@ -398,9 +398,18 @@ const Calendar: React.FC<CalendarProps> = ({
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       onItemClick(booking, rect);
     } else {
-      // ユーザー側: 個別アイテム詳細ポップオーバー
+      // ユーザー側: 個別アイテム詳細ポップオーバー（団体名・メモも取得）
       const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
       setItemDetail({ booking, anchor: rect });
+      const sbUrl = import.meta.env.VITE_SUPABASE_URL;
+      const sbKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      if (sbUrl && sbKey) {
+        fetch(`${sbUrl}/rest/v1/bookings?id=eq.${booking.id}&select=memo,booking_organizations(name)`, {
+          headers: { 'apikey': sbKey, 'Authorization': `Bearer ${sbKey}` },
+        }).then(r => r.json()).then(d => {
+          if (d[0]) setItemDetail(prev => prev ? { ...prev, orgName: d[0].booking_organizations?.name || undefined, memo: d[0].memo || undefined } : prev);
+        }).catch(() => {});
+      }
     }
   };
 
@@ -580,21 +589,22 @@ const Calendar: React.FC<CalendarProps> = ({
         const d = new Date(b.date + 'T00:00:00');
         const dow = ['日', '月', '火', '水', '木', '金', '土'][d.getDay()];
         const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
+        const slotLabel = b.startTime === '09:00' ? '午前' : b.startTime === '13:00' ? '午後' : '夜間';
         const vw = window.innerWidth;
         const vh = window.innerHeight;
         let left = itemDetail.anchor.left + itemDetail.anchor.width + 8;
         if (left + 300 > vw - 16) left = itemDetail.anchor.left - 300 - 8;
         if (left < 16) left = 16;
         let top = itemDetail.anchor.top;
-        if (top + 160 > vh - 16) top = vh - 160 - 16;
+        if (top + 200 > vh - 16) top = vh - 200 - 16;
         if (top < 16) top = 16;
         return (
           <>
             <div className="fixed inset-0 z-40" onClick={() => { setItemDetail(null); setSelectedBookingId(null); }} />
-            <div className="bg-gray-50 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] border border-gray-200 overflow-hidden" style={{ position: 'fixed', left, top, zIndex: 50, width: 300 }}>
+            <div className="bg-emerald-50 rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] border border-emerald-200 overflow-hidden" style={{ position: 'fixed', left, top, zIndex: 50, width: 300 }}>
               <div className="flex items-center justify-end px-3 pt-2">
-                <button onClick={() => { setItemDetail(null); setSelectedBookingId(null); }} className="p-1 hover:bg-gray-200 rounded-full">
-                  <X size={14} className="text-gray-400" />
+                <button onClick={() => { setItemDetail(null); setSelectedBookingId(null); }} className="p-1 hover:bg-emerald-100 rounded-full">
+                  <X size={14} className="text-emerald-500" />
                 </button>
               </div>
               <div className="px-4 pb-4 space-y-2">
@@ -605,14 +615,26 @@ const Calendar: React.FC<CalendarProps> = ({
                     <p className="text-xs text-gray-500">{d.getMonth() + 1}月{d.getDate()}日 ({dow})</p>
                   </div>
                 </div>
+                {itemDetail.orgName && (
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                    <Users size={14} className="text-emerald-500" />
+                    <span>{itemDetail.orgName}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <Clock size={14} className="text-gray-500" />
-                  <span>{b.startTime}〜{b.endTime}</span>
+                  <Clock size={14} className="text-emerald-500" />
+                  <span>{slotLabel} {b.startTime}〜{b.endTime}</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-600">
-                  <MapPin size={14} className="text-gray-500" />
+                  <MapPin size={14} className="text-emerald-500" />
                   <span>{shortRoomName(b.room)}</span>
                 </div>
+                {itemDetail.memo && (
+                  <div className="flex items-start gap-3 text-sm text-gray-600">
+                    <AlignLeft size={14} className="text-emerald-500 mt-0.5" />
+                    <span className="whitespace-pre-wrap">{itemDetail.memo}</span>
+                  </div>
+                )}
               </div>
             </div>
           </>
