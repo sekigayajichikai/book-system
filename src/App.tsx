@@ -608,12 +608,6 @@ function App() {
           </div>
       </main>
 
-      {/* Footer */}
-      <footer className={`bg-slate-800 text-slate-400 ${isMobile ? 'py-4 text-xs' : 'py-8 text-sm'} text-center`}>
-        <div className="mx-auto px-4">
-          <p>&copy; {new Date().getFullYear()} 関ヶ谷自治会</p>
-        </div>
-      </footer>
 
       {/* Modals */}
       {showDailyGrid && selectedDate && (
