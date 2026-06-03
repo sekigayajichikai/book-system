@@ -149,8 +149,8 @@ export default function MobileEventList({ holidays, closures }: MobileEventListP
         /* === 月ビュー === */
         <div className="space-y-3">
           {majorEvents.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <div className="text-sm font-bold text-gray-600 mb-3">主な予定</div>
+            <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
+              <div className="text-sm font-bold text-blue-700 mb-3">主な予定</div>
               <div className="space-y-2.5">
                 {majorEvents.map(evt => {
                   const d = new Date(evt.date + 'T00:00:00');
@@ -161,10 +161,10 @@ export default function MobileEventList({ holidays, closures }: MobileEventListP
                   const timeStr = evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : evt.startTime ? `${evt.startTime}〜` : null;
                   return (
                     <div key={evt.id}>
-                      <div className="flex items-baseline gap-1.5">
+                      <div className="flex items-baseline gap-1.5 flex-wrap">
                         <span className={`text-lg font-bold ${dateColor} shrink-0`}>{d.getMonth() + 1}/{d.getDate()}</span>
                         <span className={`text-base ${dowColor} shrink-0`}>({DOW[dow]})</span>
-                        <span className="text-base font-bold text-gray-800 flex-1 truncate ml-1">{evt.title}</span>
+                        <span className="text-base font-bold text-gray-800 ml-1">{evt.title}</span>
                       </div>
                       {(timeStr || evt.location) && (
                         <div className="flex gap-3 mt-0.5 ml-0.5 text-sm text-gray-400">
