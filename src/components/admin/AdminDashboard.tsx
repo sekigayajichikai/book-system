@@ -415,11 +415,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           const adminModeToggle = (
             <div className="flex items-center bg-gray-100 rounded-full p-0.5 shrink-0">
               <button onClick={() => setCalendarSubView('schedule')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                className={`px-4 py-1.5 rounded-full text-base font-bold transition-all ${
                   calendarSubView === 'schedule' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}>カレンダー</button>
               <button onClick={() => setCalendarSubView('facility')}
-                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                className={`px-4 py-1.5 rounded-full text-base font-bold transition-all ${
                   calendarSubView === 'facility' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}>会館予約</button>
             </div>

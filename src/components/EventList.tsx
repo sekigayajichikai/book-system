@@ -149,15 +149,15 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         >
           {/* 日付 */}
           <div className="px-1 pt-0.5 shrink-0 flex items-center gap-1 overflow-hidden">
-            <span className={`text-xs font-bold ${
+            <span className={`text-sm font-bold ${
               isToday ? 'bg-blue-600 text-white px-1 rounded' :
               (isHoliday || dow === 0) ? 'text-red-500' :
               dow === 6 ? 'text-blue-500' : 'text-gray-600'
             }`}>
               {day}
             </span>
-            {isClosure && <span className="text-[10px] bg-orange-400 text-white px-1.5 py-px rounded font-bold shrink-0 whitespace-nowrap">休館</span>}
-            {holidayName && <span className="text-xs text-red-400 truncate min-w-0">{holidayName}</span>}
+            {isClosure && <span className="text-xs bg-orange-400 text-white px-1.5 py-px rounded font-bold shrink-0 whitespace-nowrap">休館</span>}
+            {holidayName && <span className="text-sm text-red-400 truncate min-w-0">{holidayName}</span>}
           </div>
 
           {/* イベント: 主要=カラー背景ラベル、詳細=グレードット */}
@@ -170,7 +170,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
               return aTime.localeCompare(bTime);
             }).map(evt => (
               <div key={evt.id} onClick={e => { e.stopPropagation(); setSelectedEventId(evt.id); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } else { setItemDetail({ event: evt, anchor: (e.currentTarget as HTMLElement).getBoundingClientRect() }); } }}
-                className={`text-xs font-bold rounded px-1 py-0.5 truncate cursor-pointer transition-colors ${
+                className={`text-sm font-bold rounded px-1 py-0.5 truncate cursor-pointer transition-colors ${
                   selectedEventId === evt.id ? 'bg-blue-200 text-blue-900 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] relative z-10' : 'text-blue-700 bg-blue-100 hover:bg-blue-200'
                 }`}>
                 {evt.title}
@@ -178,7 +178,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
             ))}
             {dayEvents.filter(e => !isMajorEvent(e)).slice(0, MAX_DISPLAY).map(evt => (
               <div key={evt.id} onClick={e => { e.stopPropagation(); setSelectedEventId(evt.id); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } else { setItemDetail({ event: evt, anchor: (e.currentTarget as HTMLElement).getBoundingClientRect() }); } }}
-                className={`text-xs text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${
+                className={`text-sm text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${
                   selectedEventId === evt.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] rounded-sm relative z-10' : 'hover:bg-gray-200'
                 }`}>
                 <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300" />
@@ -186,7 +186,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
               </div>
             ))}
             {dayEvents.filter(e => !isMajorEvent(e)).length > MAX_DISPLAY && (
-              <div className="text-xs text-gray-400 pl-1">+{dayEvents.filter(e => !isMajorEvent(e)).length - MAX_DISPLAY}</div>
+              <div className="text-sm text-gray-400 pl-1">+{dayEvents.filter(e => !isMajorEvent(e)).length - MAX_DISPLAY}</div>
             )}
           </div>
         </div>,
@@ -239,7 +239,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         {/* 曜日ヘッダー */}
         <div className="grid grid-cols-7 text-center bg-gray-50 border-b border-gray-200">
           {WEEK_DAYS.map((d, i) => (
-            <div key={d} className={`py-1 text-xs font-bold ${i === 6 ? 'text-red-500' : i === 5 ? 'text-blue-500' : 'text-gray-600'}`}>
+            <div key={d} className={`py-1 text-sm font-bold ${i === 6 ? 'text-red-500' : i === 5 ? 'text-blue-500' : 'text-gray-600'}`}>
               {d}
             </div>
           ))}

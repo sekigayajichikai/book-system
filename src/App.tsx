@@ -292,11 +292,11 @@ function App() {
   const modeToggleEl = !isMobile ? (
     <div className="flex items-center bg-gray-100 rounded-full p-0.5 shrink-0">
       <button onClick={() => { setCalendarMode('schedule'); setShowMyPage(false); }}
-        className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+        className={`px-4 py-1.5 rounded-full text-base font-bold transition-all ${
           !showMyPage && calendarMode === 'schedule' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
         }`}>カレンダー</button>
       <button onClick={() => { setCalendarMode('calendar'); setShowMyPage(false); }}
-        className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+        className={`px-4 py-1.5 rounded-full text-base font-bold transition-all ${
           !showMyPage && calendarMode === 'calendar' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
         }`}>会館予約</button>
     </div>
