@@ -267,8 +267,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   const isBooking = data.type === 'booking';
 
   return (
-    <Popover anchorRect={anchorRect} onClose={onClose} width={340}
-      bgClass={isBooking ? 'bg-emerald-50 border-emerald-200' : undefined}>
+    <Popover anchorRect={anchorRect} onClose={onClose} width={340}>
       {/* ヘッダーアクション */}
       <div className="flex items-center justify-end gap-1 px-3 pt-3 pb-1">
         {data.type === 'event' && (
@@ -291,8 +290,8 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
                 <Pencil size={16} className={editing ? 'text-blue-500' : 'text-gray-500'} />
               </button>
             )}
-            <button onClick={handleDelete} className={`p-1.5 rounded-full ${isBooking ? 'hover:bg-emerald-100' : 'hover:bg-gray-100'}`} title="削除">
-              <Trash2 size={16} className={isBooking ? 'text-emerald-600' : 'text-gray-500'} />
+            <button onClick={handleDelete} className="p-1.5 hover:bg-gray-100 rounded-full" title="削除">
+              <Trash2 size={16} className="text-gray-500" />
             </button>
           </>
         )}
@@ -419,39 +418,38 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         {/* booking インライン編集 */}
         {editing && data.type === 'booking' && (
           <div className="space-y-3 border-t border-emerald-200 pt-3">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">タイトル</label>
+            <div className="flex items-start gap-2.5">
+              <Users size={18} className="text-gray-400 mt-2 shrink-0" />
+              <OrgPicker value={bookingForm.org} onChange={v => setBookingForm(f => ({ ...f, org: v }))} className="flex-1" />
+            </div>
+            <div className="pl-9">
               <input value={bookingForm.title} onChange={e => setBookingForm(f => ({ ...f, title: e.target.value }))}
-                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400" />
+                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-emerald-400 outline-none"
+                placeholder={bookingForm.org ? `${bookingForm.org}（自動設定）` : 'タイトル（空欄で団体名を使用）'} />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">団体</label>
-              <OrgPicker value={bookingForm.org} onChange={v => setBookingForm(f => ({ ...f, org: v }))} />
+            <div className="flex items-start gap-2.5">
+              <Clock size={18} className="text-gray-400 mt-2 shrink-0" />
+              <select value={bookingForm.slot} onChange={e => setBookingForm(f => ({ ...f, slot: e.target.value }))}
+                className="flex-1 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-emerald-400 outline-none">
+                {TIME_SLOTS.map(s => <option key={s.id} value={s.gasKey}>{s.gasKey} {s.startTime}〜{s.endTime}</option>)}
+              </select>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">時間帯</label>
-                <select value={bookingForm.slot} onChange={e => setBookingForm(f => ({ ...f, slot: e.target.value }))}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400">
-                  {TIME_SLOTS.map(s => <option key={s.id} value={s.gasKey}>{s.gasKey}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">部屋</label>
-                <select value={bookingForm.room} onChange={e => setBookingForm(f => ({ ...f, room: e.target.value }))}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400">
-                  {ROOMS.map(r => <option key={r.id} value={r.id}>{r.shortName}</option>)}
-                </select>
-              </div>
+            <div className="flex items-start gap-2.5">
+              <MapPin size={18} className="text-gray-400 mt-2 shrink-0" />
+              <select value={bookingForm.room} onChange={e => setBookingForm(f => ({ ...f, room: e.target.value }))}
+                className="flex-1 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-emerald-400 outline-none">
+                {ROOMS.map(r => <option key={r.id} value={r.id}>{r.shortName}</option>)}
+              </select>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">メモ</label>
+            <div className="flex items-start gap-2.5">
+              <AlignLeft size={18} className="text-gray-400 mt-2 shrink-0" />
               <textarea value={bookingForm.memo} onChange={e => setBookingForm(f => ({ ...f, memo: e.target.value }))}
-                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400" rows={2} placeholder="補足情報" />
+                rows={2} className="flex-1 px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-emerald-400 outline-none resize-none"
+                placeholder="説明を追加" />
             </div>
-            <div className="flex gap-2">
-              <button onClick={() => setEditing(false)} className="flex-1 py-1.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-white/50">キャンセル</button>
-              <button onClick={handleSaveBooking} className="flex-1 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700">保存</button>
+            <div className="flex justify-end pt-1">
+              <button onClick={handleSaveBooking}
+                className="px-6 py-2 bg-emerald-600 text-white rounded-full text-sm font-bold hover:bg-emerald-700">保存</button>
             </div>
           </div>
         )}

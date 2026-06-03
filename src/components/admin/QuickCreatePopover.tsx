@@ -306,47 +306,41 @@ export function BookingCreatePopover({ date, onClose, onSaved, anchorRect }: Boo
   };
 
   return (
-    <Popover anchorRect={anchorRect} onClose={onClose} bgClass="bg-emerald-50 border-emerald-200">
-      <div className="flex items-center justify-end gap-1 px-3 pt-3 pb-1">
-        <button onClick={onClose} className="p-1.5 hover:bg-emerald-100 rounded-full"><X size={16} className="text-emerald-500" /></button>
-      </div>
-      <div className="px-4 pb-4 space-y-3">
-        <div className="text-xs font-bold text-emerald-700">予約を作成 — {dateLabel}</div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">タイトル</label>
+    <Popover anchorRect={anchorRect} onClose={onClose}>
+      <div className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">予約を作成</span>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full"><X size={16} className="text-gray-400" /></button>
+        </div>
+        <IconField icon={<Users size={18} />}>
+          <OrgPicker value={form.org} onChange={v => setForm(f => ({ ...f, org: v }))} />
+        </IconField>
+        <div className="pl-9">
           <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400"
+            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-emerald-400 outline-none"
             placeholder={form.org ? `${form.org}（自動設定）` : 'タイトル（空欄で団体名を使用）'} />
         </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">団体</label>
-          <OrgPicker value={form.org} onChange={v => setForm(f => ({ ...f, org: v }))} />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">時間帯</label>
-            <select value={form.slot} onChange={e => setForm(f => ({ ...f, slot: e.target.value }))}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400">
-              {TIME_SLOTS.map(s => <option key={s.id} value={s.gasKey}>{s.gasKey}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">部屋</label>
-            <select value={form.room} onChange={e => setForm(f => ({ ...f, room: e.target.value }))}
-              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400">
-              {ROOMS.map(r => <option key={r.id} value={r.id}>{r.shortName}</option>)}
-            </select>
-          </div>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1">メモ</label>
+        <div className="text-sm text-gray-500 pl-9">{dateLabel}</div>
+        <IconField icon={<Clock size={18} />}>
+          <select value={form.slot} onChange={e => setForm(f => ({ ...f, slot: e.target.value }))}
+            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-emerald-400 outline-none">
+            {TIME_SLOTS.map(s => <option key={s.id} value={s.gasKey}>{s.gasKey} {s.startTime}〜{s.endTime}</option>)}
+          </select>
+        </IconField>
+        <IconField icon={<MapPin size={18} />}>
+          <select value={form.room} onChange={e => setForm(f => ({ ...f, room: e.target.value }))}
+            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-emerald-400 outline-none">
+            {ROOMS.map(r => <option key={r.id} value={r.id}>{r.shortName}</option>)}
+          </select>
+        </IconField>
+        <IconField icon={<AlignLeft size={18} />}>
           <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400" rows={2} placeholder="補足情報" />
-        </div>
-        <div className="flex gap-2">
-          <button onClick={onClose} className="flex-1 py-1.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-white/50">キャンセル</button>
+            rows={2} className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-emerald-400 outline-none resize-none"
+            placeholder="説明を追加" />
+        </IconField>
+        <div className="flex justify-end pt-1">
           <button onClick={handleSave} disabled={saving}
-            className="flex-1 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 disabled:opacity-50">登録</button>
+            className="px-6 py-2 bg-emerald-600 text-white rounded-full text-sm font-bold hover:bg-emerald-700 disabled:opacity-50">保存</button>
         </div>
       </div>
     </Popover>
