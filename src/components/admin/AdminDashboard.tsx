@@ -409,7 +409,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto p-4 md:p-8">
+      <main className="max-w-5xl mx-auto px-4 py-3">
         {/* === カレンダー === */}
         {tab === 'calendar' && (() => {
           const adminModeToggle = (
