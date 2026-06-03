@@ -107,7 +107,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
   // フィルタ適用
   const filterEvent = (e: EventSummary): boolean => {
     if (!showMajor && e.isMajor) return false;
-    if (!filterOrgs || filterOrgs.size === 0) return true;
+    if (!filterOrgs) return true;
     // memo（団体名）で明確にマッチ → 表示
     if (e.memo && filterOrgs.has(e.memo)) return true;
     // memo（団体名）が明確に存在するがフィルタに含まれない → 非表示
