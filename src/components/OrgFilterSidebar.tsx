@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronUp, ChevronDown, Star } from 'lucide-react';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -32,7 +32,7 @@ function ColorCheckbox({ checked, color, onChange, size = 16 }: { checked: boole
 export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGroup, showMajor, onToggleMajor }: OrgFilterSidebarProps) {
   const [groups, setGroups] = useState<OrgGroup[]>([]);
   const [orgs, setOrgs] = useState<OrgItem[]>([]);
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean> | null>(null);
 
   useEffect(() => {
     if (!SUPABASE_URL || !SUPABASE_KEY) return;
@@ -43,21 +43,31 @@ export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGr
     ]).then(([g, o]) => {
       setGroups(g || []);
       setOrgs((o || []).filter((org: OrgItem) => org.is_active !== false));
+      // デフォルト全折りたたみ
+      const c: Record<string, boolean> = {};
+      (g || []).forEach((gr: OrgGroup) => { c[gr.name] = true; });
+      setCollapsed(c);
     }).catch(() => {});
   }, []);
 
   const orgsByGroup: Record<string, OrgItem[]> = {};
   orgs.forEach(o => { const g = o.group_name || '未分類'; if (!orgsByGroup[g]) orgsByGroup[g] = []; orgsByGroup[g].push(o); });
 
+  if (!collapsed) return null;
+
   return (
     <div className="w-48 shrink-0 select-none">
-      {/* 主な予定 */}
-      <label className="flex items-center gap-2.5 cursor-pointer py-1.5 px-1 rounded-lg hover:bg-gray-100">
-        <ColorCheckbox checked={showMajor} color="#f59e0b" onChange={onToggleMajor} size={18} />
-        <span className="text-sm text-gray-700">主な予定</span>
-      </label>
+      {/* 主な予定（カレンダーのイベントラベル風） */}
+      <button onClick={onToggleMajor}
+        className={`flex items-center gap-1.5 w-full text-left text-sm font-bold rounded px-2 py-1 mb-2 transition-colors ${
+          showMajor ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 line-through'
+        }`}>
+        <span className={`w-2 h-2 rounded-full shrink-0 ${showMajor ? 'bg-blue-500' : 'bg-gray-300'}`} />
+        主な予定
+      </button>
 
-      <div className="mt-3">
+      {/* グループ > 団体 */}
+      <div className="space-y-0.5">
         {groups.map(group => {
           const groupOrgs = orgsByGroup[group.name] || [];
           if (groupOrgs.length === 0) return null;
@@ -66,12 +76,12 @@ export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGr
           const color = GROUP_COLORS[group.name] || '#9ca3af';
 
           return (
-            <div key={group.name} className="mb-0.5">
+            <div key={group.name}>
               {/* グループヘッダー */}
               <div className="flex items-center gap-2 py-1 px-1 rounded-lg hover:bg-gray-100 group">
                 <ColorCheckbox checked={allChecked} color={color} onChange={() => onToggleGroup(group.name, groupOrgs.map(o => o.name))} size={18} />
-                <span className="text-sm font-medium text-gray-700 flex-1 cursor-pointer" onClick={() => setCollapsed(c => ({ ...c, [group.name]: !c[group.name] }))}>{group.name}</span>
-                <button onClick={() => setCollapsed(c => ({ ...c, [group.name]: !c[group.name] }))} className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5">
+                <span className="text-sm font-medium text-gray-700 flex-1 cursor-pointer" onClick={() => setCollapsed(c => ({ ...c!, [group.name]: !c![group.name] }))}>{group.name}</span>
+                <button onClick={() => setCollapsed(c => ({ ...c!, [group.name]: !c![group.name] }))} className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5">
                   {isCollapsed ? <ChevronDown size={14} className="text-gray-400" /> : <ChevronUp size={14} className="text-gray-400" />}
                 </button>
               </div>

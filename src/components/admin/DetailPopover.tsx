@@ -188,6 +188,18 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       alert(err.includes('23505') ? 'この時間帯・部屋は既に予約されています' : '保存に失敗しました');
       return;
     }
+    // calendar_eventsのmemoにも団体名を同期
+    try {
+      const evRes = await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${data.id}&select=event_id`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      });
+      const evData = evRes.ok ? await evRes.json() : [];
+      if (evData[0]?.event_id) {
+        await supaFetch(`calendar_events?id=eq.${evData[0].event_id}`, {
+          method: 'PATCH', body: JSON.stringify({ memo: bookingForm.org.trim() || null }),
+        });
+      }
+    } catch {}
     setEditing(false);
     onClose();
     onRefresh();

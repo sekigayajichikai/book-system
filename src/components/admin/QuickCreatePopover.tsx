@@ -260,6 +260,12 @@ export function BookingCreatePopover({ date, onClose, onSaved, anchorRect }: Boo
 
     if (existing.length > 0) {
       eventId = existing[0].id;
+      // 既存イベントにも団体名を更新
+      if (form.org.trim()) {
+        await supaFetch(`calendar_events?id=eq.${eventId}`, {
+          method: 'PATCH', body: JSON.stringify({ memo: form.org.trim() }),
+        });
+      }
     } else {
       const evRes = await supaFetch('calendar_events', {
         method: 'POST',
@@ -269,6 +275,7 @@ export function BookingCreatePopover({ date, onClose, onSaved, anchorRect }: Boo
           event_type: 'facility',
           visibility: 'public',
           location: '自治会館',
+          memo: form.org.trim() || null,
         }),
       });
       const evData = await evRes.json();
