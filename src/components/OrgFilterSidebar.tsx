@@ -1,19 +1,11 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight, Star } from 'lucide-react';
+import { ChevronUp, ChevronDown, Star } from 'lucide-react';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-interface OrgGroup {
-  name: string;
-  sort_order: number;
-}
-
-interface OrgItem {
-  name: string;
-  group_name: string | null;
-  is_active: boolean | null;
-}
+interface OrgGroup { name: string; sort_order: number; }
+interface OrgItem { name: string; group_name: string | null; is_active: boolean | null; }
 
 interface OrgFilterSidebarProps {
   selectedOrgs: Set<string>;
@@ -21,6 +13,20 @@ interface OrgFilterSidebarProps {
   onToggleGroup: (groupName: string, orgNames: string[]) => void;
   showMajor: boolean;
   onToggleMajor: () => void;
+}
+
+const GROUP_COLORS: Record<string, string> = {
+  '自治会': '#ef4444', '委員会': '#3b82f6', '自主活動部': '#10b981',
+  '会員団体': '#f59e0b', '一般': '#8b5cf6', 'その他/外部': '#9ca3af',
+};
+
+function ColorCheckbox({ checked, color, onChange, size = 16 }: { checked: boolean; color: string; onChange: () => void; size?: number }) {
+  return (
+    <button onClick={onChange} className="shrink-0 flex items-center justify-center rounded-sm border transition-colors"
+      style={{ width: size, height: size, backgroundColor: checked ? color : 'transparent', borderColor: checked ? color : '#d1d5db' }}>
+      {checked && <svg width={size - 4} height={size - 4} viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+    </button>
+  );
 }
 
 export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGroup, showMajor, onToggleMajor }: OrgFilterSidebarProps) {
@@ -41,83 +47,49 @@ export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGr
   }, []);
 
   const orgsByGroup: Record<string, OrgItem[]> = {};
-  orgs.forEach(o => {
-    const g = o.group_name || '未分類';
-    if (!orgsByGroup[g]) orgsByGroup[g] = [];
-    orgsByGroup[g].push(o);
-  });
-
-  const groupColors: Record<string, string> = {
-    '自治会': 'text-red-500',
-    '委員会': 'text-blue-500',
-    '自主活動部': 'text-emerald-500',
-    '会員団体': 'text-amber-500',
-    '一般': 'text-violet-500',
-    'その他/外部': 'text-gray-400',
-  };
-
-  const checkboxColors: Record<string, string> = {
-    '自治会': 'accent-red-500',
-    '委員会': 'accent-blue-500',
-    '自主活動部': 'accent-emerald-500',
-    '会員団体': 'accent-amber-500',
-    '一般': 'accent-violet-500',
-    'その他/外部': 'accent-gray-400',
-  };
+  orgs.forEach(o => { const g = o.group_name || '未分類'; if (!orgsByGroup[g]) orgsByGroup[g] = []; orgsByGroup[g].push(o); });
 
   return (
-    <div className="w-52 shrink-0 text-sm select-none">
+    <div className="w-48 shrink-0 select-none">
       {/* 主な予定 */}
-      <div className="mb-3">
-        <label className="flex items-center gap-2 cursor-pointer px-1 py-1 rounded hover:bg-gray-100">
-          <input type="checkbox" checked={showMajor} onChange={onToggleMajor} className="w-3.5 h-3.5 rounded accent-blue-600" />
-          <Star size={14} className="text-orange-400" fill="currentColor" />
-          <span className="font-bold text-gray-700">主な予定</span>
-        </label>
-      </div>
+      <label className="flex items-center gap-2.5 cursor-pointer py-1.5 px-1 rounded-lg hover:bg-gray-100">
+        <ColorCheckbox checked={showMajor} color="#f59e0b" onChange={onToggleMajor} size={18} />
+        <span className="text-sm text-gray-700">主な予定</span>
+      </label>
 
-      {/* グループ > 団体 */}
-      <div className="text-xs font-bold text-gray-400 px-1 mb-1">団体フィルタ</div>
-      {groups.map(group => {
-        const groupOrgs = orgsByGroup[group.name] || [];
-        if (groupOrgs.length === 0) return null;
-        const isCollapsed = collapsed[group.name];
-        const allChecked = groupOrgs.every(o => selectedOrgs.has(o.name));
-        const someChecked = groupOrgs.some(o => selectedOrgs.has(o.name));
-        const gc = groupColors[group.name] || 'text-gray-500';
-        const cc = checkboxColors[group.name] || 'accent-gray-500';
+      <div className="mt-3">
+        {groups.map(group => {
+          const groupOrgs = orgsByGroup[group.name] || [];
+          if (groupOrgs.length === 0) return null;
+          const isCollapsed = collapsed[group.name];
+          const allChecked = groupOrgs.every(o => selectedOrgs.has(o.name));
+          const color = GROUP_COLORS[group.name] || '#9ca3af';
 
-        return (
-          <div key={group.name} className="mb-1">
-            {/* グループヘッダー */}
-            <div className="flex items-center gap-1 px-1 py-0.5 rounded hover:bg-gray-100 cursor-pointer">
-              <button onClick={() => setCollapsed(c => ({ ...c, [group.name]: !c[group.name] }))} className="p-0.5">
-                {isCollapsed ? <ChevronRight size={12} className="text-gray-400" /> : <ChevronDown size={12} className="text-gray-400" />}
-              </button>
-              <input
-                type="checkbox"
-                checked={allChecked}
-                ref={el => { if (el) el.indeterminate = someChecked && !allChecked; }}
-                onChange={() => onToggleGroup(group.name, groupOrgs.map(o => o.name))}
-                className={`w-3.5 h-3.5 rounded ${cc}`}
-              />
-              <span className={`font-bold text-xs ${gc}`}>{group.name}</span>
-              <span className="text-xs text-gray-300 ml-auto">{groupOrgs.filter(o => selectedOrgs.has(o.name)).length}/{groupOrgs.length}</span>
-            </div>
-            {/* 団体リスト */}
-            {!isCollapsed && (
-              <div className="ml-7 space-y-px">
-                {groupOrgs.map(org => (
-                  <label key={org.name} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-gray-100 cursor-pointer">
-                    <input type="checkbox" checked={selectedOrgs.has(org.name)} onChange={() => onToggleOrg(org.name)} className={`w-3 h-3 rounded ${cc}`} />
-                    <span className="text-xs text-gray-700 truncate">{org.name}</span>
-                  </label>
-                ))}
+          return (
+            <div key={group.name} className="mb-0.5">
+              {/* グループヘッダー */}
+              <div className="flex items-center gap-2 py-1 px-1 rounded-lg hover:bg-gray-100 group">
+                <ColorCheckbox checked={allChecked} color={color} onChange={() => onToggleGroup(group.name, groupOrgs.map(o => o.name))} size={18} />
+                <span className="text-sm font-medium text-gray-700 flex-1 cursor-pointer" onClick={() => setCollapsed(c => ({ ...c, [group.name]: !c[group.name] }))}>{group.name}</span>
+                <button onClick={() => setCollapsed(c => ({ ...c, [group.name]: !c[group.name] }))} className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5">
+                  {isCollapsed ? <ChevronDown size={14} className="text-gray-400" /> : <ChevronUp size={14} className="text-gray-400" />}
+                </button>
               </div>
-            )}
-          </div>
-        );
-      })}
+              {/* 団体リスト */}
+              {!isCollapsed && (
+                <div className="ml-2">
+                  {groupOrgs.map(org => (
+                    <label key={org.name} className="flex items-center gap-2.5 py-0.5 px-1 ml-4 rounded-lg hover:bg-gray-100 cursor-pointer">
+                      <ColorCheckbox checked={selectedOrgs.has(org.name)} color={color} onChange={() => onToggleOrg(org.name)} />
+                      <span className="text-[13px] text-gray-600 truncate">{org.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
