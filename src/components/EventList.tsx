@@ -117,7 +117,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
 
     // 空セル（前月分）
     for (let i = 0; i < mondayOffset; i++) {
-      days.push(<div key={`empty-${i}`} className="min-h-[5.5rem] bg-gray-50 border border-gray-100" />);
+      days.push(<div key={`empty-${i}`} className="min-h-[6.5rem] bg-gray-50 border border-gray-100" />);
     }
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -142,7 +142,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
             } else if (onDateClick) { onDateClick(d); }
           }}
           data-cell
-          className={`min-h-[5.5rem] border border-gray-200 relative transition-colors flex flex-col ${
+          className={`min-h-[8rem] border border-gray-200 relative transition-colors flex flex-col ${
             onCellClick || onDateClick || dayEvents.length > 0 ? 'cursor-pointer hover:bg-blue-50/30' : ''
           } ${isToday ? 'outline outline-2 outline-blue-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
         >
@@ -169,7 +169,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
               return aTime.localeCompare(bTime);
             }).map(evt => (
               <div key={evt.id} onClick={e => { e.stopPropagation(); setSelectedEventId(evt.id); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } else { setItemDetail({ event: evt, anchor: (e.currentTarget as HTMLElement).getBoundingClientRect() }); } }}
-                className={`text-[11px] leading-tight font-bold rounded px-0.5 py-px truncate cursor-pointer transition-colors ${
+                className={`text-xs font-bold rounded px-1 py-0.5 truncate cursor-pointer transition-colors ${
                   selectedEventId === evt.id ? 'bg-blue-200 text-blue-900 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] relative z-10' : 'text-blue-700 bg-blue-100 hover:bg-blue-200'
                 }`}>
                 {evt.title}
@@ -177,10 +177,10 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
             ))}
             {dayEvents.filter(e => !isMajorEvent(e)).slice(0, MAX_DISPLAY).map(evt => (
               <div key={evt.id} onClick={e => { e.stopPropagation(); setSelectedEventId(evt.id); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } else { setItemDetail({ event: evt, anchor: (e.currentTarget as HTMLElement).getBoundingClientRect() }); } }}
-                className={`text-[11px] leading-tight text-gray-800 rounded flex items-center gap-0.5 px-0.5 overflow-hidden cursor-pointer transition-colors ${
+                className={`text-xs text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${
                   selectedEventId === evt.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] rounded-sm relative z-10' : 'hover:bg-gray-200'
                 }`}>
-                <span className="w-1 h-1 rounded-full shrink-0 bg-gray-400" />
+                <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300" />
                 <span className="truncate">{evt.title}</span>
               </div>
             ))}
@@ -199,7 +199,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
     <>
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {/* ヘッダー */}
-        <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
           <div className="flex items-center gap-2">
             <h2 className="text-[22px] font-normal text-gray-800 flex items-center gap-2">
               {subView === 'week' ? (() => {
@@ -237,7 +237,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         {/* 曜日ヘッダー */}
         <div className="grid grid-cols-7 text-center bg-gray-50 border-b border-gray-200">
           {WEEK_DAYS.map((d, i) => (
-            <div key={d} className={`py-1 text-xs font-bold ${i === 6 ? 'text-red-500' : i === 5 ? 'text-blue-500' : 'text-gray-600'}`}>
+            <div key={d} className={`py-2 text-sm font-bold ${i === 6 ? 'text-red-500' : i === 5 ? 'text-blue-500' : 'text-gray-600'}`}>
               {d}
             </div>
           ))}
@@ -249,7 +249,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         </div>
 
         {/* 凡例 */}
-        <div className="flex flex-wrap gap-3 px-3 py-1.5 border-t border-gray-100 text-xs text-gray-500 items-center">
+        <div className="flex flex-wrap gap-3 p-3 border-t border-gray-100 text-xs text-gray-500 items-center">
           <span className="flex items-center gap-1"><span className="w-4 h-3 bg-blue-100 rounded text-[8px] text-blue-700 font-bold flex items-center justify-center">例</span>主な予定</span>
           <span className="text-gray-300">|</span>
           <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 bg-gray-300 rounded-full" />詳細予定</span>
