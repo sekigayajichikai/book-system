@@ -161,10 +161,10 @@ export default function MobileEventList({ holidays, closures }: MobileEventListP
                   const timeStr = evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : evt.startTime ? `${evt.startTime}〜` : null;
                   return (
                     <div key={evt.id}>
-                      <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <div className="flex items-baseline gap-1.5">
                         <span className={`text-lg font-bold ${dateColor} shrink-0`}>{d.getMonth() + 1}/{d.getDate()}</span>
                         <span className={`text-base ${dowColor} shrink-0`}>({DOW[dow]})</span>
-                        <span className="text-base font-bold text-gray-800 ml-1">{evt.title}</span>
+                        <span className="text-base font-bold text-gray-800">{evt.title}</span>
                       </div>
                       {(timeStr || evt.location) && (
                         <div className="flex gap-3 mt-0.5 ml-0.5 text-sm text-gray-400">
