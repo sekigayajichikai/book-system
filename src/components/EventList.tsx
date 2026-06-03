@@ -17,13 +17,14 @@ interface EventListProps {
   onItemClick?: (event: EventSummary, rect: DOMRect) => void;
   refreshKey?: number;
   isAdmin?: boolean;
+  modeToggle?: React.ReactNode;
 }
 
 function isMajorEvent(evt: { isMajor?: boolean }): boolean {
   return evt.isMajor === true;
 }
 
-export default function EventList({ holidays, closures, onDateClick, onCellClick, onItemClick, refreshKey, isAdmin }: EventListProps) {
+export default function EventList({ holidays, closures, onDateClick, onCellClick, onItemClick, refreshKey, isAdmin, modeToggle }: EventListProps) {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekStart, setWeekStart] = useState(() => {
@@ -199,9 +200,10 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
     <>
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {/* ヘッダー */}
-        <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+        <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-200">
           <div className="flex items-center gap-2">
-            <h2 className="text-[22px] font-normal text-gray-800 flex items-center gap-2">
+            {modeToggle}
+            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
               {subView === 'week' ? (() => {
                 const we = new Date(weekStart); we.setDate(we.getDate() + 6);
                 return `${weekStart.getMonth() + 1}/${weekStart.getDate()} 〜 ${we.getMonth() + 1}/${we.getDate()}`;
@@ -237,7 +239,7 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
         {/* 曜日ヘッダー */}
         <div className="grid grid-cols-7 text-center bg-gray-50 border-b border-gray-200">
           {WEEK_DAYS.map((d, i) => (
-            <div key={d} className={`py-2 text-sm font-bold ${i === 6 ? 'text-red-500' : i === 5 ? 'text-blue-500' : 'text-gray-600'}`}>
+            <div key={d} className={`py-1 text-xs font-bold ${i === 6 ? 'text-red-500' : i === 5 ? 'text-blue-500' : 'text-gray-600'}`}>
               {d}
             </div>
           ))}

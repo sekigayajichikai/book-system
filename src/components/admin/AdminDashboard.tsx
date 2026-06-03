@@ -411,38 +411,30 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
       <main className="max-w-5xl mx-auto p-4 md:p-8">
         {/* === カレンダー === */}
-        {tab === 'calendar' && (
-          <div className="space-y-4">
-            {/* カレンダー/会館予約 切り替え */}
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCalendarSubView('schedule')}
-                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
-                    calendarSubView === 'schedule' ? 'bg-blue-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  <List size={16} className="inline-block mr-1 -mt-0.5" />カレンダー
-                </button>
-                <button
-                  onClick={() => setCalendarSubView('facility')}
-                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
-                    calendarSubView === 'facility' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  <CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />会館予約
-                </button>
-              </div>
+        {tab === 'calendar' && (() => {
+          const adminModeToggle = (
+            <div className="flex items-center bg-gray-100 rounded-full p-0.5 shrink-0">
+              <button onClick={() => setCalendarSubView('schedule')}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                  calendarSubView === 'schedule' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}>カレンダー</button>
+              <button onClick={() => setCalendarSubView('facility')}
+                className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                  calendarSubView === 'facility' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}>会館予約</button>
             </div>
-
+          );
+          return (
+          <div>
             {calendarSubView === 'schedule' ? (
-              <EventList holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} refreshKey={eventListRefreshKey} isAdmin />
+              <EventList holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} refreshKey={eventListRefreshKey} isAdmin modeToggle={adminModeToggle} />
             ) : (
               <Calendar
                 currentDate={currentDate}
                 onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
                 onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
                 bookings={bookings}
+                modeToggle={adminModeToggle}
                 onCellClick={handleCellClick}
                 onItemClick={handleBookingItemClick}
                 onOverflowClick={handleOverflowClick}
@@ -467,7 +459,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               />
             )}
           </div>
-        )}
+          );
+        })()}
 
         {/* === インポート === */}
         {tab === 'import' && <ImportTab />}

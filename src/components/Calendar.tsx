@@ -18,6 +18,7 @@ interface CalendarProps {
   closures?: Set<string>;
   disableModal?: boolean;
   loading?: boolean;
+  modeToggle?: React.ReactNode;
 }
 
 const ROOM_COLORS: Record<string, { bg: string; bar: string }> = {
@@ -357,7 +358,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const Calendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading, modeToggle,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
@@ -495,9 +496,10 @@ const Calendar: React.FC<CalendarProps> = ({
     <>
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {/* Header with month nav + sub-view toggle */}
-        <div className="flex items-center justify-between p-4 bg-white border-b border-[var(--md-outline)]">
+        <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-[var(--md-outline)]">
           <div className="flex items-center gap-2">
-            <h2 className="text-[22px] font-normal text-gray-800 flex items-center gap-2">
+            {modeToggle}
+            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
               {year}年 {month + 1}月
               {loading && <span className="w-4 h-4 border-2 border-emerald-300 border-t-emerald-600 rounded-full animate-spin" />}
             </h2>

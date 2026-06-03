@@ -288,9 +288,24 @@ function App() {
     }
   };
 
+  // モード切替トグル（PC用: EventList/Calendarヘッダーに埋め込む）
+  const modeToggleEl = !isMobile ? (
+    <div className="flex items-center bg-gray-100 rounded-full p-0.5 shrink-0">
+      <button onClick={() => { setCalendarMode('schedule'); setShowMyPage(false); }}
+        className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+          !showMyPage && calendarMode === 'schedule' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+        }`}>カレンダー</button>
+      <button onClick={() => { setCalendarMode('calendar'); setShowMyPage(false); }}
+        className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+          !showMyPage && calendarMode === 'calendar' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+        }`}>会館予約</button>
+    </div>
+  ) : undefined;
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-gray-800">
-      {/* Header: タイトル右寄せ + ビュー切替ボタンを同一行に */}
+      {/* Header: モバイル or ログイン時のみ表示 */}
+      {(isMobile || isOrgLoggedIn) && (
       <header className="bg-white shadow-sm sticky top-0 z-30">
         <div className={`max-w-5xl mx-auto px-4 ${isMobile ? 'h-12' : 'h-14'} flex items-center justify-between`}>
           {/* ビュー切替ボタン */}
@@ -348,11 +363,12 @@ function App() {
                 </button>
               </>
             ) : (
-              null /* ログインボタンは Phase 3 パイロット時に表示 */
+              null
             )}
           </div>
         </div>
       </header>
+      )}
 
       {/* Main Content */}
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8">
@@ -429,7 +445,7 @@ function App() {
               isMobile ? (
                 <MobileEventList holidays={holidays} closures={closures} />
               ) : (
-                <EventList holidays={holidays} closures={closures} />
+                <EventList holidays={holidays} closures={closures} modeToggle={modeToggleEl} />
               )
             ) :
 
@@ -474,6 +490,7 @@ function App() {
                   holidays={holidays}
                   closures={closures}
                   loading={loading}
+                  modeToggle={modeToggleEl}
                 />
                 </>
               ) : bookingSubView === 'weekly' ? (
