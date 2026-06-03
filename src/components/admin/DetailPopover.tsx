@@ -104,8 +104,8 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
     }
   });
 
-  // インライン編集
-  const [editing, setEditing] = useState(initialEditing || false);
+  // インライン編集（booking型は常に編集モード）
+  const [editing, setEditing] = useState(initialEditing || data.type === 'booking');
   const [editForm, setEditForm] = useState({
     title: data.title,
     description: data.description || '',
@@ -264,9 +264,11 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   }
 
   const isFacilityEvent = data.type === 'event' && data.eventType === 'facility';
+  const isBooking = data.type === 'booking';
 
   return (
-    <Popover anchorRect={anchorRect} onClose={onClose} width={340}>
+    <Popover anchorRect={anchorRect} onClose={onClose} width={340}
+      bgClass={isBooking ? 'bg-emerald-50 border-emerald-200' : undefined}>
       {/* ヘッダーアクション */}
       <div className="flex items-center justify-end gap-1 px-3 pt-3 pb-1">
         {data.type === 'event' && (
@@ -284,13 +286,13 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         )}
         {!isFacilityEvent && (
           <>
-            {!initialEditing && (
+            {!isBooking && !initialEditing && (
               <button onClick={() => onEdit ? onEdit(data) : setEditing(!editing)} className={`p-1.5 hover:bg-gray-100 rounded-full ${editing ? 'bg-blue-100' : ''}`} title="編集">
                 <Pencil size={16} className={editing ? 'text-blue-500' : 'text-gray-500'} />
               </button>
             )}
-            <button onClick={handleDelete} className="p-1.5 hover:bg-gray-100 rounded-full" title="削除">
-              <Trash2 size={16} className="text-gray-500" />
+            <button onClick={handleDelete} className={`p-1.5 rounded-full ${isBooking ? 'hover:bg-emerald-100' : 'hover:bg-gray-100'}`} title="削除">
+              <Trash2 size={16} className={isBooking ? 'text-emerald-600' : 'text-gray-500'} />
             </button>
           </>
         )}

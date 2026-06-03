@@ -5,6 +5,7 @@ interface PopoverProps {
   onClose: () => void;
   children: React.ReactNode;
   width?: number;
+  bgClass?: string;
 }
 
 /**
@@ -13,7 +14,7 @@ interface PopoverProps {
  * ビューポートをはみ出す場合は自動で位置調整。
  * 内容が画面に収まらない場合はスクロール可能。
  */
-export default function Popover({ anchorRect, onClose, children, width = 380 }: PopoverProps) {
+export default function Popover({ anchorRect, onClose, children, width = 380, bgClass }: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   const reposition = useCallback(() => {
@@ -66,7 +67,7 @@ export default function Popover({ anchorRect, onClose, children, width = 380 }: 
       {/* ポップオーバー本体 */}
       <div
         ref={ref}
-        className="fixed z-50 bg-gray-50 rounded-2xl shadow-2xl border border-gray-200 overflow-y-auto"
+        className={`fixed z-50 rounded-2xl shadow-2xl border overflow-y-auto ${bgClass || 'bg-gray-50 border-gray-200'}`}
         style={{ width: `${width}px` }}
         onClick={e => e.stopPropagation()}
       >
