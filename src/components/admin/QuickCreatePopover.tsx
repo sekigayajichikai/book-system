@@ -306,75 +306,47 @@ export function BookingCreatePopover({ date, onClose, onSaved, anchorRect }: Boo
   };
 
   return (
-    <Popover anchorRect={anchorRect} onClose={onClose}>
-      <div className="p-4 space-y-3">
-        {/* ヘッダー */}
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">予約を作成</span>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full"><X size={16} className="text-gray-400" /></button>
+    <Popover anchorRect={anchorRect} onClose={onClose} bgClass="bg-emerald-50 border-emerald-200">
+      <div className="flex items-center justify-end gap-1 px-3 pt-3 pb-1">
+        <button onClick={onClose} className="p-1.5 hover:bg-emerald-100 rounded-full"><X size={16} className="text-emerald-500" /></button>
+      </div>
+      <div className="px-4 pb-4 space-y-3">
+        <div className="text-xs font-bold text-emerald-700">予約を作成 — {dateLabel}</div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">タイトル</label>
+          <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400"
+            placeholder={form.org ? `${form.org}（自動設定）` : 'タイトル（空欄で団体名を使用）'} />
         </div>
-
-        {/* 団体 */}
-        <IconField icon={<Users size={18} />}>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">団体</label>
           <OrgPicker value={form.org} onChange={v => setForm(f => ({ ...f, org: v }))} />
-        </IconField>
-
-        {/* タイトル */}
-        <div className="pl-9">
-          <input
-            value={form.title}
-            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-emerald-400 outline-none"
-            placeholder={form.org ? `${form.org}（自動設定）` : 'タイトル（空欄で団体名を使用）'}
-          />
         </div>
-
-        {/* 日付 */}
-        <div className="text-sm text-gray-500 pl-9">{dateLabel}</div>
-
-        {/* 時間帯 */}
-        <IconField icon={<Clock size={18} />}>
-          <select
-            value={form.slot}
-            onChange={e => setForm(f => ({ ...f, slot: e.target.value }))}
-            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-emerald-400 outline-none"
-          >
-            {TIME_SLOTS.map(s => (
-              <option key={s.id} value={s.gasKey}>{s.gasKey} {s.startTime}〜{s.endTime}</option>
-            ))}
-          </select>
-        </IconField>
-
-        {/* 部屋 */}
-        <IconField icon={<MapPin size={18} />}>
-          <select
-            value={form.room}
-            onChange={e => setForm(f => ({ ...f, room: e.target.value }))}
-            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-emerald-400 outline-none"
-          >
-            {ROOMS.map(r => (
-              <option key={r.id} value={r.id}>{r.shortName}</option>
-            ))}
-          </select>
-        </IconField>
-
-        {/* 説明 */}
-        <IconField icon={<AlignLeft size={18} />}>
-          <textarea
-            value={form.description}
-            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-            rows={2}
-            className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-emerald-400 outline-none resize-none"
-            placeholder="説明を追加"
-          />
-        </IconField>
-
-        {/* 保存ボタン */}
-        <div className="flex justify-end pt-1">
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">時間帯</label>
+            <select value={form.slot} onChange={e => setForm(f => ({ ...f, slot: e.target.value }))}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400">
+              {TIME_SLOTS.map(s => <option key={s.id} value={s.gasKey}>{s.gasKey}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">部屋</label>
+            <select value={form.room} onChange={e => setForm(f => ({ ...f, room: e.target.value }))}
+              className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400">
+              {ROOMS.map(r => <option key={r.id} value={r.id}>{r.shortName}</option>)}
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 mb-1">メモ</label>
+          <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400" rows={2} placeholder="補足情報" />
+        </div>
+        <div className="flex gap-2">
+          <button onClick={onClose} className="flex-1 py-1.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-white/50">キャンセル</button>
           <button onClick={handleSave} disabled={saving}
-            className="px-6 py-2 bg-emerald-600 text-white rounded-full text-sm font-bold hover:bg-emerald-700 disabled:opacity-50">
-            保存
-          </button>
+            className="flex-1 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 disabled:opacity-50">登録</button>
         </div>
       </div>
     </Popover>

@@ -418,11 +418,11 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
 
         {/* booking インライン編集 */}
         {editing && data.type === 'booking' && (
-          <div className="space-y-3 border-t border-gray-200 pt-3">
+          <div className="space-y-3 border-t border-emerald-200 pt-3">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">タイトル</label>
               <input value={bookingForm.title} onChange={e => setBookingForm(f => ({ ...f, title: e.target.value }))}
-                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400" />
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400" />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">団体</label>
@@ -432,14 +432,14 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">時間帯</label>
                 <select value={bookingForm.slot} onChange={e => setBookingForm(f => ({ ...f, slot: e.target.value }))}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400">
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400">
                   {TIME_SLOTS.map(s => <option key={s.id} value={s.gasKey}>{s.gasKey}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">部屋</label>
                 <select value={bookingForm.room} onChange={e => setBookingForm(f => ({ ...f, room: e.target.value }))}
-                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400">
+                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400">
                   {ROOMS.map(r => <option key={r.id} value={r.id}>{r.shortName}</option>)}
                 </select>
               </div>
@@ -447,11 +447,11 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">メモ</label>
               <textarea value={bookingForm.memo} onChange={e => setBookingForm(f => ({ ...f, memo: e.target.value }))}
-                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400" rows={2} placeholder="補足情報" />
+                className="w-full px-2.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-emerald-400" rows={2} placeholder="補足情報" />
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setEditing(false)} className="flex-1 py-1.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-50">キャンセル</button>
-              <button onClick={handleSaveBooking} className="flex-1 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700">保存</button>
+              <button onClick={() => setEditing(false)} className="flex-1 py-1.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-600 hover:bg-white/50">キャンセル</button>
+              <button onClick={handleSaveBooking} className="flex-1 py-1.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700">保存</button>
             </div>
           </div>
         )}
