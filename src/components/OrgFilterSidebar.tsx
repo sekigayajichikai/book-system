@@ -106,7 +106,7 @@ export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGr
             </div>
             {/* 団体リスト */}
             {!isCollapsed && (
-              <div className="ml-5 space-y-px">
+              <div className="ml-7 space-y-px">
                 {groupOrgs.map(org => (
                   <label key={org.name} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-gray-100 cursor-pointer">
                     <input type="checkbox" checked={selectedOrgs.has(org.name)} onChange={() => onToggleOrg(org.name)} className={`w-3 h-3 rounded ${cc}`} />
