@@ -85,6 +85,27 @@ function App() {
       return next;
     });
   };
+  const handleSelectAll = () => {
+    const sbUrl = import.meta.env.VITE_SUPABASE_URL;
+    const sbKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (!sbUrl || !sbKey) return;
+    fetch(`${sbUrl}/rest/v1/booking_organizations?select=name&is_active=not.is.false`, {
+      headers: { 'apikey': sbKey, 'Authorization': `Bearer ${sbKey}` },
+    }).then(r => r.json()).then(d => {
+      const all = new Set<string>((d || []).map((o: any) => o.name));
+      setFilterOrgs(all);
+      localStorage.setItem('filter_orgs', JSON.stringify([...all]));
+    }).catch(() => {});
+  };
+  const handleDeselectAll = () => {
+    setFilterOrgs(new Set());
+    localStorage.setItem('filter_orgs', JSON.stringify([]));
+  };
+  const handleSelectOnly = (name: string) => {
+    const next = new Set<string>([name]);
+    setFilterOrgs(next);
+    localStorage.setItem('filter_orgs', JSON.stringify([...next]));
+  };
 
   // 団体ログイン状態
   const [orgId, setOrgId] = useState<string | null>(() => localStorage.getItem('org_id'));
@@ -491,7 +512,7 @@ function App() {
                 <MobileEventList holidays={holidays} closures={closures} />
               ) : (
                 <div className="flex gap-4">
-                  <OrgFilterSidebar selectedOrgs={filterOrgs} onToggleOrg={handleToggleOrg} onToggleGroup={handleToggleGroup} showMajor={showMajor} onToggleMajor={() => setShowMajor(v => !v)} />
+                  <OrgFilterSidebar selectedOrgs={filterOrgs} onToggleOrg={handleToggleOrg} onToggleGroup={handleToggleGroup} onSelectAll={handleSelectAll} onDeselectAll={handleDeselectAll} onSelectOnly={handleSelectOnly} showMajor={showMajor} onToggleMajor={() => setShowMajor(v => !v)} />
                   <div className="flex-1 min-w-0">
                     <EventList holidays={holidays} closures={closures} modeToggle={modeToggleEl} filterOrgs={filterOrgs} showMajor={showMajor} />
                   </div>

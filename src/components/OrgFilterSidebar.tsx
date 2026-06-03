@@ -11,6 +11,9 @@ interface OrgFilterSidebarProps {
   selectedOrgs: Set<string>;
   onToggleOrg: (name: string) => void;
   onToggleGroup: (groupName: string, orgNames: string[]) => void;
+  onSelectAll: () => void;
+  onDeselectAll: () => void;
+  onSelectOnly: (name: string) => void;
   showMajor: boolean;
   onToggleMajor: () => void;
 }
@@ -29,7 +32,7 @@ function ColorCheckbox({ checked, color, onChange, size = 16 }: { checked: boole
   );
 }
 
-export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGroup, showMajor, onToggleMajor }: OrgFilterSidebarProps) {
+export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGroup, onSelectAll, onDeselectAll, onSelectOnly, showMajor, onToggleMajor }: OrgFilterSidebarProps) {
   const [groups, setGroups] = useState<OrgGroup[]>([]);
   const [orgs, setOrgs] = useState<OrgItem[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean> | null>(null);
@@ -66,6 +69,12 @@ export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGr
         主な予定
       </button>
 
+      {/* 全選択/全解除 */}
+      <div className="flex gap-2 px-1 mb-1 text-xs">
+        <button onClick={onSelectAll} className="text-blue-500 hover:underline">全選択</button>
+        <button onClick={onDeselectAll} className="text-blue-500 hover:underline">全解除</button>
+      </div>
+
       {/* グループ > 団体 */}
       <div className="space-y-0.5">
         {groups.map(group => {
@@ -89,10 +98,11 @@ export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGr
               {!isCollapsed && (
                 <div className="ml-2">
                   {groupOrgs.map(org => (
-                    <label key={org.name} className="flex items-center gap-2.5 py-0.5 px-1 ml-4 rounded-lg hover:bg-gray-100 cursor-pointer">
-                      <ColorCheckbox checked={selectedOrgs.has(org.name)} color={color} onChange={() => onToggleOrg(org.name)} />
+                    <div key={org.name} className="flex items-center gap-2.5 py-0.5 px-1 ml-4 rounded-lg hover:bg-gray-100 cursor-pointer"
+                      onClick={e => { e.shiftKey ? onSelectOnly(org.name) : onToggleOrg(org.name); }}>
+                      <ColorCheckbox checked={selectedOrgs.has(org.name)} color={color} onChange={() => {}} />
                       <span className="text-[13px] text-gray-600 truncate">{org.name}</span>
-                    </label>
+                    </div>
                   ))}
                 </div>
               )}

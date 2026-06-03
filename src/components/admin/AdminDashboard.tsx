@@ -109,6 +109,23 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       return next;
     });
   };
+  const handleAdminSelectAll = () => {
+    supaFetch('booking_organizations?select=name&is_active=not.is.false')
+      .then(r => r.json()).then(d => {
+        const all = new Set<string>((d || []).map((o: any) => o.name));
+        setAdminFilterOrgs(all);
+        localStorage.setItem('admin_filter_orgs', JSON.stringify([...all]));
+      }).catch(() => {});
+  };
+  const handleAdminDeselectAll = () => {
+    setAdminFilterOrgs(new Set());
+    localStorage.setItem('admin_filter_orgs', JSON.stringify([]));
+  };
+  const handleAdminSelectOnly = (name: string) => {
+    const next = new Set<string>([name]);
+    setAdminFilterOrgs(next);
+    localStorage.setItem('admin_filter_orgs', JSON.stringify([...next]));
+  };
 
   // === カレンダー ===
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -466,7 +483,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           );
           return (
           <div className="flex gap-4">
-            <OrgFilterSidebar selectedOrgs={adminFilterOrgs} onToggleOrg={handleAdminToggleOrg} onToggleGroup={handleAdminToggleGroup} showMajor={adminShowMajor} onToggleMajor={() => setAdminShowMajor(v => !v)} />
+            <OrgFilterSidebar selectedOrgs={adminFilterOrgs} onToggleOrg={handleAdminToggleOrg} onToggleGroup={handleAdminToggleGroup} onSelectAll={handleAdminSelectAll} onDeselectAll={handleAdminDeselectAll} onSelectOnly={handleAdminSelectOnly} showMajor={adminShowMajor} onToggleMajor={() => setAdminShowMajor(v => !v)} />
             <div className="flex-1 min-w-0">
             {calendarSubView === 'schedule' ? (
               <EventList holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} refreshKey={eventListRefreshKey} isAdmin modeToggle={adminModeToggle} filterOrgs={adminFilterOrgs} showMajor={adminShowMajor} />
