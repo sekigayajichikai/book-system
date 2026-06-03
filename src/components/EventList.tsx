@@ -108,19 +108,17 @@ export default function EventList({ holidays, closures, onDateClick, onCellClick
   const filterEvent = (e: EventSummary): boolean => {
     if (!showMajor && e.isMajor) return false;
     if (!filterOrgs || filterOrgs.size === 0) return true;
-    // memo（団体名）でマッチ
+    // memo（団体名）で明確にマッチ → 表示
     if (e.memo && filterOrgs.has(e.memo)) return true;
+    // memo（団体名）が明確に存在するがフィルタに含まれない → 非表示
+    if (e.memo && !filterOrgs.has(e.memo)) return false;
     // originalTitle（タイトルが団体名の場合）でマッチ
     if (e.originalTitle && filterOrgs.has(e.originalTitle)) return true;
     // title でマッチ
     if (filterOrgs.has(e.title)) return true;
-    // 団体情報がないイベント（休館、一般予定等）は常に表示
-    if (!e.memo && e.eventType !== 'facility') return true;
-    // facility型でmemoなし→タイトル部分一致でチェック
-    if (e.eventType === 'facility' && !e.memo) {
-      return [...filterOrgs].some(org => e.title.includes(org) || org.includes(e.title));
-    }
-    return false;
+    // 団体情報が不明なイベント（memo無し）は常に表示
+    // → フィルタで消すべきか判断できないため、安全側に倒す
+    return true;
   };
 
   const filteredEvents = filterOrgs ? events.filter(filterEvent) : events;
