@@ -5,7 +5,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 interface OrgGroup { name: string; sort_order: number; }
-interface OrgItem { name: string; group_name: string | null; is_active: boolean | null; }
+interface OrgItem { name: string; group_name: string | null; is_active: boolean | null; id?: string; created_at?: string; registration_date?: string; }
 
 interface OrgFilterSidebarProps {
   selectedOrgs: Set<string>;
@@ -36,16 +36,51 @@ export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGr
   const [groups, setGroups] = useState<OrgGroup[]>([]);
   const [orgs, setOrgs] = useState<OrgItem[]>([]);
   const [collapsed, setCollapsed] = useState<Record<string, boolean> | null>(null);
+  const [orgSectionOpen, setOrgSectionOpen] = useState(true);
+  const [orgLastUsed, setOrgLastUsed] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!SUPABASE_URL || !SUPABASE_KEY) return;
     const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` };
     Promise.all([
       fetch(`${SUPABASE_URL}/rest/v1/booking_org_groups?order=sort_order.asc&select=name,sort_order`, { headers }).then(r => r.json()),
-      fetch(`${SUPABASE_URL}/rest/v1/booking_organizations?order=name.asc&select=name,group_name,is_active`, { headers }).then(r => r.json()),
-    ]).then(([g, o]) => {
+      fetch(`${SUPABASE_URL}/rest/v1/booking_organizations?order=name.asc&select=id,name,group_name,is_active,created_at,registration_date`, { headers }).then(r => r.json()),
+      fetch(`${SUPABASE_URL}/rest/v1/bookings?select=org_id,title,date&order=date.desc`, { headers }).then(r => r.json()),
+      fetch(`${SUPABASE_URL}/rest/v1/booking_organizations?select=id,name`, { headers }).then(r => r.json()),
+    ]).then(([g, o, bookingData, orgIdMap]) => {
       setGroups(g || []);
-      setOrgs((o || []).filter((org: OrgItem) => org.is_active !== false));
+
+      // 各団体の最終利用日を算出
+      const lastUsed: Record<string, string> = {};
+      (bookingData || []).forEach((b: any) => {
+        if (b.org_id && !lastUsed[b.org_id]) lastUsed[b.org_id] = b.date;
+      });
+      (orgIdMap || []).forEach((org: any) => {
+        if (lastUsed[org.id]) return;
+        const match = (bookingData || []).find((b: any) =>
+          b.title && org.name && (b.title.includes(org.name) || org.name.includes(b.title))
+        );
+        if (match) lastUsed[org.id] = match.date;
+      });
+      setOrgLastUsed(lastUsed);
+
+      // 6ヶ月判定でアクティブ団体のみ残す
+      const sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      const cutoff = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-${String(sixMonthsAgo.getDate()).padStart(2, '0')}`;
+
+      const activeOrgs = (o || []).filter((org: OrgItem) => {
+        if (org.is_active === true) return true;
+        if (org.is_active === false) return false;
+        // 自動判定 (null)
+        const last = lastUsed[org.id || ''];
+        if (last && last >= cutoff) return true;
+        if (org.registration_date && org.registration_date >= cutoff) return true;
+        if (org.created_at && org.created_at >= cutoff) return true;
+        return false;
+      });
+      setOrgs(activeOrgs);
+
       // デフォルト全折りたたみ
       const c: Record<string, boolean> = {};
       (g || []).forEach((gr: OrgGroup) => { c[gr.name] = true; });
@@ -60,6 +95,8 @@ export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGr
 
   return (
     <div className="w-48 shrink-0 select-none">
+      <div className="text-lg font-bold text-gray-800 px-1 pt-3 pb-2 mb-2">関ヶ谷自治会</div>
+
       {/* 主な予定（カレンダーのイベントラベル風） */}
       <button onClick={onToggleMajor}
         className={`flex items-center gap-1.5 w-full text-left text-sm font-bold rounded px-2 py-1 mb-2 transition-colors ${
@@ -69,7 +106,13 @@ export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGr
         主な予定
       </button>
 
-      {/* 全選択/全解除 */}
+      {/* 表示する団体 */}
+      <button onClick={() => setOrgSectionOpen(v => !v)}
+        className="flex items-center justify-between w-full text-sm text-gray-500 font-bold px-1 mt-4 mb-1.5 pt-3 border-t border-gray-200 hover:text-gray-700 transition-colors">
+        <span>表示する団体</span>
+        {orgSectionOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+      </button>
+      {orgSectionOpen && <>
       <div className="flex gap-2 px-1 mb-1 text-xs">
         <button onClick={onSelectAll} className="text-blue-500 hover:underline">全選択</button>
         <button onClick={onDeselectAll} className="text-blue-500 hover:underline">全解除</button>
@@ -110,6 +153,7 @@ export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGr
           );
         })}
       </div>
+      </>}
     </div>
   );
 }

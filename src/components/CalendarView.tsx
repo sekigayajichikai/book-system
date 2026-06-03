@@ -45,7 +45,7 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
     const calc = () => {
       if (cardRef.current) {
         const top = cardRef.current.getBoundingClientRect().top;
-        setCardHeight(Math.floor(window.innerHeight - top));
+        setCardHeight(Math.floor(window.innerHeight - top - 12));
       }
     };
     calc();
@@ -239,9 +239,9 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
       <div ref={cardRef} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col" style={cardHeight ? { height: `${cardHeight}px` } : undefined}>
         {/* ヘッダー */}
         <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-200 shrink-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             {modeToggle}
-            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2 whitespace-nowrap">
               {subView === 'week' ? (() => {
                 const we = new Date(weekStart); we.setDate(we.getDate() + 6);
                 return `${weekStart.getMonth() + 1}/${weekStart.getDate()} 〜 ${we.getMonth() + 1}/${we.getDate()}`;
@@ -258,7 +258,7 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
             </div>
           </div>
           {isAdmin && (
-            <div className="flex items-center bg-gray-100 rounded-full p-0.5">
+            <div className="flex items-center bg-gray-100 rounded-full p-0.5 shrink-0">
               {(['month', 'week', 'list'] as const).map(v => (
                 <button key={v} onClick={() => setSubView(v)}
                   className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${

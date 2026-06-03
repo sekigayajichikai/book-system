@@ -262,12 +262,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       .then(r => r.json()).then(data => setEquipmentList(data || []));
   }, []);
 
-  const fetchOrgs = (autoSelect?: boolean) => {
+  const fetchOrgs = () => {
     setLoading(true);
     supaFetch('booking_organizations?order=name.asc&select=*')
       .then(r => r.json()).then(data => {
         setOrgs(data || []);
-        if (autoSelect && data?.length > 0) openOrgForm(data[0]);
       })
       .finally(() => setLoading(false));
 
@@ -293,7 +292,35 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
           });
       }).catch(() => {});
   };
-  useEffect(() => { if (tab === 'organizations') fetchOrgs(true); }, [tab]);
+  useEffect(() => { if (tab === 'organizations') fetchOrgs(); }, [tab]);
+
+  // タブ表示時、表示順の先頭を自動選択
+  useEffect(() => {
+    if (tab !== 'organizations' || orgs.length === 0) return;
+    if (editOrg) return; // 既に選択中なら何もしない
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const cutoff = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-${String(sixMonthsAgo.getDate()).padStart(2, '0')}`;
+    const activeOrgs = orgs.filter(o => {
+      if (o.is_active === true) return true;
+      if (o.is_active === false) return false;
+      const last = orgLastUsed[o.id];
+      if (last && last >= cutoff) return true;
+      if (o.registration_date && o.registration_date >= cutoff) return true;
+      if (o.created_at && o.created_at >= cutoff) return true;
+      return false;
+    });
+    if (activeOrgs.length === 0) return;
+    const sorted = orgSortByGroup
+      ? [...activeOrgs].sort((a, b) => {
+          const groupOrder = orgGroups.map(g => g.name);
+          const ia = groupOrder.indexOf(a.group_name || ''); const ib = groupOrder.indexOf(b.group_name || '');
+          if ((ia >= 0 ? ia : 999) !== (ib >= 0 ? ib : 999)) return (ia >= 0 ? ia : 999) - (ib >= 0 ? ib : 999);
+          return a.name.localeCompare(b.name, 'ja');
+        })
+      : [...activeOrgs].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+    openOrgForm(sorted[0]);
+  }, [orgs, orgGroups, orgLastUsed]);
 
   const openOrgForm = (org?: Org) => {
     if (org) {
@@ -466,7 +493,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         </div>
       </header>
 
-      <main className="flex-1 min-h-0 mx-auto px-4 py-3 w-full">
+      <main className="flex-1 min-h-0 mx-auto px-4 py-3 w-full overflow-y-auto">
         {/* === カレンダー === */}
         {tab === 'calendar' && (() => {
           const adminModeToggle = (
@@ -482,7 +509,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             </div>
           );
           return (
-          <div className="flex gap-4 h-full">
+          <div className="flex gap-4" style={{ height: 'calc(100vh - 5rem)' }}>
             <OrgFilterSidebar selectedOrgs={adminFilterOrgs} onToggleOrg={handleAdminToggleOrg} onToggleGroup={handleAdminToggleGroup} onSelectAll={handleAdminSelectAll} onDeselectAll={handleAdminDeselectAll} onSelectOnly={handleAdminSelectOnly} showMajor={adminShowMajor} onToggleMajor={() => setAdminShowMajor(v => !v)} />
             <div className="flex-1 min-w-0 min-h-0">
             {calendarSubView === 'schedule' ? (
@@ -580,9 +607,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
         {/* === 団体マスタ === */}
         {tab === 'organizations' && (
-          <div className="flex gap-4">
-            <div className={`${showOrgPanel ? 'w-1/3' : 'w-full max-w-sm'} transition-all`}>
-              <div className="flex items-center justify-between mb-3">
+          <div className="flex gap-4" style={{ height: 'calc(100vh - 5rem)' }}>
+            <div className={`${showOrgPanel ? 'w-1/3' : 'w-full max-w-sm'} transition-all flex flex-col min-h-0`}>
+              <div className="flex items-center justify-between mb-3 shrink-0">
                 <h2 className="text-lg font-bold text-gray-800">団体マスタ</h2>
                 <div className="flex items-center gap-2">
                   <button
@@ -683,7 +710,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 };
 
                 return (
-                  <>
+                  <div className="flex-1 min-h-0 overflow-y-auto">
                   <div className="bg-white rounded-xl border border-gray-200 overflow-hidden divide-y divide-gray-100">
                     {sortedActive.map(o => {
                       const group = o.group_name || '未分類';
@@ -715,7 +742,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       )}
                     </div>
                   )}
-                  </>
+                  </div>
                 );
               })()}
             </div>

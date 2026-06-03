@@ -379,7 +379,7 @@ const BookingCalendar: React.FC<CalendarProps> = ({
     const calc = () => {
       if (cardRef.current) {
         const top = cardRef.current.getBoundingClientRect().top;
-        setCardHeight(Math.floor(window.innerHeight - top));
+        setCardHeight(Math.floor(window.innerHeight - top - 12));
       }
     };
     calc();
