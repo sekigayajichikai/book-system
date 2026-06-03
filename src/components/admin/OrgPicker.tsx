@@ -77,14 +77,14 @@ export default function OrgPicker({ value, onChange, placeholder = '団体名', 
 
   return (
     <div className={`space-y-1.5 ${className}`}>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1">
         <select value={selectedGroup} onChange={e => { setSelectedGroup(e.target.value); if (!e.target.value) onChange(''); }}
-          className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 bg-white">
+          className="flex-1 min-w-0 px-1.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 bg-white">
           <option value="">-- グループ --</option>
           {groups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
         </select>
         <select value={value} onChange={e => onChange(e.target.value)} disabled={!selectedGroup}
-          className="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 bg-white disabled:bg-gray-100 disabled:text-gray-400">
+          className="flex-1 min-w-0 px-1.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 bg-white disabled:bg-gray-100 disabled:text-gray-400">
           <option value="">-- 団体 --</option>
           {filteredOrgs.map(o => <option key={o.id} value={o.name}>{o.name}</option>)}
         </select>
