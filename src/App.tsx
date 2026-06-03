@@ -454,8 +454,7 @@ function App() {
               /* === モバイル版 === */
               calendarMode === 'calendar' ? (
                 <>
-                {lastUpdated && <div className="text-xs text-gray-400 text-right mb-2">会館予約状況 更新日: {new Date(lastUpdated + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}</div>}
-                <MobileCalendarView
+                                <MobileCalendarView
                   weekStart={weekStart}
                   bookings={bookings}
                   onPrevWeek={handlePrevWeek}
@@ -480,8 +479,7 @@ function App() {
               /* === PC版（既存） === */
               calendarMode === 'calendar' ? (
                 <>
-                {lastUpdated && <div className="text-xs text-gray-400 text-right mb-2">会館予約状況 更新日: {new Date(lastUpdated + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}</div>}
-                <Calendar
+                                <Calendar
                   currentDate={currentDate}
                   onPrevMonth={handlePrevMonth}
                   onNextMonth={handleNextMonth}
@@ -491,6 +489,7 @@ function App() {
                   closures={closures}
                   loading={loading}
                   modeToggle={modeToggleEl}
+                  subTitle={lastUpdated ? `更新日: ${new Date(lastUpdated + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}` : undefined}
                 />
                 </>
               ) : bookingSubView === 'weekly' ? (

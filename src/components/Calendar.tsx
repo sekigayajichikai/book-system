@@ -19,6 +19,7 @@ interface CalendarProps {
   disableModal?: boolean;
   loading?: boolean;
   modeToggle?: React.ReactNode;
+  subTitle?: string;
 }
 
 const ROOM_COLORS: Record<string, { bg: string; bar: string }> = {
@@ -347,7 +348,7 @@ const CalendarWeeklyView: React.FC<{
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 mt-3 text-xs text-gray-500 items-center">
+      <div className="flex flex-wrap gap-3 mt-3 text-sm text-gray-700 items-center">
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-yellow-400 rounded-full" />会議室</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-sky-400 rounded-full" />和室</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-pink-400 rounded-full" />図書室</span>
@@ -358,7 +359,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const Calendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading, modeToggle,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading, modeToggle, subTitle,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
@@ -443,13 +444,13 @@ const Calendar: React.FC<CalendarProps> = ({
         >
           {/* Date number */}
           <div className="px-1 pt-0.5 shrink-0 flex items-center gap-1 overflow-hidden">
-            <span className={`text-xs font-bold ${
+            <span className={`text-sm font-bold ${
               isToday ? 'bg-emerald-600 text-white px-1 rounded' : (isHoliday || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-600'
             }`}>
               {day}
             </span>
-            {isClosure && <span className="text-[10px] bg-orange-400 text-white px-1.5 py-px rounded font-bold shrink-0 whitespace-nowrap">休館</span>}
-            {holidayName && <span className="text-xs text-red-400 truncate min-w-0">{holidayName}</span>}
+            {isClosure && <span className="text-xs bg-orange-400 text-white px-1.5 py-px rounded font-bold shrink-0 whitespace-nowrap">休館</span>}
+            {holidayName && <span className="text-sm text-red-400 truncate min-w-0">{holidayName}</span>}
           </div>
 
           <div className="flex flex-col flex-1 min-h-0">
@@ -458,14 +459,14 @@ const Calendar: React.FC<CalendarProps> = ({
               {amBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
-                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-xs font-normal text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] rounded-sm relative z-10' : 'hover:bg-gray-200'}`}>
+                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-sm font-normal text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] rounded-sm relative z-10' : 'hover:bg-gray-200'}`}>
                     <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
                     <span className="truncate">{b.title}</span>
                   </div>
                 );
               })}
               {amBookings.length > 2 && (
-                <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || new DOMRect(); const d = new Date(year, month, day); if (onOverflowClick) onOverflowClick(d, rect); else if (onCellClick) onCellClick(d, rect); }} className="text-xs text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{amBookings.length - 2}件</div>
+                <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || new DOMRect(); const d = new Date(year, month, day); if (onOverflowClick) onOverflowClick(d, rect); else if (onCellClick) onCellClick(d, rect); }} className="text-sm text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{amBookings.length - 2}件</div>
               )}
             </div>
 
@@ -474,14 +475,14 @@ const Calendar: React.FC<CalendarProps> = ({
               {pmBookings.slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
-                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-xs font-normal text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] rounded-sm relative z-10' : 'hover:bg-gray-200'}`}>
+                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-sm font-normal text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] rounded-sm relative z-10' : 'hover:bg-gray-200'}`}>
                     <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
                     <span className="truncate">{b.title}</span>
                   </div>
                 );
               })}
               {pmBookings.length > 2 && (
-                <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect(); if (rect && onCellClick) { const date = new Date(year, month, day); onCellClick(date, rect); } }} className="text-xs text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{pmBookings.length - 2}件</div>
+                <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect(); if (rect && onCellClick) { const date = new Date(year, month, day); onCellClick(date, rect); } }} className="text-sm text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{pmBookings.length - 2}件</div>
               )}
             </div>
           </div>
@@ -511,6 +512,7 @@ const Calendar: React.FC<CalendarProps> = ({
                 <ChevronRight size={20} className="text-[var(--md-on-surface-variant)]" />
               </button>
             </div>
+            {subTitle && <span className="text-xs text-gray-500 ml-1">{subTitle}</span>}
           </div>
 
           {/* Month / Week / List toggle */}
@@ -533,7 +535,7 @@ const Calendar: React.FC<CalendarProps> = ({
             {/* Weekday header */}
             <div className="grid grid-cols-7 text-center bg-gray-50 border-b border-gray-200">
               {weekDays.map((d, i) => (
-                <div key={d} className={`py-2 text-sm font-bold ${i === 6 ? 'text-red-500' : i === 5 ? 'text-blue-500' : 'text-gray-600'}`}>
+                <div key={d} className={`py-1 text-sm font-bold ${i === 6 ? 'text-red-500' : i === 5 ? 'text-blue-500' : 'text-gray-600'}`}>
                   {d}
                 </div>
               ))}
@@ -544,7 +546,7 @@ const Calendar: React.FC<CalendarProps> = ({
             </div>
 
             {/* Legend */}
-            <div className="flex flex-wrap gap-3 p-3 border-t border-gray-100 text-xs text-gray-500 items-center">
+            <div className="flex flex-wrap gap-3 px-3 py-1.5 border-t border-gray-100 text-sm text-gray-700 items-center">
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-white border border-gray-200 rounded" />午前</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 bg-gray-100 rounded" />午後</span>
               <span className="text-gray-300">|</span>
