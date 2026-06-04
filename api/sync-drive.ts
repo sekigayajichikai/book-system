@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import * as XLSX from 'xlsx';
-import { createOrgMatcher } from './_match-org';
 
 /**
  * POST /api/sync-drive
@@ -193,7 +192,16 @@ async function processMonth(supabase: any, year: number, month: number, rows: Pa
   });
 
   // 団体自動マッチ
-  const matchOrgId = await createOrgMatcher(supabase);
+  const { data: orgs } = await supabase.from('booking_organizations').select('id, name, keywords');
+  const orgList = (orgs || []).map((o: any) => ({ id: o.id as string, name: o.name as string, keywords: (o.keywords || []) as string[] }));
+  const orgSorted = [...orgList].sort((a, b) => b.name.length - a.name.length);
+  function matchOrgId(title: string): string | null {
+    for (const org of orgSorted) { if (title.includes(org.name)) return org.id; }
+    for (const org of orgSorted) { for (const kw of org.keywords) { if (kw && title.includes(kw)) return org.id; } }
+    const cleaned = title.replace(/[（()）\s].*/g, '').trim();
+    if (cleaned.length >= 2) { for (const org of orgSorted) { if (org.name.includes(cleaned)) return org.id; } }
+    return null;
+  }
 
   const importKeySet = new Set<string>();
   const importRows: any[] = [];
