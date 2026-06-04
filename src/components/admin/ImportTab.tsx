@@ -675,12 +675,12 @@ export default function ImportTab() {
                             <span className="font-bold">{row.title}</span>
                           )}
                         </td>
-                        <td className="px-3 py-2" style={{ width: 200 }}>
+                        <td className="px-3 py-2" style={{ width: 260 }}>
                           <div className="flex gap-1">
                             <select
                               value={rowGroupSelection[row.id] || ''}
                               onChange={e => handleGroupChange(row.id, e.target.value)}
-                              className="w-20 text-xs border border-gray-200 rounded px-1 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                              className="text-xs border border-gray-200 rounded px-1 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300" style={{ width: 100 }}
                             >
                               <option value="">グループ</option>
                               {orgGroups.map(g => (
@@ -691,7 +691,7 @@ export default function ImportTab() {
                               value={row.org_id || ''}
                               onChange={e => handleOrgChange(row.id, e.target.value || null)}
                               disabled={!rowGroupSelection[row.id]}
-                              className="flex-1 min-w-0 text-xs border border-gray-200 rounded px-1 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-400"
+                              className="text-xs border border-gray-200 rounded px-1 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-400" style={{ width: 150 }}
                             >
                               <option value="">団体</option>
                               {orgOptions
