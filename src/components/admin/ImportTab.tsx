@@ -31,6 +31,12 @@ interface ImportRow {
 interface OrgOption {
   id: string;
   name: string;
+  group_name: string | null;
+}
+
+interface OrgGroup {
+  id: string;
+  name: string;
 }
 
 const DIFF_LABELS: Record<string, { label: string; bg: string; text: string }> = {
@@ -145,6 +151,8 @@ export default function ImportTab() {
   const [driveLastModified, setDriveLastModified] = useState<string | null>(null);
   const [sourceDate, setSourceDate] = useState('');
   const [orgOptions, setOrgOptions] = useState<OrgOption[]>([]);
+  const [orgGroups, setOrgGroups] = useState<OrgGroup[]>([]);
+  const [rowGroupSelection, setRowGroupSelection] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchImport = useCallback(async () => {
@@ -162,15 +170,19 @@ export default function ImportTab() {
     }
   }, []);
 
-  // 団体一覧取得
+  // 団体一覧・グループ取得
   useEffect(() => {
     const sbUrl = import.meta.env.VITE_SUPABASE_URL;
     const sbKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    if (sbUrl && sbKey) {
-      fetch(`${sbUrl}/rest/v1/booking_organizations?select=id,name&is_active=not.is.false&order=name`, {
-        headers: { apikey: sbKey, Authorization: `Bearer ${sbKey}` },
-      }).then(r => r.json()).then(data => setOrgOptions(data || [])).catch(() => {});
-    }
+    if (!sbUrl || !sbKey) return;
+    const headers = { apikey: sbKey, Authorization: `Bearer ${sbKey}` };
+    Promise.all([
+      fetch(`${sbUrl}/rest/v1/booking_organizations?select=id,name,group_name&is_active=not.is.false&order=name`, { headers }).then(r => r.json()),
+      fetch(`${sbUrl}/rest/v1/booking_org_groups?order=sort_order.asc&select=id,name`, { headers }).then(r => r.json()),
+    ]).then(([orgs, groups]) => {
+      setOrgOptions(orgs || []);
+      setOrgGroups(groups || []);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -333,14 +345,40 @@ export default function ImportTab() {
   }
 
   // 行レビュー更新
+  const handleGroupChange = (rowId: string, groupName: string) => {
+    setRowGroupSelection(prev => ({ ...prev, [rowId]: groupName }));
+    // グループ変更時はorg_idをクリア
+    handleOrgChange(rowId, null);
+  };
+
   const handleOrgChange = async (rowId: string, orgId: string | null) => {
     setRows(prev => prev.map(r => r.id === rowId ? { ...r, org_id: orgId } : r));
+    // org_idからグループを自動設定
+    if (orgId) {
+      const org = orgOptions.find(o => o.id === orgId);
+      if (org?.group_name) setRowGroupSelection(prev => ({ ...prev, [rowId]: org.group_name! }));
+    }
     await fetch('/api/import', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rows: [{ id: rowId, org_id: orgId }] }),
     });
   };
+
+  // org_idが既にセットされている行のグループを初期化
+  useEffect(() => {
+    if (rows.length === 0 || orgOptions.length === 0) return;
+    const initial: Record<string, string> = {};
+    for (const r of rows) {
+      if (r.org_id) {
+        const org = orgOptions.find(o => o.id === r.org_id);
+        if (org?.group_name) initial[r.id] = org.group_name;
+      }
+    }
+    if (Object.keys(initial).length > 0) {
+      setRowGroupSelection(prev => ({ ...initial, ...prev }));
+    }
+  }, [rows, orgOptions]);
 
   const updateRowStatus = async (rowId: string, status: 'approved' | 'rejected') => {
     setRows(prev => prev.map(r => r.id === rowId ? { ...r, review_status: status } : r));
@@ -637,17 +675,32 @@ export default function ImportTab() {
                             <span className="font-bold">{row.title}</span>
                           )}
                         </td>
-                        <td className="px-3 py-2 w-40">
-                          <select
-                            value={row.org_id || ''}
-                            onChange={e => handleOrgChange(row.id, e.target.value || null)}
-                            className="w-full text-xs border border-gray-200 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
-                          >
-                            <option value="">未設定</option>
-                            {orgOptions.map(o => (
-                              <option key={o.id} value={o.id}>{o.name}</option>
-                            ))}
-                          </select>
+                        <td className="px-3 py-2 w-52">
+                          <div className="flex gap-1">
+                            <select
+                              value={rowGroupSelection[row.id] || ''}
+                              onChange={e => handleGroupChange(row.id, e.target.value)}
+                              className="w-20 text-xs border border-gray-200 rounded px-1 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                            >
+                              <option value="">グループ</option>
+                              {orgGroups.map(g => (
+                                <option key={g.id} value={g.name}>{g.name}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={row.org_id || ''}
+                              onChange={e => handleOrgChange(row.id, e.target.value || null)}
+                              disabled={!rowGroupSelection[row.id]}
+                              className="flex-1 min-w-0 text-xs border border-gray-200 rounded px-1 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-400"
+                            >
+                              <option value="">団体</option>
+                              {orgOptions
+                                .filter(o => o.group_name === rowGroupSelection[row.id])
+                                .map(o => (
+                                  <option key={o.id} value={o.id}>{o.name}</option>
+                                ))}
+                            </select>
+                          </div>
                         </td>
                         <td className="px-3 py-2 w-16">
                           <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${diff.text} border ${

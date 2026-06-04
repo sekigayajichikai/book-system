@@ -81,10 +81,18 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
     const orgList: { id: string; name: string }[] = orgs || [];
 
     function matchOrgId(title: string): string | null {
-      // 団体名がタイトルに含まれるか（長い名前から優先マッチ）
+      // 1. 団体名がタイトルに含まれるか（長い名前から優先マッチ）
       const sorted = [...orgList].sort((a, b) => b.name.length - a.name.length);
       for (const org of sorted) {
         if (title.includes(org.name)) return org.id;
+      }
+      // 2. タイトルの一部が団体名に含まれるか（「ふれあい」→「ふれあいの会」等）
+      //    タイトルから括弧・記号を除去して先頭キーワードでマッチ
+      const cleaned = title.replace(/[（()）\s].*/g, '').trim();
+      if (cleaned.length >= 2) {
+        for (const org of sorted) {
+          if (org.name.includes(cleaned)) return org.id;
+        }
       }
       return null;
     }
