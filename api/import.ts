@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { createOrgMatcher } from './lib/match-org';
+import { createOrgMatcher } from './_match-org';
 
 /**
  * /api/import

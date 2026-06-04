@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import * as XLSX from 'xlsx';
-import { createOrgMatcher } from './lib/match-org';
+import { createOrgMatcher } from './_match-org';
 
 /**
  * POST /api/sync-drive
