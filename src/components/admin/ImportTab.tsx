@@ -40,10 +40,10 @@ interface OrgGroup {
 }
 
 const DIFF_LABELS: Record<string, { label: string; bg: string; text: string }> = {
-  add: { label: '新規', bg: 'bg-emerald-50', text: 'text-emerald-700' },
-  update: { label: '変更', bg: 'bg-amber-50', text: 'text-amber-700' },
-  title_diff: { label: 'タイトル差異', bg: 'bg-yellow-50', text: 'text-yellow-700' },
-  delete: { label: '削除', bg: 'bg-red-50', text: 'text-red-700' },
+  add: { label: '新規', bg: '', text: 'text-emerald-700' },
+  update: { label: '変更', bg: '', text: 'text-amber-700' },
+  title_diff: { label: '差異', bg: '', text: 'text-yellow-700' },
+  delete: { label: '削除', bg: '', text: 'text-red-700' },
   skip: { label: 'スキップ', bg: 'bg-gray-50', text: 'text-gray-500' },
 };
 
@@ -650,19 +650,19 @@ export default function ImportTab() {
             </div>
 
             {monthRows.length > 0 && (
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
                 <tbody className="divide-y divide-gray-100">
                   {monthRows.map(row => {
                     const d = new Date(row.date + 'T00:00:00');
                     const diff = DIFF_LABELS[row.diff_type];
                     return (
                       <tr key={row.id} className={`${diff.bg} ${row.review_status === 'rejected' ? 'opacity-40' : ''}`}>
-                        <td className="px-3 py-2 whitespace-nowrap w-24">
+                        <td className="px-3 py-2 whitespace-nowrap" style={{ width: 80 }}>
                           {d.getMonth() + 1}/{d.getDate()}({DOW[d.getDay()]})
                         </td>
-                        <td className="px-3 py-2 w-16">{row.slot}</td>
-                        <td className="px-3 py-2 w-24">{shortRoomName(row.room)}</td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-2 w-12 whitespace-nowrap">{row.slot}</td>
+                        <td className="px-3 py-2 w-20 whitespace-nowrap">{shortRoomName(row.room)}</td>
+                        <td className="px-3 py-2 truncate">
                           {row.diff_type === 'update' || row.diff_type === 'title_diff' ? (
                             <span>
                               <span className="line-through text-gray-400">{row.existing_title}</span>
@@ -675,7 +675,7 @@ export default function ImportTab() {
                             <span className="font-bold">{row.title}</span>
                           )}
                         </td>
-                        <td className="px-3 py-2 w-52">
+                        <td className="px-3 py-2" style={{ width: 200 }}>
                           <div className="flex gap-1">
                             <select
                               value={rowGroupSelection[row.id] || ''}
@@ -702,7 +702,7 @@ export default function ImportTab() {
                             </select>
                           </div>
                         </td>
-                        <td className="px-3 py-2 w-16">
+                        <td className="px-3 py-2 whitespace-nowrap" style={{ width: 55 }}>
                           <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${diff.text} border ${
                             row.diff_type === 'add' ? 'border-emerald-200 bg-emerald-50' :
                             row.diff_type === 'update' ? 'border-amber-200 bg-amber-50' :
@@ -712,7 +712,7 @@ export default function ImportTab() {
                             {diff.label}
                           </span>
                         </td>
-                        <td className="px-3 py-2 w-20 text-center">
+                        <td className="px-3 py-2 text-center whitespace-nowrap" style={{ width: 70 }}>
                           {row.review_status === 'pending' ? (
                             <div className="flex items-center justify-center gap-1">
                               <button onClick={() => updateRowStatus(row.id, 'approved')} className="p-1 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-200" title="承認"><Check size={14} /></button>
