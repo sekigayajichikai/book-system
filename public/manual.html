@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>関ヶ谷自治会 会館予約システム マニュアル</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif; color: #1e293b; background: #f8fafc; line-height: 1.8; }
+
+  /* ヘッダー */
+  .hero { background: linear-gradient(135deg, #1e40af, #059669); color: white; padding: 3rem 2rem; text-align: center; }
+  .hero h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+  .hero p { font-size: 1.1rem; opacity: 0.9; }
+
+  /* ナビ */
+  .toc { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+  .toc h2 { font-size: 1.3rem; margin-bottom: 1rem; color: #1e40af; border-bottom: 2px solid #1e40af; padding-bottom: 0.5rem; }
+  .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 0.8rem; }
+  .toc-card { background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem 1.2rem; text-decoration: none; color: #334155; transition: all 0.2s; display: flex; align-items: center; gap: 0.8rem; }
+  .toc-card:hover { border-color: #3b82f6; box-shadow: 0 2px 8px rgba(59,130,246,0.15); transform: translateY(-1px); }
+  .toc-icon { font-size: 1.5rem; width: 2rem; text-align: center; }
+  .toc-label { font-weight: 600; font-size: 0.95rem; }
+
+  /* メインコンテンツ */
+  .content { max-width: 900px; margin: 0 auto; padding: 1rem 1.5rem 4rem; }
+
+  /* セクション */
+  section { background: white; border-radius: 16px; border: 1px solid #e2e8f0; padding: 2rem; margin-bottom: 2rem; scroll-margin-top: 1rem; }
+  section h2 { font-size: 1.4rem; color: #1e40af; margin-bottom: 1.2rem; display: flex; align-items: center; gap: 0.5rem; }
+  section h3 { font-size: 1.1rem; color: #334155; margin: 1.5rem 0 0.8rem; padding-left: 0.8rem; border-left: 3px solid #3b82f6; }
+  section h4 { font-size: 1rem; color: #475569; margin: 1rem 0 0.5rem; }
+  p { margin-bottom: 0.8rem; color: #475569; }
+
+  /* リスト */
+  ul, ol { margin: 0.5rem 0 1rem 1.5rem; color: #475569; }
+  li { margin-bottom: 0.3rem; }
+
+  /* ステップ */
+  .steps { counter-reset: step; list-style: none; margin-left: 0; }
+  .steps li { counter-increment: step; position: relative; padding-left: 2.5rem; margin-bottom: 1rem; }
+  .steps li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 1.8rem; height: 1.8rem; background: #3b82f6; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; }
+
+  /* テーブル */
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9rem; }
+  th { background: #f1f5f9; text-align: left; padding: 0.6rem 0.8rem; border: 1px solid #e2e8f0; font-weight: 600; color: #334155; }
+  td { padding: 0.6rem 0.8rem; border: 1px solid #e2e8f0; color: #475569; }
+  tr:nth-child(even) { background: #f8fafc; }
+
+  /* バッジ */
+  .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .badge-yellow { background: #fef3c7; color: #92400e; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-gray { background: #f1f5f9; color: #475569; }
+
+  /* ヒント */
+  .tip { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 1rem 1.2rem; margin: 1rem 0; }
+  .tip::before { content: '💡 ヒント'; display: block; font-weight: 700; color: #1e40af; margin-bottom: 0.3rem; font-size: 0.9rem; }
+  .warn { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 10px; padding: 1rem 1.2rem; margin: 1rem 0; }
+  .warn::before { content: '⚠ 注意'; display: block; font-weight: 700; color: #92400e; margin-bottom: 0.3rem; font-size: 0.9rem; }
+
+  /* 部屋カラー */
+  .room-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+  .room-kaigi { background: #facc15; }
+  .room-washi { background: #38bdf8; }
+  .room-tosho { background: #f472b6; }
+
+  /* キーボードキー風 */
+  kbd { background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0.1rem 0.4rem; font-size: 0.85rem; font-family: inherit; }
+
+  /* レスポンシブ */
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 1.4rem; }
+    section { padding: 1.2rem; }
+    .toc-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>関ヶ谷自治会 会館予約システム</h1>
+  <p>操作マニュアル</p>
+</div>
+
+<!-- 目次 -->
+<nav class="toc">
+  <h2>目次</h2>
+  <div class="toc-grid">
+    <a href="#overview" class="toc-card"><span class="toc-icon">📋</span><span class="toc-label">システム概要</span></a>
+    <a href="#public" class="toc-card"><span class="toc-icon">👀</span><span class="toc-label">一般の方向け（閲覧）</span></a>
+    <a href="#org-login" class="toc-card"><span class="toc-icon">🔑</span><span class="toc-label">団体ログイン</span></a>
+    <a href="#booking" class="toc-card"><span class="toc-icon">📝</span><span class="toc-label">予約の仕方</span></a>
+    <a href="#mypage" class="toc-card"><span class="toc-icon">📄</span><span class="toc-label">マイページ</span></a>
+    <a href="#mobile" class="toc-card"><span class="toc-icon">📱</span><span class="toc-label">スマホでの使い方</span></a>
+    <a href="#admin-login" class="toc-card"><span class="toc-icon">🛡</span><span class="toc-label">管理画面ログイン</span></a>
+    <a href="#admin-calendar" class="toc-card"><span class="toc-icon">📅</span><span class="toc-label">管理：予定管理</span></a>
+    <a href="#admin-import" class="toc-card"><span class="toc-icon">📥</span><span class="toc-label">管理：インポート</span></a>
+    <a href="#admin-approval" class="toc-card"><span class="toc-icon">✅</span><span class="toc-label">管理：申請承認</span></a>
+    <a href="#admin-org" class="toc-card"><span class="toc-icon">👥</span><span class="toc-label">管理：団体マスタ</span></a>
+    <a href="#admin-settings" class="toc-card"><span class="toc-icon">⚙</span><span class="toc-label">管理：設定</span></a>
+  </div>
+</nav>
+
+<div class="content">
+
+<!-- ==================== システム概要 ==================== -->
+<section id="overview">
+  <h2>📋 システム概要</h2>
+  <p>関ヶ谷自治会の会館（会議室・和室・図書室）の予約管理と、自治会カレンダーを一つにまとめたシステムです。</p>
+
+  <h3>利用できる部屋</h3>
+  <table>
+    <tr><th>部屋</th><th>定員</th><th>カラー</th></tr>
+    <tr><td>会議室</td><td>40名</td><td><span class="room-dot room-kaigi"></span>黄色</td></tr>
+    <tr><td>和室（畳側）</td><td>15名</td><td><span class="room-dot room-washi"></span>水色</td></tr>
+    <tr><td>和室（椅子側）</td><td>15名</td><td><span class="room-dot room-washi"></span>水色</td></tr>
+    <tr><td>図書室</td><td>10名</td><td><span class="room-dot room-tosho"></span>ピンク</td></tr>
+  </table>
+
+  <h3>時間帯</h3>
+  <table>
+    <tr><th>区分</th><th>時間</th></tr>
+    <tr><td>午前</td><td>9:00 〜 12:00</td></tr>
+    <tr><td>午後</td><td>13:00 〜 16:00</td></tr>
+    <tr><td>夜間</td><td>17:00 〜 20:00</td></tr>
+  </table>
+
+  <h3>3つの使い方</h3>
+  <table>
+    <tr><th>利用者</th><th>できること</th></tr>
+    <tr><td><span class="badge badge-blue">一般の方</span></td><td>カレンダー・会館予約状況の閲覧</td></tr>
+    <tr><td><span class="badge badge-green">登録団体</span></td><td>閲覧 + 予約申請 + マイページ</td></tr>
+    <tr><td><span class="badge badge-red">管理者</span></td><td>予定管理・インポート・申請承認・団体管理・設定</td></tr>
+  </table>
+</section>
+
+<!-- ==================== 一般向け ==================== -->
+<section id="public">
+  <h2>👀 一般の方向け（閲覧）</h2>
+  <p>ログインなしで、2つのタブを確認できます。</p>
+
+  <h3>カレンダータブ</h3>
+  <p>自治会の予定一覧が月ごとに表示されます。</p>
+  <ul>
+    <li><kbd>◀</kbd> <kbd>▶</kbd> で月を切り替え</li>
+    <li>「主な予定」欄に重要なイベントがまとめて表示されます</li>
+    <li>祝日は赤色、土曜は青色で表示</li>
+    <li>休館日にはオレンジの「休館」バッジが付きます</li>
+  </ul>
+
+  <h3>会館予約状況タブ</h3>
+  <p>会館の各部屋の予約状況が月間カレンダーで確認できます。</p>
+  <ul>
+    <li>日付セルに予約が色分けで表示されます</li>
+    <li><strong>セルをクリック</strong> → その日の予約一覧がポップアップ表示</li>
+    <li>予約をクリック → 詳細（団体名・時間・部屋）を確認</li>
+    <li>左のサイドバーで表示する団体を絞り込めます</li>
+  </ul>
+
+  <div class="tip">部屋の色は凡例で確認できます。<span class="room-dot room-kaigi"></span>会議室、<span class="room-dot room-washi"></span>和室、<span class="room-dot room-tosho"></span>図書室</div>
+</section>
+
+<!-- ==================== 団体ログイン ==================== -->
+<section id="org-login">
+  <h2>🔑 団体ログイン</h2>
+  <p>登録済みの団体は、ログインすると予約機能が使えるようになります。</p>
+
+  <ol class="steps">
+    <li>画面右上の <strong>「ログイン」</strong> ボタンをクリック</li>
+    <li>ドロップダウンから <strong>団体名</strong> を選択</li>
+    <li>管理者から発行された <strong>パスコード</strong> を入力</li>
+    <li>「ログイン」ボタンを押す</li>
+  </ol>
+
+  <p>ログインすると、ヘッダーに団体名が表示され、「予約」タブと「マイページ」タブが使えるようになります。</p>
+
+  <div class="tip">パスコードがわからない場合は、自治会事務局にお問い合わせください。</div>
+</section>
+
+<!-- ==================== 予約の仕方 ==================== -->
+<section id="booking">
+  <h2>📝 予約の仕方</h2>
+  <p>団体ログイン後、「予約」タブから会館の予約ができます。</p>
+
+  <h3>空き状況の確認</h3>
+  <ul>
+    <li><strong>月表示</strong>：月間の全部屋の予約を一覧で確認</li>
+    <li><strong>週表示</strong>：1週間の時間帯別の空き状況を確認</li>
+    <li>上部の部屋ボタンで特定の部屋に絞り込めます</li>
+  </ul>
+
+  <h3>予約の手順</h3>
+  <ol class="steps">
+    <li>予約したい日時の<strong>空きスロット</strong>をクリック</li>
+    <li>予約フォームが開きます。以下を入力してください：
+      <ul>
+        <li><strong>利用区分</strong>（料金に影響します）</li>
+        <li><strong>部屋・時間帯</strong>（クリックした内容が初期値）</li>
+        <li><strong>備品</strong>（必要な場合はチェック、各300円）</li>
+        <li><strong>メモ</strong>（任意）</li>
+      </ul>
+    </li>
+    <li>料金を確認して <strong>「予約する」</strong> ボタンを押す</li>
+    <li>管理者の承認後、予約が確定します</li>
+  </ol>
+
+  <h3>利用料金の目安</h3>
+  <table>
+    <tr><th>利用区分</th><th>料金</th></tr>
+    <tr><td>自治会運営・各部の会議</td><td>無料</td></tr>
+    <tr><td>会員の趣味・同好会・親睦</td><td>100〜200円</td></tr>
+    <tr><td>混成団体・教室</td><td>200〜500円</td></tr>
+    <tr><td>弔事の宿泊</td><td>1,000円</td></tr>
+    <tr><td>その他</td><td>個別設定</td></tr>
+  </table>
+
+  <div class="warn">予約は申請後すぐには確定しません。管理者の承認を待ってください。マイページで状況を確認できます。</div>
+</section>
+
+<!-- ==================== マイページ ==================== -->
+<section id="mypage">
+  <h2>📄 マイページ</h2>
+  <p>ログイン中の団体の予約一覧が確認できます。</p>
+
+  <h3>予約のステータス</h3>
+  <table>
+    <tr><th>ステータス</th><th>意味</th></tr>
+    <tr><td><span class="badge badge-green">確定</span></td><td>管理者に承認され、予約が確定しています</td></tr>
+    <tr><td><span class="badge badge-yellow">承認待ち</span></td><td>申請中です。管理者の承認をお待ちください</td></tr>
+    <tr><td><span class="badge badge-red">却下</span></td><td>申請が却下されました。理由が表示されます</td></tr>
+    <tr><td><span class="badge badge-gray">キャンセル</span></td><td>キャンセルされた予約です</td></tr>
+  </table>
+</section>
+
+<!-- ==================== スマホ ==================== -->
+<section id="mobile">
+  <h2>📱 スマホでの使い方</h2>
+  <p>スマホでアクセスすると、自動的にスマホ向け画面に切り替わります。</p>
+
+  <h3>タブの切り替え</h3>
+  <p>画面上部の2つのタブで切り替えます：</p>
+  <ul>
+    <li><strong>カレンダー</strong>：月間の予定一覧（日ごとのカード形式）</li>
+    <li><strong>会館予約状況</strong>：月間の予約状況（日ごとのカード形式）</li>
+  </ul>
+
+  <h3>操作方法</h3>
+  <ul>
+    <li><kbd>◀</kbd> <kbd>▶</kbd> ボタンで月を切り替え</li>
+    <li><strong>左右スワイプ</strong>でも月を切り替えられます</li>
+    <li>今日の日付まで自動スクロールします</li>
+  </ul>
+
+  <div class="tip">ログイン後は「予約」「マイページ」タブも表示されます。</div>
+</section>
+
+<!-- ==================== 管理画面ログイン ==================== -->
+<section id="admin-login">
+  <h2>🛡 管理画面ログイン</h2>
+
+  <ol class="steps">
+    <li>URLの末尾に <kbd>#admin</kbd> を付けてアクセス<br>（例：<code>https://xxxxx.vercel.app/#admin</code>）</li>
+    <li>管理者パスワードを入力して「ログイン」</li>
+  </ol>
+
+  <p>ログイン後、上部のタブから各管理機能にアクセスできます：</p>
+  <ul>
+    <li><strong>予定</strong> ─ カレンダー・予約の管理</li>
+    <li><strong>インポート</strong> ─ Excel/Googleスプレッドシートの取込</li>
+    <li><strong>申請</strong> ─ 団体からの予約申請の承認/却下</li>
+    <li><strong>団体マスタ</strong> ─ 登録団体の管理</li>
+    <li><strong>設定</strong> ─ 利用区分・備品・グループなどのマスタ管理</li>
+  </ul>
+</section>
+
+<!-- ==================== 管理：予定管理 ==================== -->
+<section id="admin-calendar">
+  <h2>📅 管理：予定管理</h2>
+  <p>「予定」タブでは、カレンダーと会館予約の2つのサブビューがあります。</p>
+
+  <h3>予定サブビュー</h3>
+  <p>自治会のイベント・予定を管理します。</p>
+  <ul>
+    <li><strong>空きセルをクリック</strong> → 新しい予定を作成</li>
+    <li><strong>既存の予定をクリック</strong> → 詳細表示・編集・削除</li>
+    <li>月/週/一覧の表示切替が可能</li>
+  </ul>
+
+  <h3>会館予約状況サブビュー</h3>
+  <p>会館の予約を管理します。</p>
+  <ul>
+    <li><strong>空きセルをクリック</strong> → 新しい予約を作成</li>
+    <li><strong>+N件をクリック</strong> → その日の予約一覧を表示</li>
+    <li><strong>予約アイテムをクリック</strong> → 詳細の確認・編集</li>
+  </ul>
+
+  <div class="tip">左のサイドバーで団体のフィルタリング、「主な予定」の表示/非表示を切り替えられます。</div>
+</section>
+
+<!-- ==================== 管理：インポート ==================== -->
+<section id="admin-import">
+  <h2>📥 管理：インポート</h2>
+  <p>Excelファイルまたは Googleドライブから予約データを一括取込できます。</p>
+
+  <h3>会館予約のインポート</h3>
+  <h4>方法1：Googleドライブから取込</h4>
+  <ol class="steps">
+    <li>「Googleドライブから取込」をクリック</li>
+    <li>自動的にスプレッドシートを読み取り、差分を計算します</li>
+  </ol>
+
+  <h4>方法2：Excelファイルをアップロード</h4>
+  <ol class="steps">
+    <li>「Excelファイルをアップロード」エリアにファイルをドラッグ&ドロップ（またはクリックして選択）</li>
+    <li>ファイルが読み込まれ、差分が表示されます</li>
+  </ol>
+
+  <h3>差分の確認と承認</h3>
+  <p>取込後、以下の差分タイプが表示されます：</p>
+  <table>
+    <tr><th>ラベル</th><th>意味</th></tr>
+    <tr><td><span class="badge badge-green">新規</span></td><td>新しく追加される予約</td></tr>
+    <tr><td><span class="badge badge-yellow">変更</span></td><td>タイトル等が変更された予約</td></tr>
+    <tr><td><span class="badge badge-yellow">差異</span></td><td>既存とタイトルが異なる予約（手動確認用）</td></tr>
+    <tr><td><span class="badge badge-red">削除</span></td><td>Excelから消えた予約</td></tr>
+  </table>
+
+  <h3>団体の紐付け</h3>
+  <p>各行の右側に<strong>グループ → 団体</strong>の2段ドロップダウンがあります。</p>
+  <ul>
+    <li>タイトルからの自動マッチが行われます（例：「図書部定例会」→「図書部」）</li>
+    <li>自動マッチされなかった場合は手動で選択してください</li>
+    <li>まずグループを選び、次に団体名を選択します</li>
+  </ul>
+
+  <h3>反映の手順</h3>
+  <ol class="steps">
+    <li>差分を確認し、各行の <strong>✓</strong>（承認）または <strong>✕</strong>（却下）を選択</li>
+    <li>「全て承認」ボタンで一括承認もできます</li>
+    <li>必要に応じて団体を選択・変更</li>
+    <li>更新日を入力し、<strong>「反映する」</strong> ボタンを押す</li>
+  </ol>
+
+  <div class="warn">反映すると予約データが上書きされます。差分をよく確認してから反映してください。</div>
+
+  <h3>一般予定・休館日のインポート</h3>
+  <p>「予定スプレッドシートから取込」で、一般予定と休館日をGoogleスプレッドシートから取り込めます。</p>
+</section>
+
+<!-- ==================== 管理：申請承認 ==================== -->
+<section id="admin-approval">
+  <h2>✅ 管理：申請承認</h2>
+  <p>団体からの予約申請を承認または却下します。</p>
+
+  <ol class="steps">
+    <li>「申請」タブを開く</li>
+    <li>ステータスフィルタで「承認待ち」を選択</li>
+    <li>申請内容（日時・部屋・団体名）を確認</li>
+    <li><strong>承認</strong> → 予約確定、<strong>却下</strong> → 理由を入力して却下</li>
+  </ol>
+
+  <div class="tip">却下理由は、申請した団体のマイページに表示されます。</div>
+</section>
+
+<!-- ==================== 管理：団体マスタ ==================== -->
+<section id="admin-org">
+  <h2>👥 管理：団体マスタ</h2>
+  <p>登録団体の追加・編集・管理を行います。</p>
+
+  <h3>団体の登録情報</h3>
+  <table>
+    <tr><th>項目</th><th>説明</th></tr>
+    <tr><td>団体名</td><td>表示名（必須）</td></tr>
+    <tr><td>ふりがな</td><td>検索・並び替え用</td></tr>
+    <tr><td>グループ</td><td>所属グループ（自主活動部、委員会など）</td></tr>
+    <tr><td>パスコード</td><td>団体ログイン用の暗証番号</td></tr>
+    <tr><td>代表者名</td><td>代表者の氏名</td></tr>
+    <tr><td>連絡先</td><td>メールアドレス</td></tr>
+    <tr><td>活動内容</td><td>団体の活動概要</td></tr>
+  </table>
+
+  <h3>基本操作</h3>
+  <ul>
+    <li>左のリストから団体を選択 → 右側に詳細フォームが表示</li>
+    <li>「新規追加」で団体を追加</li>
+    <li>編集後「保存」で更新</li>
+    <li>「削除」で団体を削除（確認あり）</li>
+  </ul>
+</section>
+
+<!-- ==================== 管理：設定 ==================== -->
+<section id="admin-settings">
+  <h2>⚙ 管理：設定</h2>
+  <p>システムのマスタデータを管理します。</p>
+
+  <h3>管理できる項目</h3>
+  <table>
+    <tr><th>項目</th><th>内容</th></tr>
+    <tr><td>利用区分</td><td>予約フォームに表示される利用カテゴリと料金</td></tr>
+    <tr><td>備品</td><td>貸出備品の種類と料金</td></tr>
+    <tr><td>団体グループ</td><td>団体の分類グループ（自主活動部、委員会など）</td></tr>
+    <tr><td>施設</td><td>利用可能な部屋の設定</td></tr>
+  </table>
+
+  <p>各項目は追加・編集・削除・並べ替えが可能です。</p>
+
+  <div class="warn">設定の変更は即座に反映されます。料金やカテゴリの変更は慎重に行ってください。</div>
+</section>
+
+</div>
+
+</body>
+</html>
