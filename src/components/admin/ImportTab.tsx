@@ -20,11 +20,17 @@ interface ImportRow {
   room: string;
   title: string;
   org_guess: string | null;
+  org_id: string | null;
   diff_type: 'add' | 'update' | 'delete' | 'skip' | 'title_diff';
   existing_booking_id: string | null;
   existing_title: string | null;
   review_status: 'pending' | 'approved' | 'rejected' | 'skipped';
   review_note: string | null;
+}
+
+interface OrgOption {
+  id: string;
+  name: string;
 }
 
 const DIFF_LABELS: Record<string, { label: string; bg: string; text: string }> = {
@@ -138,6 +144,7 @@ export default function ImportTab() {
   const [syncingGeneral, setSyncingGeneral] = useState(false);
   const [driveLastModified, setDriveLastModified] = useState<string | null>(null);
   const [sourceDate, setSourceDate] = useState('');
+  const [orgOptions, setOrgOptions] = useState<OrgOption[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchImport = useCallback(async () => {
@@ -152,6 +159,17 @@ export default function ImportTab() {
       console.error('インポートデータ取得エラー:', err);
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  // 団体一覧取得
+  useEffect(() => {
+    const sbUrl = import.meta.env.VITE_SUPABASE_URL;
+    const sbKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (sbUrl && sbKey) {
+      fetch(`${sbUrl}/rest/v1/booking_organizations?select=id,name&is_active=not.is.false&order=name`, {
+        headers: { apikey: sbKey, Authorization: `Bearer ${sbKey}` },
+      }).then(r => r.json()).then(data => setOrgOptions(data || [])).catch(() => {});
     }
   }, []);
 
@@ -315,6 +333,15 @@ export default function ImportTab() {
   }
 
   // 行レビュー更新
+  const handleOrgChange = async (rowId: string, orgId: string | null) => {
+    setRows(prev => prev.map(r => r.id === rowId ? { ...r, org_id: orgId } : r));
+    await fetch('/api/import', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rows: [{ id: rowId, org_id: orgId }] }),
+    });
+  };
+
   const updateRowStatus = async (rowId: string, status: 'approved' | 'rejected') => {
     setRows(prev => prev.map(r => r.id === rowId ? { ...r, review_status: status } : r));
     await fetch('/api/import', {
@@ -609,7 +636,18 @@ export default function ImportTab() {
                           ) : (
                             <span className="font-bold">{row.title}</span>
                           )}
-                          {row.org_guess && <span className="ml-1 text-xs text-gray-400">({row.org_guess})</span>}
+                        </td>
+                        <td className="px-3 py-2 w-40">
+                          <select
+                            value={row.org_id || ''}
+                            onChange={e => handleOrgChange(row.id, e.target.value || null)}
+                            className="w-full text-xs border border-gray-200 rounded px-1.5 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300"
+                          >
+                            <option value="">未設定</option>
+                            {orgOptions.map(o => (
+                              <option key={o.id} value={o.id}>{o.name}</option>
+                            ))}
+                          </select>
                         </td>
                         <td className="px-3 py-2 w-16">
                           <span className={`inline-block px-2 py-0.5 rounded text-xs font-bold ${diff.text} border ${

@@ -111,16 +111,19 @@ async function applyAdd(supabase: any, row: any) {
   }
 
   // bookings INSERT
+  const bookingData: any = {
+    date: row.date,
+    slot: row.slot,
+    room: row.room,
+    title: row.title,
+    status: 'CONFIRMED',
+    event_id: eventId,
+  };
+  if (row.org_id) bookingData.org_id = row.org_id;
+
   const { error: bookErr } = await supabase
     .from('bookings')
-    .insert({
-      date: row.date,
-      slot: row.slot,
-      room: row.room,
-      title: row.title,
-      status: 'CONFIRMED',
-      event_id: eventId,
-    });
+    .insert(bookingData);
 
   if (bookErr) {
     // ユニーク制約違反は警告のみ
@@ -137,9 +140,12 @@ async function applyUpdate(supabase: any, row: any) {
   if (!row.existing_booking_id) return;
 
   // bookings 更新
+  const updateData: any = { title: row.title, updated_at: new Date().toISOString() };
+  if (row.org_id) updateData.org_id = row.org_id;
+
   await supabase
     .from('bookings')
-    .update({ title: row.title, updated_at: new Date().toISOString() })
+    .update(updateData)
     .eq('id', row.existing_booking_id);
 
   // 紐づくcalendar_events のタイトルも更新（あれば）

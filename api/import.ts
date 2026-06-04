@@ -74,6 +74,21 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
       existingMap[key] = { id: b.id, title: b.title };
     });
 
+    // 団体一覧を取得してタイトルから自動マッチ用
+    const { data: orgs } = await supabase
+      .from('booking_organizations')
+      .select('id, name');
+    const orgList: { id: string; name: string }[] = orgs || [];
+
+    function matchOrgId(title: string): string | null {
+      // 団体名がタイトルに含まれるか（長い名前から優先マッチ）
+      const sorted = [...orgList].sort((a, b) => b.name.length - a.name.length);
+      for (const org of sorted) {
+        if (title.includes(org.name)) return org.id;
+      }
+      return null;
+    }
+
     // インポート行のキーセット（delete検出用）
     const importKeySet = new Set<string>();
 
@@ -97,6 +112,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
           room: row.room,
           title: row.title,
           org_guess: row.org_guess || null,
+          org_id: matchOrgId(row.title),
           diff_type: 'skip',
           existing_booking_id: existing?.id || null,
           existing_title: existing?.title || null,
@@ -131,6 +147,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
             room: row.room,
             title: row.title,
             org_guess: row.org_guess || null,
+            org_id: matchOrgId(row.title),
             diff_type: 'title_diff',
             existing_booking_id: existing.id,
             existing_title: existing.title,
@@ -147,6 +164,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
           room: row.room,
           title: row.title,
           org_guess: row.org_guess || null,
+          org_id: matchOrgId(row.title),
           diff_type: 'add',
           review_status: 'pending',
         });
@@ -164,6 +182,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
           slot,
           room,
           title: existing.title,
+          org_id: matchOrgId(existing.title),
           diff_type: 'delete',
           existing_booking_id: existing.id,
           existing_title: existing.title,
@@ -247,9 +266,11 @@ async function handlePatch(req: VercelRequest, res: VercelResponse, supabase: an
 
   try {
     for (const row of rows) {
-      const update: any = { review_status: row.review_status };
+      const update: any = {};
+      if (row.review_status !== undefined) update.review_status = row.review_status;
       if (row.review_note !== undefined) update.review_note = row.review_note;
       if (row.title !== undefined) update.title = row.title;
+      if (row.org_id !== undefined) update.org_id = row.org_id;
 
       await supabase
         .from('import_rows')
