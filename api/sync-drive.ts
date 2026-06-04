@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import * as XLSX from 'xlsx';
+import { createOrgMatcher } from './lib/match-org';
 
 /**
  * POST /api/sync-drive
@@ -191,35 +192,8 @@ async function processMonth(supabase: any, year: number, month: number, rows: Pa
     existingMap[`${b.date}|${b.slot}|${b.room}`] = { id: b.id, title: b.title };
   });
 
-  // 団体一覧を取得してタイトルから自動マッチ
-  const { data: orgs } = await supabase
-    .from('booking_organizations')
-    .select('id, name, keywords');
-  const orgList: { id: string; name: string; keywords: string[] }[] = (orgs || []).map((o: any) => ({
-    id: o.id, name: o.name, keywords: o.keywords || [],
-  }));
-
-  function matchOrgId(title: string): string | null {
-    const sorted = [...orgList].sort((a, b) => b.name.length - a.name.length);
-    // 1. 団体名がタイトルに含まれるか
-    for (const org of sorted) {
-      if (title.includes(org.name)) return org.id;
-    }
-    // 2. キーワードがタイトルに含まれるか
-    for (const org of sorted) {
-      for (const kw of org.keywords) {
-        if (kw && title.includes(kw)) return org.id;
-      }
-    }
-    // 3. タイトル先頭部分が団体名に含まれるか
-    const cleaned = title.replace(/[（()）\s].*/g, '').trim();
-    if (cleaned.length >= 2) {
-      for (const org of sorted) {
-        if (org.name.includes(cleaned)) return org.id;
-      }
-    }
-    return null;
-  }
+  // 団体自動マッチ
+  const matchOrgId = await createOrgMatcher(supabase);
 
   const importKeySet = new Set<string>();
   const importRows: any[] = [];
