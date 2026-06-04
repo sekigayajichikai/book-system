@@ -184,7 +184,7 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
           }}
           data-cell
           className={`min-h-[calc((100vh-10rem)/6)] border border-gray-200 relative transition-colors flex flex-col ${
-            onCellClick || onDateClick || dayEvents.length > 0 ? 'cursor-pointer hover:bg-blue-50/30' : ''
+            onCellClick || onDateClick ? 'cursor-pointer hover:bg-blue-50/30' : ''
           } ${isToday ? 'outline outline-2 outline-blue-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
         >
           {/* 日付 */}

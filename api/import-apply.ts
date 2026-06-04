@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (row.diff_type === 'add') {
           await applyAdd(supabase, row);
           applied++;
-        } else if (row.diff_type === 'update') {
+        } else if (row.diff_type === 'update' || row.diff_type === 'title_diff') {
           await applyUpdate(supabase, row);
           applied++;
         } else if (row.diff_type === 'delete') {

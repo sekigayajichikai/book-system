@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarDays, ClipboardList, Info, Users, User, X, LogOut, List } from 'lucide-react';
+import { CalendarDays, ClipboardList, Info, Users, User, X, LogOut, Home, Clock, MapPin } from 'lucide-react';
 import BookingCalendar from './components/BookingCalendar';
 import DailyScheduleGrid from './components/DailyScheduleGrid';
 import WeeklyView from './components/WeeklyView';
@@ -16,9 +16,10 @@ import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import OrgLogin from './components/OrgLogin';
 import MyPage from './components/MyPage';
+import Popover from './components/admin/Popover';
 import { useIsMobile } from './hooks/useIsMobile';
 import { Booking, BookingStatus, RoomType, BookingRequest, CalendarEvent, OrgEntry } from './types';
-import { ROOMS, TIME_SLOTS } from './constants';
+import { ROOMS, TIME_SLOTS, shortRoomName } from './constants';
 
 /** 日付文字列を YYYY-MM-DD で返す */
 function formatDate(d: Date): string {
@@ -141,6 +142,7 @@ function App() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [detailBooking, setDetailBooking] = useState<Booking | null>(null);
+  const [dayListPopover, setDayListPopover] = useState<{ date: Date; anchorRect: DOMRect; selected?: Booking } | null>(null);
 
   const [calendarMode, setCalendarModeState] = useState<'schedule' | 'calendar' | 'booking'>(() => {
     const hash = window.location.hash.replace('#', '');
@@ -290,6 +292,11 @@ function App() {
     setShowDailyGrid(true);
   };
 
+  /** PC版 会館予約: セル/+N件クリック → 一日一覧ポップオーバー */
+  const handleCalendarCellClick = (date: Date, rect: DOMRect) => {
+    setDayListPopover({ date, anchorRect: rect });
+  };
+
   /** カレンダーの日付タップ → 予約ビューの週間表示にジャンプ */
   const handleDateTapToBooking = (date: Date) => {
     const d = new Date(date);
@@ -370,16 +377,16 @@ function App() {
       <button onClick={() => { setCalendarMode('schedule'); setShowMyPage(false); }}
         className={`px-4 py-1.5 rounded-full text-base font-bold transition-all ${
           !showMyPage && calendarMode === 'schedule' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-        }`}>カレンダー</button>
+        }`}><CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />カレンダー</button>
       <button onClick={() => { setCalendarMode('calendar'); setShowMyPage(false); }}
         className={`px-4 py-1.5 rounded-full text-base font-bold transition-all ${
           !showMyPage && calendarMode === 'calendar' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-        }`}>会館予約</button>
+        }`}><Home size={16} className="inline-block mr-1 -mt-0.5" />会館予約状況</button>
     </div>
   ) : undefined;
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col font-sans text-gray-800 overflow-hidden">
+    <div className="h-screen bg-slate-50 flex flex-col font-sans text-gray-800">
       {/* Header: モバイル or ログイン時のみ表示 */}
       {(isMobile || isOrgLoggedIn) && (
       <header className="bg-white shadow-sm sticky top-0 z-30">
@@ -394,7 +401,7 @@ function App() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              <List size={16} className="inline-block mr-1 -mt-0.5" />カレンダー
+              <CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />カレンダー
             </button>
             <button
               onClick={() => { setCalendarMode('calendar'); setShowMyPage(false); }}
@@ -404,7 +411,7 @@ function App() {
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              <CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />会館予約
+              <Home size={16} className="inline-block mr-1 -mt-0.5" />会館予約状況
             </button>
             {isOrgLoggedIn && (
               <button
@@ -447,7 +454,7 @@ function App() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 w-full px-4 py-3 flex flex-col min-h-0">
+      <main className="flex-1 w-full px-4 py-3 flex flex-col min-h-0 overflow-y-auto">
         {showSuccessMessage && (
           <div className="mb-6 p-4 bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl flex items-start gap-3 shadow-sm relative">
             <div className="bg-white p-1 rounded-full mt-0.5"><Info size={20} className="text-emerald-500" /></div>
@@ -534,17 +541,15 @@ function App() {
             isMobile ? (
               /* === モバイル版 === */
               calendarMode === 'calendar' ? (
-                <>
-                                <MobileCalendarView
-                  weekStart={weekStart}
+                <MobileCalendarView
+                  currentDate={currentDate}
                   bookings={bookings}
-                  onPrevWeek={handlePrevWeek}
-                  onNextWeek={handleNextWeek}
+                  onPrevMonth={handlePrevMonth}
+                  onNextMonth={handleNextMonth}
                   holidays={holidays}
                   closures={closures}
                   loading={loading}
                 />
-                </>
               ) : (
                 <MobileBookingView
                   weekStart={weekStart}
@@ -566,13 +571,15 @@ function App() {
                     onPrevMonth={handlePrevMonth}
                     onNextMonth={handleNextMonth}
                     bookings={filterOrgs ? bookings.filter(b => !b.orgName || filterOrgs.has(b.orgName)) : bookings}
-                    onDateClick={handleDateClick}
+                    onCellClick={handleCalendarCellClick}
+                    onOverflowClick={handleCalendarCellClick}
                     holidays={holidays}
                     closures={closures}
                     loading={loading}
                     modeToggle={modeToggleEl}
                     subTitle={lastUpdated ? `更新日: ${new Date(lastUpdated + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}` : undefined}
                     majorEvents={showMajor ? majorEvents : []}
+                    hideSubViewToggle
                   />
                 </div>
               ) : bookingSubView === 'weekly' ? (
@@ -620,6 +627,80 @@ function App() {
           </div>
       </main>
 
+
+      {/* 一日一覧 / 詳細ポップオーバー（PC版 会館予約） */}
+      {dayListPopover && (() => {
+        const dateStr = formatDate(dayListPopover.date);
+        const dayBookings = bookings.filter(b => b.date === dateStr);
+        const dow = ['日', '月', '火', '水', '木', '金', '土'][dayListPopover.date.getDay()];
+        const ROOM_COLORS: Record<string, string> = { '会議室': 'bg-yellow-400', '和室（畳側）': 'bg-sky-400', '和室（椅子側）': 'bg-sky-400', '図書室': 'bg-pink-400' };
+        const sel = dayListPopover.selected;
+
+        if (sel) {
+          // 詳細表示
+          const slotLabel = sel.startTime === '09:00' ? '午前' : sel.startTime === '13:00' ? '午後' : '夜間';
+          return (
+            <Popover anchorRect={dayListPopover.anchorRect} onClose={() => setDayListPopover(null)} width={300} bgClass="bg-emerald-50 border-emerald-200">
+              <div className="flex items-center justify-end px-3 pt-2">
+                <button onClick={() => setDayListPopover(null)} className="p-1 hover:bg-emerald-100 rounded-full">
+                  <X size={14} className="text-emerald-500" />
+                </button>
+              </div>
+              <div className="px-4 pb-4 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className={`${ROOM_COLORS[sel.room] || 'bg-gray-400'} w-3 h-3 rounded-sm shrink-0`} />
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900">{sel.title}</h3>
+                    <p className="text-xs text-gray-500">{dayListPopover.date.getMonth() + 1}月{dayListPopover.date.getDate()}日 ({dow})</p>
+                  </div>
+                </div>
+                {sel.orgName && (
+                  <div className="flex items-center gap-3 text-sm text-gray-600">
+                    <Users size={14} className="text-emerald-500" />
+                    <span>{sel.orgName}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <Clock size={14} className="text-emerald-500" />
+                  <span>{slotLabel} {sel.startTime}〜{sel.endTime}</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <MapPin size={14} className="text-emerald-500" />
+                  <span>{shortRoomName(sel.room)}</span>
+                </div>
+              </div>
+            </Popover>
+          );
+        }
+
+        // 一覧表示
+        return (
+          <Popover anchorRect={dayListPopover.anchorRect} onClose={() => setDayListPopover(null)} width={300} bgClass="bg-emerald-50 border-emerald-200">
+            <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+              <span className="text-base font-bold text-gray-800">
+                {dayListPopover.date.getMonth() + 1}月{dayListPopover.date.getDate()}日({dow})
+              </span>
+              <button onClick={() => setDayListPopover(null)} className="p-1 hover:bg-emerald-100 rounded-full">
+                <X size={16} className="text-emerald-500" />
+              </button>
+            </div>
+            <div className="px-2 pb-2 space-y-0.5">
+              {dayBookings.length === 0 && (
+                <div className="py-3 text-sm text-gray-400 text-center">予約なし</div>
+              )}
+              {dayBookings.map((b, i) => (
+                <div key={i}
+                  onClick={() => setDayListPopover({ ...dayListPopover, selected: b })}
+                  className="py-2 px-3 flex items-center gap-2 cursor-pointer hover:bg-gray-200 rounded-lg transition-colors">
+                  <span className={`${ROOM_COLORS[b.room] || 'bg-gray-400'} w-2 h-2 rounded-full shrink-0`} />
+                  <span className="text-sm text-gray-900 truncate flex-1">{b.title}</span>
+                  <span className="text-xs text-gray-400">{shortRoomName(b.room)}</span>
+                </div>
+              ))}
+            </div>
+          </Popover>
+        );
+      })()}
 
       {/* Modals */}
       {showDailyGrid && selectedDate && (

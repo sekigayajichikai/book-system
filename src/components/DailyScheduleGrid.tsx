@@ -82,7 +82,7 @@ const DailyScheduleGrid: React.FC<DailyScheduleGridProps> = ({ date, bookings, o
                       <button
                         key={`${room.id}-${slot.id}`}
                         onClick={() => onSelectSlot(room.id, slot.id, slot.startTime, slot.endTime)}
-                        className={`${colors.bg} rounded-lg p-2 flex flex-col justify-center items-center text-center hover:opacity-80 transition-all group cursor-pointer`}
+                        className={`${colors.bg} rounded-lg p-2 flex flex-col justify-center items-center text-center hover:bg-emerald-50 hover:ring-2 hover:ring-emerald-300 transition-all group cursor-pointer`}
                       >
                         <span className="text-gray-300 group-hover:text-emerald-500 text-2xl font-bold">◎</span>
                         <span className="text-xs text-gray-400 group-hover:text-emerald-600 font-bold">空き</span>

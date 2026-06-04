@@ -515,7 +515,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <button onClick={() => setCalendarSubView('facility')}
                 className={`px-4 py-1.5 rounded-full text-base font-bold transition-all ${
                   calendarSubView === 'facility' ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}>会館予約</button>
+                }`}>会館予約状況</button>
             </div>
           );
           return (
@@ -1025,7 +1025,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <div className="px-4 pb-3 divide-y divide-gray-100">
               {dayBookings.map((b, i) => (
                 <div key={i} onClick={() => { closePopover(); handleBookingItemClick(b, popover.anchorRect as unknown as DOMRect); }}
-                  className="py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded -mx-1 px-1">
+                  className="py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-200 rounded-lg px-2 transition-colors">
                   <span className={`${ROOM_COLORS[b.room] || 'bg-gray-400'} w-2 h-2 rounded-full shrink-0`} />
                   <span className="text-sm text-gray-900 truncate flex-1">{b.title}</span>
                   <span className="text-xs text-gray-400">{shortRoomName(b.room)}</span>

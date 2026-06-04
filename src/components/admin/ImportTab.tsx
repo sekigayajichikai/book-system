@@ -201,6 +201,7 @@ export default function ImportTab() {
           }),
         });
         const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || data.error || `API error ${res.status}`);
         if (data.ok && data.stats) {
           totalStats.add += data.stats.add || 0;
           totalStats.update += data.stats.update || 0;
@@ -214,9 +215,9 @@ export default function ImportTab() {
         text: `${parsed.length}ヶ月分を取込みました（新規${totalStats.add} / 変更${totalStats.update} / 削除${totalStats.delete}）`,
       });
       await fetchImport();
-    } catch (err) {
-      console.error('Excel parse error:', err);
-      setMessage({ type: 'error', text: 'Excelの読み取りに失敗しました' });
+    } catch (err: any) {
+      console.error('Excel import error:', err);
+      setMessage({ type: 'error', text: `インポートに失敗しました: ${err?.message || String(err)}` });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';

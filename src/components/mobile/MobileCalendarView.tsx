@@ -4,8 +4,6 @@ import { Booking } from '../../types';
 import { useSwipe } from '../../hooks/useSwipe';
 import MobileDayCard from './MobileDayCard';
 
-const DOW = ['日', '月', '火', '水', '木', '金', '土'];
-
 function isToday(d: Date): boolean {
   const now = new Date();
   return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
@@ -15,53 +13,50 @@ function formatDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function formatShort(d: Date): string {
-  return `${d.getMonth() + 1}/${d.getDate()}(${DOW[d.getDay()]})`;
-}
-
 interface MobileCalendarViewProps {
-  weekStart: Date;
+  currentDate: Date;
   bookings: Booking[];
-  onPrevWeek: () => void;
-  onNextWeek: () => void;
+  onPrevMonth: () => void;
+  onNextMonth: () => void;
   holidays?: Record<string, string>;
   closures?: Set<string>;
   loading?: boolean;
 }
 
 export default function MobileCalendarView({
-  weekStart, bookings, onPrevWeek, onNextWeek, holidays = {}, closures = new Set(), loading,
+  currentDate, bookings, onPrevMonth, onNextMonth, holidays = {}, closures = new Set(), loading,
 }: MobileCalendarViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const todayRef = useRef<HTMLDivElement>(null);
 
-  useSwipe(containerRef, { onSwipeLeft: onNextWeek, onSwipeRight: onPrevWeek });
+  useSwipe(containerRef, { onSwipeLeft: onNextMonth, onSwipeRight: onPrevMonth });
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
 
   // Scroll to today on first render
   useEffect(() => {
-    todayRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    todayRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, []);
 
+  // Build all days in the month
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
   const days: Date[] = [];
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(weekStart);
-    d.setDate(d.getDate() + i);
-    days.push(d);
+  for (let i = 1; i <= daysInMonth; i++) {
+    days.push(new Date(year, month, i));
   }
-
-  const weekEnd = days[6];
 
   return (
     <div ref={containerRef} className="space-y-3">
-      {/* Week navigation */}
+      {/* Month navigation */}
       <div className="flex items-center justify-between px-1">
-        <button onClick={onPrevWeek} className="p-2 rounded-full hover:bg-gray-100 active:scale-90 transition-transform">
+        <button onClick={onPrevMonth} className="p-2 rounded-full hover:bg-gray-100 active:scale-90 transition-transform">
           <ChevronLeft size={20} className="text-gray-500" />
         </button>
         <span className="text-lg font-bold text-gray-700 tracking-wide">
-          {formatShort(weekStart)} 〜 {formatShort(weekEnd)}
+          {year}年 {month + 1}月
         </span>
-        <button onClick={onNextWeek} className="p-2 rounded-full hover:bg-gray-100 active:scale-90 transition-transform">
+        <button onClick={onNextMonth} className="p-2 rounded-full hover:bg-gray-100 active:scale-90 transition-transform">
           <ChevronRight size={20} className="text-gray-500" />
         </button>
       </div>
@@ -80,7 +75,7 @@ export default function MobileCalendarView({
         const today = isToday(date);
         const dateStr = formatDate(date);
         return (
-          <div key={date.toISOString()} ref={today ? todayRef : undefined}>
+          <div key={dateStr} ref={today ? todayRef : undefined}>
             <MobileDayCard
               date={date}
               bookings={bookings}

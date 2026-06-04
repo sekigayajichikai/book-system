@@ -21,6 +21,7 @@ interface CalendarProps {
   modeToggle?: React.ReactNode;
   subTitle?: string;
   majorEvents?: { date: string; title: string }[];
+  hideSubViewToggle?: boolean;
 }
 
 const ROOM_COLORS: Record<string, { bg: string; bar: string }> = {
@@ -360,7 +361,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const BookingCalendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading, modeToggle, subTitle, majorEvents = [],
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading, modeToggle, subTitle, majorEvents = [], hideSubViewToggle,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
@@ -535,6 +536,7 @@ const BookingCalendar: React.FC<CalendarProps> = ({
           </div>
 
           {/* Month / Week / List toggle */}
+          {!hideSubViewToggle && (
           <div className="flex items-center bg-gray-100 rounded-full p-0.5">
             {(['month', 'week', 'list'] as const).map(v => (
               <button key={v} onClick={() => setSubView(v)}
@@ -546,6 +548,7 @@ const BookingCalendar: React.FC<CalendarProps> = ({
               </button>
             ))}
           </div>
+          )}
         </div>
 
 
