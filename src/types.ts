@@ -21,6 +21,7 @@ export interface Booking {
   room: RoomType;
   title: string;
   status: BookingStatus;
+  orgName?: string | null; // 主催団体名
 }
 
 export interface DayData {
@@ -73,7 +74,7 @@ export interface EventSummary {
   location: string | null;
   startTime: string | null; // HH:mm
   endTime: string | null;   // HH:mm
-  memo: string | null;
+  orgName: string | null;  // 主催団体名（DB上は calendar_events.memo）
   description: string | null;
   rooms: string[];          // facility型: 使用部屋一覧
   slots: string[];          // facility型: 使用時間帯一覧

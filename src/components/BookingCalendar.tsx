@@ -20,6 +20,7 @@ interface CalendarProps {
   loading?: boolean;
   modeToggle?: React.ReactNode;
   subTitle?: string;
+  majorEvents?: { date: string; title: string }[];
 }
 
 const ROOM_COLORS: Record<string, { bg: string; bar: string }> = {
@@ -359,7 +360,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const BookingCalendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading, modeToggle, subTitle,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading, modeToggle, subTitle, majorEvents = [],
 }) => {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
@@ -467,6 +468,10 @@ const BookingCalendar: React.FC<CalendarProps> = ({
             {isClosure && <span className="text-xs bg-orange-400 text-white px-1.5 py-px rounded font-bold shrink-0 whitespace-nowrap">休館</span>}
             {holidayName && <span className="text-sm text-red-400 truncate min-w-0">{holidayName}</span>}
           </div>
+          {/* 主な予定 */}
+          {majorEvents.filter(e => e.date === dateStr).map((e, i) => (
+            <div key={i} className="text-sm font-bold text-blue-700 bg-blue-100 rounded px-1 mx-0.5 truncate shrink-0">{e.title}</div>
+          ))}
 
           <div className="flex flex-col flex-1 min-h-0">
             {/* AM */}
@@ -481,7 +486,7 @@ const BookingCalendar: React.FC<CalendarProps> = ({
                 );
               })}
               {amBookings.length > 2 && (
-                <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || new DOMRect(); const d = new Date(year, month, day); if (onOverflowClick) onOverflowClick(d, rect); else if (onCellClick) onCellClick(d, rect); }} className="text-sm text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{amBookings.length - 2}件</div>
+                <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || new DOMRect(); const d = new Date(year, month, day); if (onOverflowClick) onOverflowClick(d, rect); else if (onCellClick) onCellClick(d, rect); else if (onDateClick) onDateClick(d); }} className="text-sm text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{amBookings.length - 2}件</div>
               )}
             </div>
 
@@ -497,7 +502,7 @@ const BookingCalendar: React.FC<CalendarProps> = ({
                 );
               })}
               {pmBookings.length > 2 && (
-                <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect(); if (rect && onCellClick) { const date = new Date(year, month, day); onCellClick(date, rect); } }} className="text-sm text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{pmBookings.length - 2}件</div>
+                <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || new DOMRect(); const d = new Date(year, month, day); if (onOverflowClick) onOverflowClick(d, rect); else if (onCellClick) onCellClick(d, rect); else if (onDateClick) onDateClick(d); }} className="text-sm text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{pmBookings.length - 2}件</div>
               )}
             </div>
           </div>

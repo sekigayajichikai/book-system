@@ -58,7 +58,7 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
   useEffect(() => {
     if (!itemDetail) { setItemOrgName(null); return; }
     const evt = itemDetail.event;
-    if (evt.eventType === 'facility' && !evt.memo) {
+    if (evt.eventType === 'facility' && !evt.orgName) {
       const sbUrl = import.meta.env.VITE_SUPABASE_URL;
       const sbKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       if (sbUrl && sbKey) {
@@ -122,14 +122,16 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
   const filterEvent = (e: EventSummary): boolean => {
     if (!showMajor && e.isMajor) return false;
     if (!filterOrgs) return true;
-    // 全解除 → 休館日・一般予定(団体なし)のみ表示
+    // 主な予定はONなら団体フィルタに関係なく表示
+    if (showMajor && e.isMajor) return true;
+    // 全解除 → 主な予定以外は非表示
     if (filterOrgs.size === 0) {
-      return e.eventType === 'closure' || (e.eventType === 'general' && !e.memo);
+      return false;
     }
     // memo（団体名）で明確にマッチ → 表示
-    if (e.memo && filterOrgs.has(e.memo)) return true;
+    if (e.orgName && filterOrgs.has(e.orgName)) return true;
     // memo（団体名）が明確に存在するがフィルタに含まれない → 非表示
-    if (e.memo && !filterOrgs.has(e.memo)) return false;
+    if (e.orgName && !filterOrgs.has(e.orgName)) return false;
     // originalTitle（タイトルが団体名の場合）でマッチ
     if (e.originalTitle && filterOrgs.has(e.originalTitle)) return true;
     // title でマッチ
@@ -335,10 +337,10 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
                     <p className="text-xs text-gray-500">{d.getMonth() + 1}月{d.getDate()}日 ({dow})</p>
                   </div>
                 </div>
-                {(evt.memo || itemOrgName) && (
+                {(evt.orgName || itemOrgName) && (
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <Users size={14} className="text-gray-500" />
-                    <span>{evt.memo || itemOrgName}</span>
+                    <span>{evt.orgName || itemOrgName}</span>
                   </div>
                 )}
                 {timeStr && (
@@ -663,7 +665,7 @@ function EventWeekView({ events, weekStart, holidays, closures, onItemClick }: {
                       </div>
                       <div className="flex flex-wrap gap-x-3 mt-0.5 pl-[5.5rem] text-xs text-gray-500">
                         {locationStr && <span className="flex items-center gap-1"><MapPin size={12} /> {locationStr}</span>}
-                        {evt.memo && <span className="flex items-center gap-1"><Users size={12} /> {evt.memo}</span>}
+                        {evt.orgName && <span className="flex items-center gap-1"><Users size={12} /> {evt.orgName}</span>}
                       </div>
                       {evt.description && <div className="text-xs text-gray-400 mt-1 pl-[5.5rem] line-clamp-2">{evt.description}</div>}
                     </div>

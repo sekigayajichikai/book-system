@@ -133,17 +133,27 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [holidays, setHolidays] = useState<Record<string, string>>({});
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [closures, setClosures] = useState<Set<string>>(new Set());
+  const [majorEvents, setMajorEvents] = useState<{ date: string; title: string }[]>([]);
 
   const fetchEvents = useCallback(async (year: number, month: number) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/bookings-view?year=${year}&month=${month + 1}`);
-      if (!res.ok) throw new Error('API error');
-      const events: CalendarEvent[] = await res.json();
-      setBookings(events.map(evt => ({
-        id: evt.id, date: evt.date, startTime: evt.startTime, endTime: evt.endTime,
-        room: evt.room ?? RoomType.KAIGISHITSU, title: evt.summary, status: BookingStatus.CONFIRMED,
-      })));
+      const [bookingsRes, eventsRes] = await Promise.all([
+        fetch(`/api/bookings-view?year=${year}&month=${month + 1}`),
+        fetch(`/api/events?year=${year}&month=${month + 1}&visibility=public`),
+      ]);
+      if (bookingsRes.ok) {
+        const events: CalendarEvent[] = await bookingsRes.json();
+        setBookings(events.map(evt => ({
+          id: evt.id, date: evt.date, startTime: evt.startTime, endTime: evt.endTime,
+          room: evt.room ?? RoomType.KAIGISHITSU, title: evt.summary, status: BookingStatus.CONFIRMED,
+          orgName: (evt as any).orgName || null,
+        })));
+      }
+      if (eventsRes.ok) {
+        const allEvents = await eventsRes.json();
+        setMajorEvents(allEvents.filter((e: any) => e.isMajor).map((e: any) => ({ date: e.date, title: e.title })));
+      }
     } catch (err) {
       console.error('カレンダー取得エラー:', err);
     } finally {
@@ -219,7 +229,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       data: {
         type: 'event', id: event.id, title: event.title, date: event.date,
         location: event.location, startTime: event.startTime, endTime: event.endTime,
-        memo: event.memo, description: event.description, eventType: event.eventType,
+        orgName: event.orgName, description: event.description, eventType: event.eventType,
         isMajor: event.isMajor, displayTitle: event.displayTitle, rooms: event.rooms,
       },
     });
@@ -519,7 +529,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 currentDate={currentDate}
                 onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
                 onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
-                bookings={bookings}
+                bookings={adminFilterOrgs ? bookings.filter(b => !b.orgName || adminFilterOrgs.has(b.orgName)) : bookings}
                 modeToggle={adminModeToggle}
                 onCellClick={handleCellClick}
                 onItemClick={handleBookingItemClick}
@@ -542,6 +552,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 closures={closures}
                 disableModal
                 loading={loading}
+                majorEvents={adminShowMajor ? majorEvents : []}
               />
             )}
             </div>

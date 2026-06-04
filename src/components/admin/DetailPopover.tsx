@@ -45,7 +45,7 @@ export interface DetailData {
   location?: string | null;
   startTime?: string | null;
   endTime?: string | null;
-  memo?: string | null;
+  orgName?: string | null;
   description?: string | null;
   eventType?: string;
   isMajor?: boolean;
@@ -95,7 +95,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   // facility型: booking経由で団体名を取得
   const [facilityOrgName, setFacilityOrgName] = useState<string | null>(null);
   useState(() => {
-    if (data.type === 'event' && data.eventType === 'facility' && !data.orgName && !data.memo) {
+    if (data.type === 'event' && data.eventType === 'facility' && !data.orgName) {
       fetch(`${SUPABASE_URL}/rest/v1/bookings?event_id=eq.${data.id}&status=in.(CONFIRMED,PENDING)&select=booking_organizations(name)&limit=1`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
       }).then(r => r.json()).then(d => {
@@ -120,7 +120,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
     org: data.orgName || '',
     slot: data.slot || '午前',
     room: data.room || '',
-    memo: data.memo || '',
+    memo: '',
   });
 
   const handleSaveTime = async () => {
@@ -326,10 +326,10 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         </div>
 
         {/* 団体 */}
-        {(data.orgName || data.memo || facilityOrgName) && (
+        {(data.orgName || facilityOrgName) && (
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <Users size={16} className="text-gray-400 flex-shrink-0" />
-            <span>{data.orgName || data.memo || facilityOrgName}</span>
+            <span>{data.orgName || facilityOrgName}</span>
           </div>
         )}
 
@@ -349,11 +349,11 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
           </div>
         )}
 
-        {/* 説明/メモ */}
-        {(data.memo || data.description) && (
+        {/* 説明 */}
+        {data.description && (
           <div className="flex items-start gap-3 text-sm text-gray-600">
             <AlignLeft size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
-            <span className="whitespace-pre-wrap">{data.description || data.memo}</span>
+            <span className="whitespace-pre-wrap">{data.description}</span>
           </div>
         )}
 

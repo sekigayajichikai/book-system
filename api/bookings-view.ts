@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 予約データ取得
     const { data: bookings, error } = await supabase
       .from('bookings')
-      .select('*')
+      .select('*, booking_organizations(name)')
       .gte('date', startDate)
       .lt('date', m === 12 ? `${y + 1}-01-01` : endDate)
       .in('status', ['CONFIRMED', 'PENDING']);
@@ -57,6 +57,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         startTime: times.start,
         endTime: times.end,
         eventId: b.event_id || null,
+        orgName: (b as any).booking_organizations?.name || null,
       };
     });
 

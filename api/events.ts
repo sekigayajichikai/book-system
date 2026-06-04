@@ -53,23 +53,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (eventsResult.error) throw eventsResult.error;
     const events = eventsResult.data || [];
 
-    // facility型のbookings情報を並列取得
+    // facility型のbookings情報を並列取得（団体名も含む）
     const facilityEventIds = events.filter(e => e.event_type === 'facility').map(e => e.id);
-    let bookingsByEvent: Record<string, { rooms: string[]; slots: string[] }> = {};
+    let bookingsByEvent: Record<string, { rooms: string[]; slots: string[]; orgName: string | null }> = {};
 
     if (facilityEventIds.length > 0) {
       const { data: bookings, error: bErr } = await supabase
         .from('bookings')
-        .select('event_id, room, slot')
+        .select('event_id, room, slot, booking_organizations(name)')
         .in('event_id', facilityEventIds)
         .in('status', ['CONFIRMED', 'PENDING']);
 
       if (bErr) throw bErr;
       for (const b of bookings || []) {
-        if (!bookingsByEvent[b.event_id]) bookingsByEvent[b.event_id] = { rooms: [], slots: [] };
+        if (!bookingsByEvent[b.event_id]) bookingsByEvent[b.event_id] = { rooms: [], slots: [], orgName: null };
         const entry = bookingsByEvent[b.event_id];
         if (!entry.rooms.includes(b.room)) entry.rooms.push(b.room);
         if (!entry.slots.includes(b.slot)) entry.slots.push(b.slot);
+        if (!entry.orgName && (b as any).booking_organizations?.name) {
+          entry.orgName = (b as any).booking_organizations.name;
+        }
       }
     }
 
@@ -107,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         location: e.location,
         startTime,
         endTime,
-        memo: e.memo,
+        orgName: e.memo || bookingsByEvent[e.id]?.orgName || null,
         description: e.description,
         rooms: linked?.rooms || [],
         slots: linked?.slots || [],

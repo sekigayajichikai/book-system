@@ -317,7 +317,7 @@ function WeekEventCard({ event, highlight }: { event: EventSummary; highlight?: 
       {/* 場所・団体 */}
       <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-base text-gray-600">
         {locationStr && <span className="flex items-center gap-1"><MapPin size={14} /> {locationStr}</span>}
-        {event.memo && <span className="flex items-center gap-1"><Users size={14} /> {event.memo}</span>}
+        {event.orgName && <span className="flex items-center gap-1"><Users size={14} /> {event.orgName}</span>}
       </div>
       {/* 説明（2行 + 続きを読む） */}
       {descText && (
@@ -354,7 +354,7 @@ function MobileEventCard({ event, highlight }: { event: EventSummary; highlight?
   return (
     <div className={`rounded-lg px-3 py-2.5 ${highlight ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'}`}>
       <div className={`text-base ${highlight ? 'font-bold text-blue-800' : 'font-bold text-gray-800'}`}>{event.title}</div>
-      {event.memo && <div className="text-sm text-gray-400 mt-0.5">{event.memo}</div>}
+      {event.orgName && <div className="text-sm text-gray-400 mt-0.5">{event.orgName}</div>}
       <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-sm text-gray-600">
         {timeStr && <span className="flex items-center gap-1"><Clock size={14} /> {timeStr}</span>}
         {event.eventType === 'facility' && (event.location || roomStr) && (

@@ -131,6 +131,7 @@ function App() {
 
   const [currentDate, setCurrentDate] = useState(new Date());
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [majorEvents, setMajorEvents] = useState<{ date: string; title: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -245,18 +246,27 @@ function App() {
   const fetchEvents = useCallback(async (year: number, month: number) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/bookings-view?year=${year}&month=${month + 1}`);
-      if (!res.ok) throw new Error('API error');
-      const events: CalendarEvent[] = await res.json();
-      setBookings(events.map(evt => ({
-        id: evt.id,
-        date: evt.date,
-        startTime: evt.startTime,
-        endTime: evt.endTime,
-        room: evt.room ?? RoomType.KAIGISHITSU,
-        title: evt.summary,
-        status: BookingStatus.CONFIRMED,
-      })));
+      const [bookingsRes, eventsRes] = await Promise.all([
+        fetch(`/api/bookings-view?year=${year}&month=${month + 1}`),
+        fetch(`/api/events?year=${year}&month=${month + 1}&visibility=public`),
+      ]);
+      if (bookingsRes.ok) {
+        const events: CalendarEvent[] = await bookingsRes.json();
+        setBookings(events.map(evt => ({
+          id: evt.id,
+          date: evt.date,
+          startTime: evt.startTime,
+          endTime: evt.endTime,
+          room: evt.room ?? RoomType.KAIGISHITSU,
+          title: evt.summary,
+          status: BookingStatus.CONFIRMED,
+          orgName: (evt as any).orgName || null,
+        })));
+      }
+      if (eventsRes.ok) {
+        const allEvents = await eventsRes.json();
+        setMajorEvents(allEvents.filter((e: any) => e.isMajor).map((e: any) => ({ date: e.date, title: e.title })));
+      }
     } catch (err) {
       console.error('カレンダーの取得に失敗しました', err);
     } finally {
@@ -555,13 +565,14 @@ function App() {
                     currentDate={currentDate}
                     onPrevMonth={handlePrevMonth}
                     onNextMonth={handleNextMonth}
-                    bookings={bookings}
+                    bookings={filterOrgs ? bookings.filter(b => !b.orgName || filterOrgs.has(b.orgName)) : bookings}
                     onDateClick={handleDateClick}
                     holidays={holidays}
                     closures={closures}
                     loading={loading}
                     modeToggle={modeToggleEl}
                     subTitle={lastUpdated ? `更新日: ${new Date(lastUpdated + 'T00:00:00').toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' })}` : undefined}
+                    majorEvents={showMajor ? majorEvents : []}
                   />
                 </div>
               ) : bookingSubView === 'weekly' ? (
