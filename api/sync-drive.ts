@@ -194,14 +194,24 @@ async function processMonth(supabase: any, year: number, month: number, rows: Pa
   // 団体一覧を取得してタイトルから自動マッチ
   const { data: orgs } = await supabase
     .from('booking_organizations')
-    .select('id, name');
-  const orgList: { id: string; name: string }[] = orgs || [];
+    .select('id, name, keywords');
+  const orgList: { id: string; name: string; keywords: string[] }[] = (orgs || []).map((o: any) => ({
+    id: o.id, name: o.name, keywords: o.keywords || [],
+  }));
 
   function matchOrgId(title: string): string | null {
     const sorted = [...orgList].sort((a, b) => b.name.length - a.name.length);
+    // 1. 団体名がタイトルに含まれるか
     for (const org of sorted) {
       if (title.includes(org.name)) return org.id;
     }
+    // 2. キーワードがタイトルに含まれるか
+    for (const org of sorted) {
+      for (const kw of org.keywords) {
+        if (kw && title.includes(kw)) return org.id;
+      }
+    }
+    // 3. タイトル先頭部分が団体名に含まれるか
     const cleaned = title.replace(/[（()）\s].*/g, '').trim();
     if (cleaned.length >= 2) {
       for (const org of sorted) {
