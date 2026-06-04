@@ -191,6 +191,26 @@ async function processMonth(supabase: any, year: number, month: number, rows: Pa
     existingMap[`${b.date}|${b.slot}|${b.room}`] = { id: b.id, title: b.title };
   });
 
+  // 団体一覧を取得してタイトルから自動マッチ
+  const { data: orgs } = await supabase
+    .from('booking_organizations')
+    .select('id, name');
+  const orgList: { id: string; name: string }[] = orgs || [];
+
+  function matchOrgId(title: string): string | null {
+    const sorted = [...orgList].sort((a, b) => b.name.length - a.name.length);
+    for (const org of sorted) {
+      if (title.includes(org.name)) return org.id;
+    }
+    const cleaned = title.replace(/[（()）\s].*/g, '').trim();
+    if (cleaned.length >= 2) {
+      for (const org of sorted) {
+        if (org.name.includes(cleaned)) return org.id;
+      }
+    }
+    return null;
+  }
+
   const importKeySet = new Set<string>();
   const importRows: any[] = [];
 
@@ -201,21 +221,21 @@ async function processMonth(supabase: any, year: number, month: number, rows: Pa
 
     if (row.title === '予約あり') {
       stats.skip++;
-      importRows.push({ batch_id: batch.id, date: row.date, slot: row.slot, room: row.room, title: row.title, org_guess: row.org_guess || null, diff_type: 'skip', existing_booking_id: existing?.id || null, existing_title: existing?.title || null, review_status: 'skipped' });
+      importRows.push({ batch_id: batch.id, date: row.date, slot: row.slot, room: row.room, title: row.title, org_guess: row.org_guess || null, org_id: matchOrgId(row.title), diff_type: 'skip', existing_booking_id: existing?.id || null, existing_title: existing?.title || null, review_status: 'skipped' });
       continue;
     }
 
     if (existing) {
       if (existing.title === row.title) {
         stats.skip++;
-        importRows.push({ batch_id: batch.id, date: row.date, slot: row.slot, room: row.room, title: row.title, org_guess: row.org_guess || null, diff_type: 'skip', existing_booking_id: existing.id, existing_title: existing.title, review_status: 'skipped' });
+        importRows.push({ batch_id: batch.id, date: row.date, slot: row.slot, room: row.room, title: row.title, org_guess: row.org_guess || null, org_id: matchOrgId(row.title), diff_type: 'skip', existing_booking_id: existing.id, existing_title: existing.title, review_status: 'skipped' });
       } else {
         stats.update++;
-        importRows.push({ batch_id: batch.id, date: row.date, slot: row.slot, room: row.room, title: row.title, org_guess: row.org_guess || null, diff_type: 'update', existing_booking_id: existing.id, existing_title: existing.title, review_status: 'pending' });
+        importRows.push({ batch_id: batch.id, date: row.date, slot: row.slot, room: row.room, title: row.title, org_guess: row.org_guess || null, org_id: matchOrgId(row.title), diff_type: 'update', existing_booking_id: existing.id, existing_title: existing.title, review_status: 'pending' });
       }
     } else {
       stats.add++;
-      importRows.push({ batch_id: batch.id, date: row.date, slot: row.slot, room: row.room, title: row.title, org_guess: row.org_guess || null, diff_type: 'add', review_status: 'pending' });
+      importRows.push({ batch_id: batch.id, date: row.date, slot: row.slot, room: row.room, title: row.title, org_guess: row.org_guess || null, org_id: matchOrgId(row.title), diff_type: 'add', review_status: 'pending' });
     }
   }
 
@@ -223,7 +243,7 @@ async function processMonth(supabase: any, year: number, month: number, rows: Pa
     if (!importKeySet.has(key) && existing.title !== '予約あり') {
       const [date, slot, room] = key.split('|');
       stats.delete++;
-      importRows.push({ batch_id: batch.id, date, slot, room, title: existing.title, diff_type: 'delete', existing_booking_id: existing.id, existing_title: existing.title, review_status: 'pending' });
+      importRows.push({ batch_id: batch.id, date, slot, room, title: existing.title, org_id: matchOrgId(existing.title), diff_type: 'delete', existing_booking_id: existing.id, existing_title: existing.title, review_status: 'pending' });
     }
   }
 
