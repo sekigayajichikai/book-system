@@ -3,13 +3,22 @@ import { createClient } from '@supabase/supabase-js';
 import * as XLSX from 'xlsx';
 
 /**
- * POST /api/sync-drive
- *
- * Google DriveからExcelファイルを取得→パース→差分計算→ステージング保存
- * ImportTabの「Googleドライブから取込」ボタンまたはVercel Cronから呼ばれる。
+ * POST /api/sync-drive   — Google DriveからExcelファイルを取得→パース→差分計算→ステージング保存
+ * GET  /api/sync-drive   — Driveファイルの最終更新日時・ファイル情報を取得
+ * PATCH /api/sync-drive  — 接続先DriveファイルIDを変更
  */
 
-const DRIVE_FILE_ID = process.env.DRIVE_FILE_ID || '1nHObS6maUplrjd-HkHzRTYGe7FVcUMYc';
+const DEFAULT_DRIVE_FILE_ID = process.env.DRIVE_FILE_ID || '1i7e4xbTqsUqseRS5NBQftZY61BoKDjcJ';
+
+/** DBからファイルIDを取得（未設定なら環境変数/デフォルト値） */
+async function getDriveFileId(supabase: ReturnType<typeof createClient>): Promise<string> {
+  const { data } = await supabase
+    .from('app_settings')
+    .select('value')
+    .eq('key', 'drive_file_id')
+    .single();
+  return data?.value || DEFAULT_DRIVE_FILE_ID;
+}
 
 // ORG_MAP（団体推測用）
 const ORG_MAP: Record<string, string> = {
@@ -100,6 +109,7 @@ function parseWorkbook(buffer: ArrayBuffer): ParsedMonth[] {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'GET') return handleGetMeta(req, res);
+  if (req.method === 'PATCH') return handleUpdateFileId(req, res);
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -107,6 +117,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sourceUpdatedAt = req.body?.source_updated_at || null;
 
   try {
+    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+    const DRIVE_FILE_ID = await getDriveFileId(supabase);
+
     // Google DriveからExcelをダウンロード（リダイレクト対応）
     let exportUrl = `https://docs.google.com/spreadsheets/d/${DRIVE_FILE_ID}/export?format=xlsx`;
     let dlRes = await fetch(exportUrl, { redirect: 'manual' });
@@ -134,7 +147,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 各月ごとに /api/import と同じ差分計算を実行
-    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
     const totalStats = { add: 0, update: 0, delete: 0, skip: 0 };
 
     for (const { year, month, rows } of parsed) {
@@ -252,28 +264,77 @@ async function processMonth(supabase: any, year: number, month: number, rows: Pa
 /** GET: Driveファイルの最終更新日時を取得（Google Drive API） */
 async function handleGetMeta(_req: VercelRequest, res: VercelResponse) {
   try {
+    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+    const fileId = await getDriveFileId(supabase);
     const apiKey = process.env.GOOGLE_API_KEY;
+
     if (!apiKey) {
-      return res.status(200).json({ fileId: DRIVE_FILE_ID, lastModified: null });
+      return res.status(200).json({ fileId, lastModified: null });
     }
 
     const driveRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${DRIVE_FILE_ID}?fields=modifiedTime,name&key=${apiKey}`
+      `https://www.googleapis.com/drive/v3/files/${fileId}?fields=modifiedTime,name&key=${apiKey}`
     );
 
     if (!driveRes.ok) {
-      return res.status(200).json({ fileId: DRIVE_FILE_ID, lastModified: null });
+      return res.status(200).json({ fileId, lastModified: null });
     }
 
     const data = await driveRes.json();
 
     res.setHeader('Cache-Control', 'no-cache');
     return res.status(200).json({
-      fileId: DRIVE_FILE_ID,
+      fileId,
       lastModified: data.modifiedTime || null,
       fileName: data.name || null,
     });
   } catch (err: any) {
-    return res.status(200).json({ fileId: DRIVE_FILE_ID, lastModified: null });
+    return res.status(200).json({ fileId: DEFAULT_DRIVE_FILE_ID, lastModified: null });
+  }
+}
+
+/** PATCH: 接続先DriveファイルIDを変更 */
+async function handleUpdateFileId(req: VercelRequest, res: VercelResponse) {
+  try {
+    const { file_id } = req.body || {};
+    if (!file_id || typeof file_id !== 'string') {
+      return res.status(400).json({ error: 'file_id is required' });
+    }
+
+    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+
+    // upsert: 既存ならupdate、なければinsert
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({ key: 'drive_file_id', value: file_id, updated_at: new Date().toISOString() });
+
+    if (error) {
+      return res.status(500).json({ error: 'Failed to save file ID', detail: error.message });
+    }
+
+    // 新しいファイルのメタデータを取得して返す
+    const apiKey = process.env.GOOGLE_API_KEY;
+    let fileName = null;
+    let lastModified = null;
+
+    if (apiKey) {
+      const driveRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${file_id}?fields=modifiedTime,name&key=${apiKey}`
+      );
+      if (driveRes.ok) {
+        const data = await driveRes.json();
+        fileName = data.name || null;
+        lastModified = data.modifiedTime || null;
+      }
+    }
+
+    return res.status(200).json({
+      ok: true,
+      fileId: file_id,
+      fileName,
+      lastModified,
+    });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
   }
 }

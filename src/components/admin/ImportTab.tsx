@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload, Cloud } from 'lucide-react';
+import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload, Cloud, Settings, Link } from 'lucide-react';
 import { shortRoomName } from '../../constants';
 import * as XLSX from 'xlsx';
 
@@ -149,6 +149,11 @@ export default function ImportTab() {
   const [syncing, setSyncing] = useState(false);
   const [syncingGeneral, setSyncingGeneral] = useState(false);
   const [driveLastModified, setDriveLastModified] = useState<string | null>(null);
+  const [driveFileName, setDriveFileName] = useState<string | null>(null);
+  const [driveFileId, setDriveFileId] = useState<string | null>(null);
+  const [showFileConfig, setShowFileConfig] = useState(false);
+  const [fileUrlInput, setFileUrlInput] = useState('');
+  const [savingFileId, setSavingFileId] = useState(false);
   const [sourceDate, setSourceDate] = useState('');
   const [orgOptions, setOrgOptions] = useState<OrgOption[]>([]);
   const [orgGroups, setOrgGroups] = useState<OrgGroup[]>([]);
@@ -185,23 +190,73 @@ export default function ImportTab() {
     }).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    fetchImport();
+  const fetchDriveMeta = useCallback(() => {
     fetch('/api/sync-drive').then(r => r.json()).then(d => {
+      if (d.fileId) setDriveFileId(d.fileId);
+      if (d.fileName) setDriveFileName(d.fileName);
       if (d.lastModified) {
         setDriveLastModified(d.lastModified);
-        // 最終更新日の直近の金曜日を計算
         const mod = new Date(d.lastModified);
         const day = mod.getDay();
-        if (day === 5) {
-          // 金曜日ならその日
-        } else {
+        if (day === 5) { /* 金曜日ならその日 */ } else {
           const diff = day >= 5 ? day - 5 : day + 2;
           mod.setDate(mod.getDate() - diff);
         }
         setSourceDate(`${mod.getFullYear()}-${String(mod.getMonth() + 1).padStart(2, '0')}-${String(mod.getDate()).padStart(2, '0')}`);
       }
     }).catch(() => {});
+  }, []);
+
+  /** Google DriveのURLからファイルIDを抽出 */
+  const parseDriveFileId = (input: string): string | null => {
+    // https://drive.google.com/file/d/FILE_ID/...
+    const fileMatch = input.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileMatch) return fileMatch[1];
+    // https://docs.google.com/spreadsheets/d/FILE_ID/...
+    const sheetMatch = input.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+    if (sheetMatch) return sheetMatch[1];
+    // https://drive.google.com/open?id=FILE_ID
+    const openMatch = input.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (openMatch) return openMatch[1];
+    // 直接IDが入力された場合（英数字とハイフン・アンダースコアのみ）
+    if (/^[a-zA-Z0-9_-]{10,}$/.test(input.trim())) return input.trim();
+    return null;
+  };
+
+  const handleSaveFileId = async () => {
+    const newFileId = parseDriveFileId(fileUrlInput);
+    if (!newFileId) {
+      setMessage({ type: 'error', text: 'Google DriveのURLまたはファイルIDを正しく入力してください' });
+      return;
+    }
+    setSavingFileId(true);
+    try {
+      const res = await fetch('/api/sync-drive', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_id: newFileId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setDriveFileId(data.fileId);
+        setDriveFileName(data.fileName);
+        setDriveLastModified(data.lastModified);
+        setShowFileConfig(false);
+        setFileUrlInput('');
+        setMessage({ type: 'success', text: `接続先を変更しました: ${data.fileName || newFileId}` });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'ファイルIDの保存に失敗しました' });
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'ファイルIDの保存に失敗しました' });
+    } finally {
+      setSavingFileId(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchImport();
+    fetchDriveMeta();
   }, [fetchImport]);
 
   // Excelファイルアップロード処理
@@ -482,25 +537,63 @@ export default function ImportTab() {
       <h3 className="text-sm font-bold text-blue-700">会館予約のインポート</h3>
       <div className="flex gap-3">
         {/* Googleドライブから取込 */}
-        <button
-          onClick={handleSyncDrive}
-          disabled={syncing || uploading}
-          className="flex-1 border-2 border-dashed border-blue-200 rounded-xl p-4 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Cloud size={24} className="mx-auto text-blue-300 mb-1" />
-          {syncing ? (
-            <p className="text-blue-600 font-bold text-sm">取込中...</p>
-          ) : (
-            <>
-              <p className="text-blue-500 text-sm font-bold">Googleドライブから取込</p>
-              <div className="text-left inline-block mt-1.5 text-xs text-gray-400">
-                <p><span className="text-gray-500">アカウント：</span>関ヶ谷自治会DX委員会</p>
-                <p><span className="text-gray-500">ファイル　：</span>カレンダー &gt; 会館予定表 &gt; 会館日程表（新）.xlsx</p>
-                {driveModifiedStr && <p><span className="text-gray-500">最終更新　：</span>{driveModifiedStr}</p>}
+        <div className="flex-1 space-y-2">
+          <button
+            onClick={handleSyncDrive}
+            disabled={syncing || uploading}
+            className="w-full border-2 border-dashed border-blue-200 rounded-xl p-4 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Cloud size={24} className="mx-auto text-blue-300 mb-1" />
+            {syncing ? (
+              <p className="text-blue-600 font-bold text-sm">取込中...</p>
+            ) : (
+              <>
+                <p className="text-blue-500 text-sm font-bold">Googleドライブから取込</p>
+                <div className="text-left inline-block mt-1.5 text-xs text-gray-400">
+                  <p><span className="text-gray-500">アカウント：</span>関ヶ谷自治会DX委員会</p>
+                  <p><span className="text-gray-500">ファイル　：</span>{driveFileName || '会館日程表（新）.xlsx'}</p>
+                  {driveModifiedStr && <p><span className="text-gray-500">最終更新　：</span>{driveModifiedStr}</p>}
+                </div>
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => setShowFileConfig(!showFileConfig)}
+            className="w-full flex items-center justify-center gap-1 text-xs text-gray-400 hover:text-blue-500 transition-colors py-1"
+          >
+            <Settings size={12} />
+            <span>接続先を変更</span>
+          </button>
+          {showFileConfig && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+              <p className="text-xs text-gray-600">
+                Google Driveでファイルを右クリック →「リンクを取得」→ 下に貼り付け
+              </p>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Link size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={fileUrlInput}
+                    onChange={e => setFileUrlInput(e.target.value)}
+                    placeholder="Google DriveのURLまたはファイルID"
+                    className="w-full pl-8 pr-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+                <button
+                  onClick={handleSaveFileId}
+                  disabled={savingFileId || !fileUrlInput.trim()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
+                >
+                  {savingFileId ? '保存中...' : '変更'}
+                </button>
               </div>
-            </>
+              {driveFileId && (
+                <p className="text-xs text-gray-400">現在のID: <code className="bg-white px-1 rounded">{driveFileId.slice(0, 20)}...</code></p>
+              )}
+            </div>
           )}
-        </button>
+        </div>
 
         {/* ファイルアップロード */}
         <div
