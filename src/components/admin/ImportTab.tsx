@@ -775,7 +775,7 @@ export default function ImportTab() {
                               onChange={e => handleGroupChange(row.id, e.target.value)}
                               className="text-xs border border-gray-200 rounded px-1 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300" style={{ width: 100 }}
                             >
-                              <option value="">グループ</option>
+                              <option value="">-- グループ --</option>
                               {orgGroups.map(g => (
                                 <option key={g.id} value={g.name}>{g.name}</option>
                               ))}
@@ -786,7 +786,7 @@ export default function ImportTab() {
                               disabled={!rowGroupSelection[row.id]}
                               className="text-xs border border-gray-200 rounded px-1 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-blue-300 disabled:bg-gray-50 disabled:text-gray-400" style={{ width: 150 }}
                             >
-                              <option value="">団体</option>
+                              <option value="">-- 団体 --</option>
                               {orgOptions
                                 .filter(o => o.group_name === rowGroupSelection[row.id])
                                 .map(o => (
