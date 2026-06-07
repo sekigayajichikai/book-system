@@ -150,6 +150,7 @@ export default function ImportTab() {
   const [syncingGeneral, setSyncingGeneral] = useState(false);
   const [driveLastModified, setDriveLastModified] = useState<string | null>(null);
   const [driveFileName, setDriveFileName] = useState<string | null>(null);
+  const [driveOwnerName, setDriveOwnerName] = useState<string | null>(null);
   const [driveFileId, setDriveFileId] = useState<string | null>(null);
   const [showFileConfig, setShowFileConfig] = useState(false);
   const [fileUrlInput, setFileUrlInput] = useState('');
@@ -194,6 +195,7 @@ export default function ImportTab() {
     fetch('/api/sync-drive').then(r => r.json()).then(d => {
       if (d.fileId) setDriveFileId(d.fileId);
       if (d.fileName) setDriveFileName(d.fileName);
+      if (d.ownerName) setDriveOwnerName(d.ownerName);
       if (d.lastModified) {
         setDriveLastModified(d.lastModified);
         const mod = new Date(d.lastModified);
@@ -240,6 +242,7 @@ export default function ImportTab() {
       if (data.ok) {
         setDriveFileId(data.fileId);
         setDriveFileName(data.fileName);
+        setDriveOwnerName(data.ownerName);
         setDriveLastModified(data.lastModified);
         setShowFileConfig(false);
         setFileUrlInput('');
@@ -550,8 +553,8 @@ export default function ImportTab() {
               <>
                 <p className="text-blue-500 text-sm font-bold">Googleドライブから取込</p>
                 <div className="text-left inline-block mt-1.5 text-xs text-gray-400">
-                  <p><span className="text-gray-500">アカウント：</span>関ヶ谷自治会DX委員会</p>
-                  <p><span className="text-gray-500">ファイル　：</span>{driveFileName || '会館日程表（新）.xlsx'}</p>
+                  <p><span className="text-gray-500">アカウント：</span>{driveOwnerName || '取得中...'}</p>
+                  <p><span className="text-gray-500">ファイル　：</span>{driveFileName || '取得中...'}</p>
                   {driveModifiedStr && <p><span className="text-gray-500">最終更新　：</span>{driveModifiedStr}</p>}
                 </div>
               </>

@@ -273,7 +273,7 @@ async function handleGetMeta(_req: VercelRequest, res: VercelResponse) {
     }
 
     const driveRes = await fetch(
-      `https://www.googleapis.com/drive/v3/files/${fileId}?fields=modifiedTime,name&key=${apiKey}`
+      `https://www.googleapis.com/drive/v3/files/${fileId}?fields=modifiedTime,name,owners&key=${apiKey}`
     );
 
     if (!driveRes.ok) {
@@ -281,12 +281,15 @@ async function handleGetMeta(_req: VercelRequest, res: VercelResponse) {
     }
 
     const data = await driveRes.json();
+    const owner = data.owners?.[0];
 
     res.setHeader('Cache-Control', 'no-cache');
     return res.status(200).json({
       fileId,
       lastModified: data.modifiedTime || null,
       fileName: data.name || null,
+      ownerName: owner?.displayName || null,
+      ownerEmail: owner?.emailAddress || null,
     });
   } catch (err: any) {
     return res.status(200).json({ fileId: DEFAULT_DRIVE_FILE_ID, lastModified: null });
@@ -317,14 +320,20 @@ async function handleUpdateFileId(req: VercelRequest, res: VercelResponse) {
     let fileName = null;
     let lastModified = null;
 
+    let ownerName = null;
+    let ownerEmail = null;
+
     if (apiKey) {
       const driveRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${file_id}?fields=modifiedTime,name&key=${apiKey}`
+        `https://www.googleapis.com/drive/v3/files/${file_id}?fields=modifiedTime,name,owners&key=${apiKey}`
       );
       if (driveRes.ok) {
         const data = await driveRes.json();
         fileName = data.name || null;
         lastModified = data.modifiedTime || null;
+        const owner = data.owners?.[0];
+        ownerName = owner?.displayName || null;
+        ownerEmail = owner?.emailAddress || null;
       }
     }
 
@@ -333,6 +342,8 @@ async function handleUpdateFileId(req: VercelRequest, res: VercelResponse) {
       fileId: file_id,
       fileName,
       lastModified,
+      ownerName,
+      ownerEmail,
     });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
