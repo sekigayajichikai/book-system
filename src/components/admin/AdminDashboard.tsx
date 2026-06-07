@@ -440,8 +440,17 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const handleDeleteOrg = async (id: string, name: string) => {
     if (!confirm(`「${name}」を削除しますか？`)) return;
-    await supaFetch(`booking_organizations?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
-    setOrgs(prev => prev.filter(o => o.id !== id));
+    const res = await supaFetch(`booking_organizations?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+    if (!res.ok) {
+      if (confirm(`「${name}」は予約データが紐づいているため削除できません。\n非表示（アーカイブ）にしますか？`)) {
+        await supaFetch(`booking_organizations?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ is_active: false }) });
+        setOrgs(prev => prev.map(o => o.id === id ? { ...o, is_active: false } : o));
+        setEditOrg(null);
+      }
+    } else {
+      setOrgs(prev => prev.filter(o => o.id !== id));
+      setEditOrg(null);
+    }
   };
 
   // === 申請管理 ===
