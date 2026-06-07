@@ -399,23 +399,23 @@ function App() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setCalendarMode('schedule'); setShowMyPage(false); }}
-              className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
+              className={`px-4 py-2 rounded-full text-base font-bold transition-all active:scale-95 ${
                 !showMyPage && calendarMode === 'schedule'
                   ? 'bg-blue-600 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              <CalendarDays size={16} className="inline-block mr-1 -mt-0.5" />カレンダー
+              <CalendarDays size={18} className="inline-block mr-1 -mt-0.5" />カレンダー
             </button>
             <button
               onClick={() => { setCalendarMode('calendar'); setShowMyPage(false); }}
-              className={`px-4 py-2 rounded-full text-sm font-bold transition-all active:scale-95 ${
+              className={`px-4 py-2 rounded-full text-base font-bold transition-all active:scale-95 ${
                 !showMyPage && calendarMode === 'calendar'
                   ? 'bg-emerald-600 text-white shadow-sm'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
-              <Home size={16} className="inline-block mr-1 -mt-0.5" />会館予約状況
+              <Home size={18} className="inline-block mr-1 -mt-0.5" />会館予約状況
             </button>
             {isOrgLoggedIn && (
               <button
@@ -532,8 +532,8 @@ function App() {
               isMobile ? (
                 <>
                   <div className="flex justify-end px-3 py-1">
-                    <button onClick={() => setShowMobileFilter(true)} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">
-                      <Filter size={12} /><span>フィルタ</span>
+                    <button onClick={() => setShowMobileFilter(true)} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-bold bg-gray-100 text-gray-600 active:bg-gray-200">
+                      <Filter size={14} /><span>フィルタ</span>
                     </button>
                   </div>
                   <MobileEventList holidays={holidays} closures={closures} filterOrgs={filterOrgs} />
@@ -559,9 +559,9 @@ function App() {
                 <div className="flex justify-end px-3 py-1">
                   <button
                     onClick={() => setShowMobileFilter(true)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-bold bg-gray-100 text-gray-600 active:bg-gray-200"
                   >
-                    <Filter size={12} />
+                    <Filter size={14} />
                     <span>フィルタ</span>
                   </button>
                 </div>

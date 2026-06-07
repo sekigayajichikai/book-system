@@ -71,10 +71,10 @@ export default function MobileOrgFilter({ filterOrgs, onToggleGroup, onSelectAll
 
         {/* ヘッダー */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
-          <span className="text-sm font-bold text-gray-700">表示する団体</span>
+          <span className="text-base font-bold text-gray-700">表示する団体</span>
           <div className="flex items-center gap-3">
-            <button onClick={onSelectAll} className="text-xs text-blue-500 font-bold">全選択</button>
-            <button onClick={onDeselectAll} className="text-xs text-blue-500 font-bold">全解除</button>
+            <button onClick={onSelectAll} className="text-sm text-blue-500 font-bold">全選択</button>
+            <button onClick={onDeselectAll} className="text-sm text-blue-500 font-bold">全解除</button>
             <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">
               <X size={18} />
             </button>
@@ -114,9 +114,9 @@ export default function MobileOrgFilter({ filterOrgs, onToggleGroup, onSelectAll
                     </span>
                   </button>
                   <button className="flex-1 flex items-center gap-2 text-left" onClick={() => setExpanded(e => ({ ...e, [group.name]: !e[group.name] }))}>
-                    <span className="text-sm text-gray-700">{group.name}</span>
-                    <span className="text-xs text-gray-400">{names.filter(n => filterOrgs.has(n)).length}/{names.length}</span>
-                    {isExpanded ? <ChevronUp size={14} className="text-gray-400 ml-auto" /> : <ChevronDown size={14} className="text-gray-400 ml-auto" />}
+                    <span className="text-base text-gray-700">{group.name}</span>
+                    <span className="text-sm text-gray-400">{names.filter(n => filterOrgs.has(n)).length}/{names.length}</span>
+                    {isExpanded ? <ChevronUp size={16} className="text-gray-400 ml-auto" /> : <ChevronDown size={16} className="text-gray-400 ml-auto" />}
                   </button>
                 </div>
                 {isExpanded && (
@@ -125,10 +125,10 @@ export default function MobileOrgFilter({ filterOrgs, onToggleGroup, onSelectAll
                       <button
                         key={name}
                         onClick={() => onToggleOrg(name)}
-                        className="flex items-center gap-2.5 w-full py-1.5 px-2 rounded-lg active:bg-gray-50 text-left"
+                        className="flex items-center gap-2.5 w-full py-2 px-2 rounded-lg active:bg-gray-50 text-left"
                       >
                         <span
-                          className="w-4 h-4 rounded flex items-center justify-center border-2 shrink-0"
+                          className="w-5 h-5 rounded flex items-center justify-center border-2 shrink-0"
                           style={{
                             backgroundColor: filterOrgs.has(name) ? color : 'transparent',
                             borderColor: filterOrgs.has(name) ? color : '#d1d5db',
@@ -140,7 +140,7 @@ export default function MobileOrgFilter({ filterOrgs, onToggleGroup, onSelectAll
                             </svg>
                           )}
                         </span>
-                        <span className="text-xs text-gray-600">{name}</span>
+                        <span className="text-sm text-gray-600">{name}</span>
                       </button>
                     ))}
                   </div>
@@ -167,7 +167,7 @@ export default function MobileOrgFilter({ filterOrgs, onToggleGroup, onSelectAll
                 </svg>
               )}
             </span>
-            <span className="text-sm text-gray-500">未分類</span>
+            <span className="text-base text-gray-500">未分類</span>
           </button>
         </div>
       </div>
