@@ -75,10 +75,17 @@ export default function MobileEventList({ holidays, closures, filterOrgs }: Mobi
     if (!grouped[e.date]) grouped[e.date] = [];
     grouped[e.date].push(e);
   });
-  const sortedDates = Object.keys(grouped).sort();
-
   const today = new Date();
   const todayStr = formatDate(today);
+
+  // 今日のDayCardがない場合でも必ず表示
+  if (todayStr >= `${year}-${String(month + 1).padStart(2, '0')}-01` &&
+      todayStr <= `${year}-${String(month + 1).padStart(2, '0')}-31` &&
+      !grouped[todayStr]) {
+    grouped[todayStr] = [];
+  }
+
+  const sortedDates = Object.keys(grouped).sort();
 
 
   return (
@@ -172,9 +179,11 @@ function DayCard({ dateStr, events, todayStr, todayRef, holidays, closures }: {
         {isToday && <span className="text-sm bg-blue-600 text-white px-2 py-0.5 rounded-full font-bold">TODAY</span>}
       </div>
       <div className="space-y-2">
-        {sortEvents(events).map(evt => (
+        {events.length > 0 ? sortEvents(events).map(evt => (
           <MobileEventCard key={evt.id} event={evt} highlight={evt.isMajor} />
-        ))}
+        )) : (
+          <p className="text-sm text-gray-400">予定なし</p>
+        )}
       </div>
     </div>
   );
