@@ -196,7 +196,7 @@ function MobileEventCard({ event, highlight }: { event: EventSummary; highlight?
   return (
     <div className={`rounded-lg px-3 py-2.5 ${highlight ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'}`}>
       <div className={`text-base ${highlight ? 'font-bold text-blue-800' : 'font-bold text-gray-800'}`}>{event.title}</div>
-      {event.orgName && <div className="text-sm text-gray-400 mt-0.5">{event.orgName}</div>}
+      {event.orgName && <div className="flex items-center gap-1 text-sm text-gray-400 mt-0.5"><Users size={12} />{event.orgName}</div>}
       <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-sm text-gray-600">
         {timeStr && <span className="flex items-center gap-1"><Clock size={14} /> {timeStr}</span>}
         {event.eventType === 'facility' && (event.location || roomStr) && (

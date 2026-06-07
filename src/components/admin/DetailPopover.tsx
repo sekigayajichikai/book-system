@@ -54,7 +54,6 @@ export interface DetailData {
   // booking fields
   room?: string;
   slot?: string;
-  orgName?: string | null;
 }
 
 interface DetailPopoverProps {
@@ -113,6 +112,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
     startTime: data.startTime || '',
     endTime: data.endTime || '',
     isMajor: data.isMajor || false,
+    memo: data.orgName || '',
   });
   // booking編集用
   const [bookingForm, setBookingForm] = useState({
@@ -207,6 +207,18 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
 
   const handleSaveEdit = async () => {
     if (!editForm.title.trim()) return;
+    // 団体名からorg_idを検索
+    let orgId: string | null = null;
+    const memoTrimmed = editForm.memo.trim();
+    if (memoTrimmed) {
+      try {
+        const orgRes = await fetch(`${SUPABASE_URL}/rest/v1/booking_organizations?name=eq.${encodeURIComponent(memoTrimmed)}&select=id&limit=1`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        });
+        const d = orgRes.ok ? await orgRes.json() : [];
+        orgId = d[0]?.id || null;
+      } catch {}
+    }
     await supaFetch(`calendar_events?id=eq.${data.id}`, {
       method: 'PATCH',
       body: JSON.stringify({
@@ -216,6 +228,8 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         start_time: editForm.startTime || null,
         end_time: editForm.endTime || null,
         is_major: editForm.isMajor,
+        memo: memoTrimmed || null,
+        org_id: orgId,
       }),
     });
     setEditing(false);
@@ -314,7 +328,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
 
       {/* 本文 */}
       <div className="px-4 pb-4 space-y-3">
-        {/* タイトル */}
+        {/* タイトル + タグ */}
         <div className="flex items-start gap-3">
           <div className={`w-3 h-3 rounded-sm mt-1.5 flex-shrink-0 ${
             data.type === 'booking' && data.room ? (ROOM_COLORS[data.room] || 'bg-gray-400') : 'bg-blue-500'
@@ -330,6 +344,26 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
           <div className="flex items-center gap-3 text-sm text-gray-600">
             <Users size={16} className="text-gray-400 flex-shrink-0" />
             <span>{data.orgName || facilityOrgName}</span>
+          </div>
+        )}
+
+        {/* タイプバッジ */}
+        {(data.type === 'event' || data.isMajor) && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {data.type === 'event' && (
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                data.eventType === 'facility'
+                  ? 'bg-violet-100 text-violet-700'
+                  : 'bg-blue-100 text-blue-700'
+              }`}>
+                {data.eventType === 'facility' ? '会館予約由来' : '予定'}
+              </span>
+            )}
+            {data.isMajor && (
+              <span className="flex items-center gap-0.5 text-xs text-orange-500">
+                <Star size={12} fill="currentColor" /> 主な予定
+              </span>
+            )}
           </div>
         )}
 
@@ -356,29 +390,13 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
             <span className="whitespace-pre-wrap">{data.description}</span>
           </div>
         )}
-
-        {/* タイプバッジ + facility注意書き */}
-        {(data.type === 'event' || data.isMajor) && (
-          <div className="flex items-center gap-2 pt-1 flex-wrap">
-            {data.type === 'event' && (
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                data.eventType === 'facility'
-                  ? 'bg-violet-100 text-violet-700'
-                  : 'bg-blue-100 text-blue-700'
-              }`}>
-                {data.eventType === 'facility' ? '会館予約由来' : '予定'}
-              </span>
-            )}
-            {data.isMajor && (
-              <span className="flex items-center gap-0.5 text-xs text-orange-500">
-                <Star size={12} fill="currentColor" /> 主な予定
-              </span>
-            )}
-          </div>
-        )}
         {/* 一般イベント インライン編集 */}
         {editing && !isFacilityEvent && data.type === 'event' && (
           <div className="space-y-3 border-t border-gray-200 pt-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">団体</label>
+              <OrgPicker value={editForm.memo} onChange={v => setEditForm(f => ({ ...f, memo: v }))} />
+            </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">タイトル</label>
               <input value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
