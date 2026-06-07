@@ -23,18 +23,35 @@
 
 | 要素 | サイズ | 色 |
 |------|--------|-----|
+| タブボタン（カレンダー/会館予約） | text-base(16px) font-bold icon-18 | blue-600/emerald-600(active) / gray-600(inactive) |
+| フィルタボタン | text-sm(14px) font-bold icon-14 | gray-600 on gray-100 |
 | ヘッダー年月 | text-lg(18px) font-bold | gray-800 |
-| ビュー切替（月/週） | text-xs(12px) font-bold | gray-800 / gray-500 |
 | 主な予定カード見出し | text-sm(14px) font-bold | blue-700 |
 | 主な予定カード日付 | text-lg(18px) font-bold | 曜日色 |
 | 主な予定カードタイトル | text-base(16px) font-bold | gray-800 |
 | 日カード日付 | text-2xl(24px) font-bold | 曜日色 |
 | 日カード曜日 | text-lg(18px) | 曜日色(薄) |
-| イベントタイトル | text-base(16px) font-bold | gray-800 / blue-800 |
-| イベント時間・場所 | text-sm(14px) | gray-600 |
-| 説明 | text-sm(14px) | gray-400 |
+| TODAYバッジ | text-sm(14px) font-bold | white on blue-600 |
+| イベントタイトル | text-lg(18px) font-bold | gray-800 / blue-800 |
+| イベント団体名 | text-base(16px) icon-14 | gray-500 |
+| イベント時間・場所 | text-base(16px) | gray-600 |
+| 説明 | text-base(16px) | gray-500 |
+| 予定なし | text-sm(14px) | gray-400 |
 | 会館予約スロット名 | text-lg(18px) font-bold | gray-600 |
 | 会館予約イベント名 | text-lg(18px) | gray-800 |
+
+### フィルタ ボトムシート（MobileOrgFilter）
+
+| 要素 | サイズ | 色 |
+|------|--------|-----|
+| 見出し「表示する団体」 | text-base(16px) font-bold | gray-700 |
+| 全選択/全解除 | text-sm(14px) font-bold | blue-500 |
+| グループ名 | text-base(16px) | gray-700 |
+| グループカウント | text-sm(14px) | gray-400 |
+| 個別団体名 | text-sm(14px) | gray-600 |
+| 未分類 | text-base(16px) | gray-500 |
+| チェックボックス（グループ） | w-5 h-5 | グループカラー |
+| チェックボックス（個別） | w-5 h-5 | グループカラー |
 
 ### 管理画面PC（AdminDashboard）
 
@@ -127,11 +144,36 @@
 
 | 要素 | PC | スマホ |
 |------|-----|--------|
-| モード切替 | text-base px-4 py-1.5 rounded-full (gray-100内) | text-sm px-4 py-2 rounded-full (独立ピル) |
+| モード切替 | text-base px-4 py-1.5 rounded-full (gray-100内) | text-base px-4 py-2 rounded-full (独立ピル) |
 | ビュー切替 | text-xs px-3 py-1 rounded-full (gray-100内) | text-xs px-3 py-1 rounded-full |
 | ナビ矢印 | p-2 size=20 | p-2 size=24 |
 | ポップオーバー保存 | px-6 py-2 rounded-full emerald-600 | — |
 | ポップオーバー閉じる | p-1.5 size=16 | — |
+
+---
+
+## フィルタUI
+
+### PC版サイドバー（OrgFilterSidebar）
+| 要素 | サイズ | 色 |
+|------|--------|-----|
+| 「主な予定」トグル | text-sm font-bold | blue-700(on) / gray-400(off) |
+| グループ名 | text-sm font-medium | gray-700 |
+| 団体名 | text-[13px] | gray-600 |
+| 未分類 | text-sm font-medium | gray-400 |
+| チェックボックス | 18px / 16px | グループカラー / gray-500(未分類) |
+| 全選択/全解除 | text-xs | blue-500 |
+
+### グループカラー（共通）
+| グループ | 色 |
+|---------|-----|
+| 自治会 | #ef4444 (red) |
+| 委員会 | #3b82f6 (blue) |
+| 自主活動部 | #10b981 (emerald) |
+| 会員団体 | #f59e0b (amber) |
+| 一般団体 | #8b5cf6 (violet) |
+| その他/外部 | #9ca3af (gray-400) |
+| 未分類 | #6b7280 (gray-500) |
 
 ---
 
