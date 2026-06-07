@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload, Cloud, Settings, Link } from 'lucide-react';
+import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload, Cloud, Settings, Link, Users, Building2 } from 'lucide-react';
 import { shortRoomName } from '../../constants';
 import * as XLSX from 'xlsx';
 
@@ -768,8 +768,9 @@ export default function ImportTab() {
                             <span className="font-bold">{row.title}</span>
                           )}
                         </td>
-                        <td className="px-3 py-2" style={{ width: 260 }}>
-                          <div className="flex gap-1">
+                        <td className="px-3 py-2" style={{ width: 280 }}>
+                          <div className="flex items-center gap-1">
+                            <Users size={13} className="text-gray-400 shrink-0" />
                             <select
                               value={rowGroupSelection[row.id] || ''}
                               onChange={e => handleGroupChange(row.id, e.target.value)}
@@ -780,6 +781,7 @@ export default function ImportTab() {
                                 <option key={g.id} value={g.name}>{g.name}</option>
                               ))}
                             </select>
+                            <Building2 size={13} className="text-gray-400 shrink-0" />
                             <select
                               value={row.org_id || ''}
                               onChange={e => handleOrgChange(row.id, e.target.value || null)}
