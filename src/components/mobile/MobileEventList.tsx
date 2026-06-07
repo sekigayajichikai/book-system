@@ -110,7 +110,7 @@ export default function MobileEventList({ holidays, closures, filterOrgs }: Mobi
         <div className="space-y-3">
           {majorEvents.length > 0 && (
             <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
-              <div className="text-sm font-bold text-blue-700 mb-3">主な予定</div>
+              <div className="text-lg font-bold text-blue-700 mb-3">主な予定</div>
               <div className="space-y-2.5">
                 {majorEvents.map(evt => {
                   const d = new Date(evt.date + 'T00:00:00');
