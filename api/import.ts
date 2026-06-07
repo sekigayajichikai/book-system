@@ -74,16 +74,20 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
       existingMap[key] = { id: b.id, title: b.title };
     });
 
-    // 団体自動マッチ
-    const { data: orgs } = await supabase.from('booking_organizations').select('id, name, keywords, is_active').neq('is_active', false);
-    const orgList = (orgs || []).map((o: any) => ({ id: o.id as string, name: o.name as string, keywords: (o.keywords || []) as string[] }));
-    const orgSorted = [...orgList].sort((a, b) => b.name.length - a.name.length);
-    function matchOrgId(title: string): string | null {
-      for (const org of orgSorted) { if (title.includes(org.name)) return org.id; }
-      for (const org of orgSorted) { for (const kw of org.keywords) { if (kw && title.includes(kw)) return org.id; } }
+    // 団体自動マッチ（アクティブ優先、見つからなければ非アクティブも検索）
+    const { data: allOrgs } = await supabase.from('booking_organizations').select('id, name, keywords, is_active');
+    const toOrgList = (list: any[]) => list.map((o: any) => ({ id: o.id as string, name: o.name as string, keywords: (o.keywords || []) as string[] }));
+    const activeOrgs = toOrgList((allOrgs || []).filter((o: any) => o.is_active !== false)).sort((a, b) => b.name.length - a.name.length);
+    const inactiveOrgs = toOrgList((allOrgs || []).filter((o: any) => o.is_active === false)).sort((a, b) => b.name.length - a.name.length);
+    function matchInList(title: string, list: typeof activeOrgs): string | null {
+      for (const org of list) { if (title.includes(org.name)) return org.id; }
+      for (const org of list) { for (const kw of org.keywords) { if (kw && title.includes(kw)) return org.id; } }
       const cleaned = title.replace(/[（()）\s].*/g, '').trim();
-      if (cleaned.length >= 2) { for (const org of orgSorted) { if (org.name.includes(cleaned)) return org.id; } }
+      if (cleaned.length >= 2) { for (const org of list) { if (org.name.includes(cleaned)) return org.id; } }
       return null;
+    }
+    function matchOrgId(title: string): string | null {
+      return matchInList(title, activeOrgs) || matchInList(title, inactiveOrgs);
     }
 
     // インポート行のキーセット（delete検出用）

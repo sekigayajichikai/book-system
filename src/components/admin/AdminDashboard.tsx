@@ -250,6 +250,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [editOrg, setEditOrg] = useState<Org | null>(null);
   const [orgEditing, setOrgEditing] = useState(false);
   const [keywordsText, setKeywordsText] = useState<string | null>(null);
+  const [orgSearch, setOrgSearch] = useState('');
   const [showOrgPanel, setShowOrgPanel] = useState(false);
   const [orgSortByGroup, setOrgSortByGroup] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
@@ -621,7 +622,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         {tab === 'organizations' && (
           <div className="flex gap-4" style={{ height: 'calc(100vh - 5rem)' }}>
             <div className={`${showOrgPanel ? 'w-1/3' : 'w-full max-w-sm'} transition-all flex flex-col min-h-0`}>
-              <div className="flex items-center justify-between mb-3 shrink-0">
+              <div className="flex items-center justify-between mb-2 shrink-0">
                 <h2 className="text-lg font-bold text-gray-800">団体マスタ</h2>
                 <div className="flex items-center gap-2">
                   <button
@@ -634,6 +635,15 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <Plus size={14} /> 新規
                   </button>
                 </div>
+              </div>
+              <div className="mb-2 shrink-0">
+                <input
+                  type="text"
+                  value={orgSearch}
+                  onChange={e => setOrgSearch(e.target.value)}
+                  placeholder="団体名で検索..."
+                  className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-300"
+                />
               </div>
               {loading ? <p className="text-gray-400 text-sm">読み込み中...</p> : orgs.length === 0 ? <p className="text-gray-400 text-sm">団体はありません</p> : (() => {
                 const sixMonthsAgo = new Date();
@@ -650,8 +660,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   if (o.created_at && o.created_at >= cutoff) return true; // DB登録6ヶ月以内
                   return false;
                 };
-                const activeOrgs = orgs.filter(isOrgActive);
-                const archivedOrgs = orgs.filter(o => !isOrgActive(o));
+                const searchLower = orgSearch.trim().toLowerCase();
+                const matchesSearch = (o: Org) => !searchLower || o.name.toLowerCase().includes(searchLower) || (o.furigana && o.furigana.toLowerCase().includes(searchLower)) || ((o as any).keywords || []).some((k: string) => k.toLowerCase().includes(searchLower));
+                const activeOrgs = orgs.filter(o => isOrgActive(o) && matchesSearch(o));
+                const archivedOrgs = orgs.filter(o => !isOrgActive(o) && matchesSearch(o));
 
                 const sortOrgs = (list: Org[]) => {
                   if (!orgSortByGroup) return [...list].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
