@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload, Cloud, Settings, Link, Users, Building2 } from 'lucide-react';
+import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload, Cloud, Settings, Link, Users } from 'lucide-react';
 import { shortRoomName } from '../../constants';
 import * as XLSX from 'xlsx';
 
@@ -781,7 +781,6 @@ export default function ImportTab() {
                                 <option key={g.id} value={g.name}>{g.name}</option>
                               ))}
                             </select>
-                            <Building2 size={13} className="text-gray-400 shrink-0" />
                             <select
                               value={row.org_id || ''}
                               onChange={e => handleOrgChange(row.id, e.target.value || null)}
