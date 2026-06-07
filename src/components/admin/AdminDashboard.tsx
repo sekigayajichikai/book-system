@@ -894,7 +894,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         <label className="block text-xs font-medium text-gray-500 mb-1">紐づけキーワード（カンマ区切り）</label>
                         <input
                           value={orgForm.keywords.join(', ')}
-                          onChange={e => setOrgForm(f => ({ ...f, keywords: e.target.value.split(',').map(s => s.trim()).filter(Boolean) }))}
+                          onChange={e => setOrgForm(f => ({ ...f, keywords: e.target.value.split(',').map(s => s.trim()) }))}
+                          onBlur={e => setOrgForm(f => ({ ...f, keywords: f.keywords.filter(Boolean) }))}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                           placeholder="例: カラオケ, からおけ"
                         />
