@@ -249,6 +249,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [equipmentList, setEquipmentList] = useState<{ id: string; name: string }[]>([]);
   const [editOrg, setEditOrg] = useState<Org | null>(null);
   const [orgEditing, setOrgEditing] = useState(false);
+  const [keywordsText, setKeywordsText] = useState<string | null>(null);
   const [showOrgPanel, setShowOrgPanel] = useState(false);
   const [orgSortByGroup, setOrgSortByGroup] = useState(true);
   const [showArchived, setShowArchived] = useState(false);
@@ -893,9 +894,10 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                       <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1">紐づけキーワード（カンマ区切り）</label>
                         <input
-                          value={orgForm.keywords.join(', ')}
-                          onChange={e => setOrgForm(f => ({ ...f, keywords: e.target.value.split(/[,，、]/).map(s => s.trim()) }))}
-                          onBlur={e => setOrgForm(f => ({ ...f, keywords: f.keywords.filter(Boolean) }))}
+                          value={keywordsText ?? orgForm.keywords.join(', ')}
+                          onFocus={() => setKeywordsText(orgForm.keywords.join(', '))}
+                          onChange={e => setKeywordsText(e.target.value)}
+                          onBlur={() => { setOrgForm(f => ({ ...f, keywords: (keywordsText || '').split(/[,，、]/).map(s => s.trim()).filter(Boolean) })); setKeywordsText(null); }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                           placeholder="例: カラオケ, からおけ"
                         />
