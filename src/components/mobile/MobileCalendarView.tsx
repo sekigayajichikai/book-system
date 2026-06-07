@@ -51,13 +51,13 @@ export default function MobileCalendarView({
       {/* Month navigation */}
       <div className="flex items-center justify-between px-1">
         <button onClick={onPrevMonth} className="p-2 rounded-full hover:bg-gray-100 active:scale-90 transition-transform">
-          <ChevronLeft size={20} className="text-gray-500" />
+          <ChevronLeft size={34} className="text-gray-500" />
         </button>
-        <span className="text-lg font-bold text-gray-700 tracking-wide">
+        <span className="text-xl font-bold text-gray-700 tracking-wide">
           {year}年 {month + 1}月
         </span>
         <button onClick={onNextMonth} className="p-2 rounded-full hover:bg-gray-100 active:scale-90 transition-transform">
-          <ChevronRight size={20} className="text-gray-500" />
+          <ChevronRight size={34} className="text-gray-500" />
         </button>
       </div>
 

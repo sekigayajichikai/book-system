@@ -93,13 +93,13 @@ export default function MobileEventList({ holidays, closures, filterOrgs }: Mobi
       {/* ヘッダー */}
       <div className="flex items-center justify-between mb-3">
         <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-full">
-          <ChevronLeft size={24} className="text-gray-500" />
+          <ChevronLeft size={40} className="text-gray-500" />
         </button>
-        <h2 className="text-lg font-bold text-gray-800">
+        <h2 className="text-xl font-bold text-gray-800">
           {year}年 {month + 1}月
         </h2>
         <button onClick={handleNextMonth} className="p-2 hover:bg-gray-100 rounded-full">
-          <ChevronRight size={24} className="text-gray-500" />
+          <ChevronRight size={40} className="text-gray-500" />
         </button>
       </div>
 
