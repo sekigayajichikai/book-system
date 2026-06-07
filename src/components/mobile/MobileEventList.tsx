@@ -204,9 +204,9 @@ function MobileEventCard({ event, highlight }: { event: EventSummary; highlight?
 
   return (
     <div className={`rounded-lg px-3 py-2.5 ${highlight ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'}`}>
-      <div className={`text-base ${highlight ? 'font-bold text-blue-800' : 'font-bold text-gray-800'}`}>{event.title}</div>
-      {event.orgName && <div className="flex items-center gap-1 text-sm text-gray-400 mt-0.5"><Users size={12} />{event.orgName}</div>}
-      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-sm text-gray-600">
+      <div className={`text-lg ${highlight ? 'font-bold text-blue-800' : 'font-bold text-gray-800'}`}>{event.title}</div>
+      {event.orgName && <div className="flex items-center gap-1 text-base text-gray-500 mt-0.5"><Users size={14} />{event.orgName}</div>}
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-base text-gray-600">
         {timeStr && <span className="flex items-center gap-1"><Clock size={14} /> {timeStr}</span>}
         {event.eventType === 'facility' && (event.location || roomStr) && (
           <span className="flex items-center gap-1"><Home size={14} /> {event.location && roomStr ? `${event.location}（${roomStr}）` : event.location || roomStr}</span>
@@ -217,11 +217,11 @@ function MobileEventCard({ event, highlight }: { event: EventSummary; highlight?
         <div className="mt-1.5">
           {descExpanded ? (
             <>
-              <div className="text-sm text-gray-400 whitespace-pre-wrap">{descText}</div>
-              <button onClick={() => setDescExpanded(false)} className="text-xs text-blue-500 mt-0.5">閉じる</button>
+              <div className="text-base text-gray-500 whitespace-pre-wrap">{descText}</div>
+              <button onClick={() => setDescExpanded(false)} className="text-sm text-blue-500 mt-0.5">閉じる</button>
             </>
           ) : (
-            <button onClick={() => setDescExpanded(true)} className="text-sm text-gray-400 w-full text-left flex items-baseline gap-0.5">
+            <button onClick={() => setDescExpanded(true)} className="text-base text-gray-500 w-full text-left flex items-baseline gap-0.5">
               <span className="truncate">{descText}</span>
               <span className="text-xs text-blue-500 shrink-0 ml-1">続きを読む</span>
             </button>
