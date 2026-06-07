@@ -14,9 +14,10 @@ function formatDate(d: Date): string {
 interface MobileEventListProps {
   holidays: Record<string, string>;
   closures: Set<string>;
+  filterOrgs?: Set<string>;
 }
 
-export default function MobileEventList({ holidays, closures }: MobileEventListProps) {
+export default function MobileEventList({ holidays, closures, filterOrgs }: MobileEventListProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -44,7 +45,12 @@ export default function MobileEventList({ holidays, closures }: MobileEventListP
 
   useEffect(() => { fetchEvents(fetchYear, fetchMonth); }, [fetchYear, fetchMonth, fetchEvents]);
 
-  const allEvents = events;
+  const allEvents = filterOrgs ? events.filter(e => {
+    if (e.isMajor) return true;
+    if (e.orgName && filterOrgs.has(e.orgName)) return true;
+    if (e.orgName && !filterOrgs.has(e.orgName)) return false;
+    return filterOrgs.has('__未分類__');
+  }) : events;
 
   useEffect(() => {
     if (!loading && todayRef.current) {

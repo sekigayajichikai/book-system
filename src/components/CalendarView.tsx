@@ -136,8 +136,8 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
     if (e.originalTitle && filterOrgs.has(e.originalTitle)) return true;
     // title でマッチ
     if (filterOrgs.has(e.title)) return true;
-    // 団体情報が不明なイベント（memo無し）→ 表示（団体紐づけできないため安全側）
-    return true;
+    // 団体情報が不明なイベント（memo無し）→ 未分類フィルタに従う
+    return filterOrgs.has('__未分類__');
   };
 
   const filteredEvents = filterOrgs ? events.filter(filterEvent) : events;

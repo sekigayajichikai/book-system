@@ -152,6 +152,12 @@ export default function OrgFilterSidebar({ selectedOrgs, onToggleOrg, onToggleGr
             </div>
           );
         })}
+
+        {/* 未分類（団体未設定の予約） */}
+        <div className="flex items-center gap-2 py-1 px-1 rounded-lg hover:bg-gray-100">
+          <ColorCheckbox checked={selectedOrgs.has('__未分類__')} color="#6b7280" onChange={() => onToggleOrg('__未分類__')} size={18} />
+          <span className="text-sm font-medium text-gray-400 cursor-pointer" onClick={() => onToggleOrg('__未分類__')}>未分類</span>
+        </div>
       </div>
       </>}
     </div>

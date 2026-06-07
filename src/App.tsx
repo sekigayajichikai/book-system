@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarDays, ClipboardList, Info, Users, User, X, LogOut, Home, Clock, MapPin } from 'lucide-react';
+import { CalendarDays, ClipboardList, Info, Users, User, X, LogOut, Home, Clock, MapPin, Filter } from 'lucide-react';
 import BookingCalendar from './components/BookingCalendar';
 import DailyScheduleGrid from './components/DailyScheduleGrid';
 import WeeklyView from './components/WeeklyView';
@@ -12,6 +12,7 @@ import MobileBookingView from './components/mobile/MobileBookingView';
 import CalendarView from './components/CalendarView';
 import OrgFilterSidebar from './components/OrgFilterSidebar';
 import MobileEventList from './components/mobile/MobileEventList';
+import MobileOrgFilter from './components/mobile/MobileOrgFilter';
 import AdminLogin from './components/admin/AdminLogin';
 import AdminDashboard from './components/admin/AdminDashboard';
 import OrgLogin from './components/OrgLogin';
@@ -50,10 +51,11 @@ function App() {
   });
   const [filterInitialized, setFilterInitialized] = useState(false);
   const [showMajor, setShowMajor] = useState(true);
+  const [showMobileFilter, setShowMobileFilter] = useState(false);
 
   // フィルタ初期化: 全団体をデフォルトON
   useEffect(() => {
-    if (filterInitialized || isMobile) return;
+    if (filterInitialized) return;
     const sbUrl = import.meta.env.VITE_SUPABASE_URL;
     const sbKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     if (!sbUrl || !sbKey) return;
@@ -63,6 +65,7 @@ function App() {
       headers: { 'apikey': sbKey, 'Authorization': `Bearer ${sbKey}` },
     }).then(r => r.json()).then(d => {
       const all = new Set<string>((d || []).map((o: any) => o.name));
+      all.add('__未分類__');
       setFilterOrgs(all);
       localStorage.setItem('filter_orgs', JSON.stringify([...all]));
       setFilterInitialized(true);
@@ -94,6 +97,7 @@ function App() {
       headers: { 'apikey': sbKey, 'Authorization': `Bearer ${sbKey}` },
     }).then(r => r.json()).then(d => {
       const all = new Set<string>((d || []).map((o: any) => o.name));
+      all.add('__未分類__');
       setFilterOrgs(all);
       localStorage.setItem('filter_orgs', JSON.stringify([...all]));
     }).catch(() => {});
@@ -526,7 +530,17 @@ function App() {
             /* 予定タブ（イベント一覧） */
             calendarMode === 'schedule' ? (
               isMobile ? (
-                <MobileEventList holidays={holidays} closures={closures} />
+                <>
+                  <div className="flex justify-end px-3 py-1">
+                    <button onClick={() => setShowMobileFilter(true)} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200">
+                      <Filter size={12} /><span>フィルタ</span>
+                    </button>
+                  </div>
+                  <MobileEventList holidays={holidays} closures={closures} filterOrgs={filterOrgs} />
+                  {showMobileFilter && (
+                    <MobileOrgFilter filterOrgs={filterOrgs} onToggleGroup={handleToggleGroup} onToggleOrg={handleToggleOrg} onSelectAll={handleSelectAll} onDeselectAll={handleDeselectAll} onClose={() => setShowMobileFilter(false)} />
+                  )}
+                </>
               ) : (
                 <div className="flex gap-4">
                   <OrgFilterSidebar selectedOrgs={filterOrgs} onToggleOrg={handleToggleOrg} onToggleGroup={handleToggleGroup} onSelectAll={handleSelectAll} onDeselectAll={handleDeselectAll} onSelectOnly={handleSelectOnly} showMajor={showMajor} onToggleMajor={() => setShowMajor(v => !v)} />
@@ -540,27 +554,49 @@ function App() {
             /* ビュー表示 */
             isMobile ? (
               /* === モバイル版 === */
-              calendarMode === 'calendar' ? (
-                <MobileCalendarView
-                  currentDate={currentDate}
-                  bookings={bookings}
-                  onPrevMonth={handlePrevMonth}
-                  onNextMonth={handleNextMonth}
-                  holidays={holidays}
-                  closures={closures}
-                  loading={loading}
-                />
-              ) : (
-                <MobileBookingView
-                  weekStart={weekStart}
-                  bookings={bookings}
-                  onPrevWeek={handlePrevWeek}
-                  onNextWeek={handleNextWeek}
-                  filterRoom={selectedRoom?.id || null}
-                  holidays={holidays}
-                  readOnly
-                />
-              )
+              <>
+                {/* フィルタボタン */}
+                <div className="flex justify-end px-3 py-1">
+                  <button
+                    onClick={() => setShowMobileFilter(true)}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-600 active:bg-gray-200"
+                  >
+                    <Filter size={12} />
+                    <span>フィルタ</span>
+                  </button>
+                </div>
+                {calendarMode === 'calendar' ? (
+                  <MobileCalendarView
+                    currentDate={currentDate}
+                    bookings={filterOrgs.size > 0 ? bookings.filter(b => b.orgName ? filterOrgs.has(b.orgName) : filterOrgs.has('__未分類__')) : []}
+                    onPrevMonth={handlePrevMonth}
+                    onNextMonth={handleNextMonth}
+                    holidays={holidays}
+                    closures={closures}
+                    loading={loading}
+                  />
+                ) : (
+                  <MobileBookingView
+                    weekStart={weekStart}
+                    bookings={filterOrgs.size > 0 ? bookings.filter(b => b.orgName ? filterOrgs.has(b.orgName) : filterOrgs.has('__未分類__')) : []}
+                    onPrevWeek={handlePrevWeek}
+                    onNextWeek={handleNextWeek}
+                    filterRoom={selectedRoom?.id || null}
+                    holidays={holidays}
+                    readOnly
+                  />
+                )}
+                {showMobileFilter && (
+                  <MobileOrgFilter
+                    filterOrgs={filterOrgs}
+                    onToggleGroup={handleToggleGroup}
+                    onToggleOrg={handleToggleOrg}
+                    onSelectAll={handleSelectAll}
+                    onDeselectAll={handleDeselectAll}
+                    onClose={() => setShowMobileFilter(false)}
+                  />
+                )}
+              </>
             ) : (
               /* === PC版（既存） === */
               calendarMode === 'calendar' ? (
@@ -570,7 +606,7 @@ function App() {
                     currentDate={currentDate}
                     onPrevMonth={handlePrevMonth}
                     onNextMonth={handleNextMonth}
-                    bookings={filterOrgs ? bookings.filter(b => !b.orgName || filterOrgs.has(b.orgName)) : bookings}
+                    bookings={filterOrgs ? bookings.filter(b => b.orgName ? filterOrgs.has(b.orgName) : filterOrgs.has('__未分類__')) : bookings}
                     onCellClick={handleCalendarCellClick}
                     onOverflowClick={handleCalendarCellClick}
                     holidays={holidays}
