@@ -440,8 +440,13 @@ function App() {
               </button>
             )}
           </div>
-          {/* 右: アカウント */}
+          {/* 右: フィルタ + アカウント */}
           <div className="flex items-center gap-2">
+            {isMobile && !showMyPage && (calendarMode === 'schedule' || calendarMode === 'calendar') && (
+              <button onClick={() => setShowMobileFilter(true)} className="p-2 rounded-full text-gray-300 active:bg-gray-100" title="フィルタ">
+                <Filter size={18} />
+              </button>
+            )}
             {isOrgLoggedIn ? (
               <>
                 {!isMobile && <span className="text-xs text-gray-500">{orgName}</span>}
@@ -531,11 +536,6 @@ function App() {
             calendarMode === 'schedule' ? (
               isMobile ? (
                 <>
-                  <div className="flex justify-end px-3 py-1">
-                    <button onClick={() => setShowMobileFilter(true)} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-bold bg-gray-100 text-gray-600 active:bg-gray-200">
-                      <Filter size={14} /><span>フィルタ</span>
-                    </button>
-                  </div>
                   <MobileEventList holidays={holidays} closures={closures} filterOrgs={filterOrgs} />
                   {showMobileFilter && (
                     <MobileOrgFilter filterOrgs={filterOrgs} onToggleGroup={handleToggleGroup} onToggleOrg={handleToggleOrg} onSelectAll={handleSelectAll} onDeselectAll={handleDeselectAll} onClose={() => setShowMobileFilter(false)} />
@@ -555,16 +555,6 @@ function App() {
             isMobile ? (
               /* === モバイル版 === */
               <>
-                {/* フィルタボタン */}
-                <div className="flex justify-end px-3 py-1">
-                  <button
-                    onClick={() => setShowMobileFilter(true)}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-bold bg-gray-100 text-gray-600 active:bg-gray-200"
-                  >
-                    <Filter size={14} />
-                    <span>フィルタ</span>
-                  </button>
-                </div>
                 {calendarMode === 'calendar' ? (
                   <MobileCalendarView
                     currentDate={currentDate}
