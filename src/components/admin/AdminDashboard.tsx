@@ -263,6 +263,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     group_name: '',
     keywords: [] as string[],
     notes: '',
+    is_active: null as boolean | null,
   });
 
   useEffect(() => {

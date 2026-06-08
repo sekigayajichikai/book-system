@@ -277,7 +277,7 @@ export default function ImportTab() {
       }
 
       // 各月ごとにAPIにPOST
-      let totalStats = { add: 0, update: 0, delete: 0, skip: 0 };
+      const totalStats = { add: 0, update: 0, delete: 0, skip: 0 };
       for (const { year, month, rows: parsedRows } of parsed) {
         const res = await fetch('/api/import', {
           method: 'POST',

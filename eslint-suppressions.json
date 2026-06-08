@@ -1,0 +1,67 @@
+{
+  "src/App.tsx": {
+    "react-hooks/rules-of-hooks": {
+      "count": 35
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
+  "src/components/BookingCalendar.tsx": {
+    "no-empty": {
+      "count": 1
+    }
+  },
+  "src/components/BookingForm.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
+  "src/components/CalendarView.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 3
+    }
+  },
+  "src/components/MyPage.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "src/components/OrgFilterSidebar.tsx": {
+    "@typescript-eslint/no-unused-expressions": {
+      "count": 1
+    }
+  },
+  "src/components/admin/AdminDashboard.tsx": {
+    "no-empty": {
+      "count": 3
+    },
+    "no-irregular-whitespace": {
+      "count": 1
+    },
+    "react-hooks/immutability": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 4
+    }
+  },
+  "src/components/admin/DetailPopover.tsx": {
+    "no-empty": {
+      "count": 3
+    }
+  },
+  "src/components/admin/ImportTab.tsx": {
+    "no-irregular-whitespace": {
+      "count": 3
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
+  "src/components/mobile/MobileEventList.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  }
+}

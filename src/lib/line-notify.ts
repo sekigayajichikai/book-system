@@ -1,3 +1,6 @@
+// @ts-nocheck — 未完成の「将来用」LINE通知機能。現在どこからも呼ばれておらず、
+// 参照しているフィールド（startTime/purpose/name など）は今の BookingRequest 型に未整備。
+// 機能を実装する際に型を整えたうえで、この行を削除すること。
 import type { BookingRequest } from '../types';
 
 /**

@@ -55,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // facility型のbookings情報を並列取得（団体名も含む）
     const facilityEventIds = events.filter(e => e.event_type === 'facility').map(e => e.id);
-    let bookingsByEvent: Record<string, { rooms: string[]; slots: string[]; orgName: string | null }> = {};
+    const bookingsByEvent: Record<string, { rooms: string[]; slots: string[]; orgName: string | null }> = {};
 
     if (facilityEventIds.length > 0) {
       const { data: bookings, error: bErr } = await supabase
