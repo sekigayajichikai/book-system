@@ -121,7 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const DRIVE_FILE_ID = await getDriveFileId(supabase);
 
     // Google DriveからExcelをダウンロード（リダイレクト対応）
-    let exportUrl = `https://docs.google.com/spreadsheets/d/${DRIVE_FILE_ID}/export?format=xlsx`;
+    const exportUrl = `https://docs.google.com/spreadsheets/d/${DRIVE_FILE_ID}/export?format=xlsx`;
     let dlRes = await fetch(exportUrl, { redirect: 'manual' });
 
     // 307/302リダイレクトを手動追跡

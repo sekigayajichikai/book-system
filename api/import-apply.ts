@@ -41,7 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const rows = approvedRows || [];
     let applied = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     for (const row of rows) {
       try {

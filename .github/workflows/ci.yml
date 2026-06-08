@@ -1,0 +1,45 @@
+name: CI
+
+# main へのプッシュと、main 宛のプルリクエストで自動実行する
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    name: Lint / Typecheck / Test / Build
+    runs-on: ubuntu-latest
+
+    steps:
+      # リポジトリのコードを取得
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Node.js をセットアップ（npm キャッシュ付きで高速化）
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # package-lock.json 通りに依存をインストール（再現性重視）
+      - name: Install dependencies
+        run: npm ci
+
+      # 静的解析（既存違反は eslint-suppressions.json でベースライン済み。新規違反のみ失敗）
+      - name: Lint
+        run: npm run lint
+
+      # 型チェック（vite build は型を見ないので、ここで型の壊れを検出する）
+      - name: Typecheck
+        run: npm run typecheck
+
+      # ユニットテスト
+      - name: Test
+        run: npm test
+
+      # 本番ビルドが通ることを確認
+      - name: Build
+        run: npm run build
