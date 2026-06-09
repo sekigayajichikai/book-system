@@ -112,7 +112,7 @@ function supabaseProxyPlugin(supabaseUrl: string, supabaseKey: string): Plugin {
 
             let query = supabase
               .from('calendar_events')
-              .select('id,date,title,display_title,event_type,visibility,location,start_time,end_time,memo,description,is_major')
+              .select('id,date,title,display_title,event_type,visibility,location,start_time,end_time,org_name,description,is_major')
               .gte('date', startDate)
               .lt('date', endDate)
               .neq('event_type', 'closure')
@@ -170,7 +170,7 @@ function supabaseProxyPlugin(supabaseUrl: string, supabaseKey: string): Plugin {
                 id: e.id, date: e.date, title: e.display_title || e.title,
                 originalTitle: e.title, displayTitle: e.display_title || null,
                 eventType: e.event_type, visibility: e.visibility, location: e.location,
-                startTime, endTime, orgName: e.memo || bookingsByEvent[e.id]?.orgName || null, description: e.description,
+                startTime, endTime, orgName: e.org_name || bookingsByEvent[e.id]?.orgName || null, description: e.description,
                 rooms: linked?.rooms || [], slots: linked?.slots || [],
                 isMajor: e.is_major || false,
               };

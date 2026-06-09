@@ -15,18 +15,20 @@ interface EventListProps {
   onDateClick?: (date: Date) => void;
   onCellClick?: (date: Date, rect: DOMRect) => void;
   onItemClick?: (event: EventSummary, rect: DOMRect) => void;
+  onOverflowClick?: (date: Date, rect: DOMRect) => void;
   refreshKey?: number;
   isAdmin?: boolean;
   modeToggle?: React.ReactNode;
   filterOrgs?: Set<string>;
   showMajor?: boolean;
+  popoverDate?: Date | null;
 }
 
 function isMajorEvent(evt: { isMajor?: boolean }): boolean {
   return evt.isMajor === true;
 }
 
-export default function CalendarView({ holidays, closures, onDateClick, onCellClick, onItemClick, refreshKey, isAdmin, modeToggle, filterOrgs, showMajor = true }: EventListProps) {
+export default function CalendarView({ holidays, closures, onDateClick, onCellClick, onItemClick, onOverflowClick, refreshKey, isAdmin, modeToggle, filterOrgs, showMajor = true, popoverDate }: EventListProps) {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekStart, setWeekStart] = useState(() => {
@@ -200,6 +202,9 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
             {holidayName && <span className="text-sm text-red-400 truncate min-w-0">{holidayName}</span>}
           </div>
 
+          {popoverDate && popoverDate.getFullYear() === year && popoverDate.getMonth() === month && popoverDate.getDate() === day && (
+            <div className="text-sm font-bold text-white bg-blue-500 rounded px-1 mx-0.5 truncate shrink-0">(タイトルなし)</div>
+          )}
           {/* イベント: 主要=カラー背景ラベル、詳細=グレードット */}
           <div className="flex-1 px-0.5 py-0.5 overflow-hidden space-y-px">
             {dayEvents.filter(e => isMajorEvent(e)).sort((a, b) => {
@@ -216,7 +221,7 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
                 {evt.title}
               </div>
             ))}
-            {dayEvents.filter(e => !isMajorEvent(e)).slice(0, MAX_DISPLAY).map(evt => (
+            {dayEvents.filter(e => !isMajorEvent(e)).sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '')).slice(0, MAX_DISPLAY).map(evt => (
               <div key={evt.id} onClick={e => { e.stopPropagation(); setSelectedEventId(evt.id); if (onItemClick) { onItemClick(evt, (e.currentTarget as HTMLElement).getBoundingClientRect()); } else { setItemDetail({ event: evt, anchor: (e.currentTarget as HTMLElement).getBoundingClientRect() }); } }}
                 className={`text-sm text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${
                   selectedEventId === evt.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] rounded-sm relative z-10' : 'hover:bg-gray-200'
@@ -226,7 +231,7 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
               </div>
             ))}
             {dayEvents.filter(e => !isMajorEvent(e)).length > MAX_DISPLAY && (
-              <div className="text-sm text-gray-400 pl-1">+{dayEvents.filter(e => !isMajorEvent(e)).length - MAX_DISPLAY}</div>
+              <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)!.getBoundingClientRect(); const d = new Date(year, month, day); if (onOverflowClick) onOverflowClick(d, rect); else if (onCellClick) onCellClick(d, rect); }} className="text-sm text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{dayEvents.filter(e => !isMajorEvent(e)).length - MAX_DISPLAY}</div>
             )}
           </div>
         </div>,
@@ -405,7 +410,7 @@ function EventDayPopover({ date, events, anchorRect, onClose }: { date: Date; ev
 
         {/* イベント一覧 */}
         <div className="flex-1 overflow-auto px-4 pb-3 divide-y divide-gray-100">
-          {events.map(evt => {
+          {[...events].sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '')).map(evt => {
             const timeStr = evt.startTime && evt.endTime ? `${evt.startTime}〜${evt.endTime}` : null;
             const roomStr = evt.rooms.length > 0 ? evt.rooms.map(r => shortRoomName(r)).join('・') : null;
             const locationStr = evt.location && roomStr ? `${evt.location}（${roomStr}）` : evt.location || roomStr;

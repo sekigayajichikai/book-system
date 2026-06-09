@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Clock, MapPin, Users, AlignLeft, Star, X } from 'lucide-react';
+import { Clock, MapPin, Users, AlignLeft, Star, X, Home } from 'lucide-react';
 import Popover from './Popover';
 import OrgPicker from './OrgPicker';
 import { ROOMS, TIME_SLOTS } from '../../constants';
+
+const FACILITY_LOCATION = '自治会館';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -66,9 +68,13 @@ export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, is
   const [form, setForm] = useState({
     title: '', org: '', start_time: '', end_time: '',
     location: '', description: '', is_major: false,
+    slot: '', room: '',
   });
   const [allDay, setAllDay] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const isFacility = form.location === FACILITY_LOCATION;
+  const hasFacilityDetail = isFacility && form.slot && form.room;
 
   useEffect(() => {
     supaFetch('event_locations?order=sort_order.asc&select=name')
@@ -76,24 +82,86 @@ export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, is
   }, []);
 
   const handleSave = async () => {
-    if (!form.title.trim()) return alert('タイトルを入力してください');
+    const effectiveTitle = (form.title.trim() || form.org).trim();
+    if (!effectiveTitle) return alert('タイトルを入力してください');
     setSaving(true);
-    const title = form.org ? `${form.title.trim()}` : form.title.trim();
-    await supaFetch('calendar_events', {
-      method: 'POST',
-      body: JSON.stringify({
-        date: dateStr,
-        title,
-        location: form.location || null,
-        start_time: form.start_time || null,
-        end_time: form.end_time || null,
-        memo: form.org || null,
-        description: form.description || null,
-        event_type: 'general',
-        visibility: 'public',
-        is_major: form.is_major,
-      }),
-    });
+
+    if (hasFacilityDetail) {
+      // --- 自治会館 + 時間帯・部屋あり → facility型 + bookings ---
+      // calendar_events に同日同タイトルがあるか確認
+      const existRes = await supaFetch(
+        `calendar_events?date=eq.${dateStr}&title=eq.${encodeURIComponent(effectiveTitle)}&event_type=eq.facility&select=id&limit=1`
+      );
+      const existing = existRes.ok ? await existRes.json() : [];
+      let eventId: string;
+
+      if (existing.length > 0) {
+        eventId = existing[0].id;
+        if (form.org.trim()) {
+          await supaFetch(`calendar_events?id=eq.${eventId}`, {
+            method: 'PATCH', body: JSON.stringify({ org_name: form.org.trim() }),
+          });
+        }
+      } else {
+        const evRes = await supaFetch('calendar_events', {
+          method: 'POST',
+          body: JSON.stringify({
+            date: dateStr, title: effectiveTitle,
+            event_type: 'facility', visibility: 'public',
+            location: FACILITY_LOCATION, org_name: form.org.trim() || null,
+            description: form.description || null, is_major: form.is_major,
+          }),
+        });
+        const evData = await evRes.json();
+        eventId = evData[0]?.id;
+      }
+
+      if (!eventId) {
+        console.error('calendar_events のID取得に失敗しました');
+        alert('予定の作成に失敗しました');
+        setSaving(false);
+        return;
+      }
+
+      // booking 作成
+      const bookRes = await supaFetch('bookings', {
+        method: 'POST',
+        body: JSON.stringify({
+          date: dateStr, slot: form.slot, room: form.room,
+          title: effectiveTitle, status: 'CONFIRMED',
+          event_id: eventId, memo: form.description || null,
+        }),
+      });
+
+      if (!bookRes.ok) {
+        const err = await bookRes.text();
+        console.error('booking作成エラー:', err);
+        if (err.includes('23505')) {
+          alert('この時間帯・部屋は既に予約されています');
+          setSaving(false);
+          return;
+        }
+        alert('予約の作成に失敗しました');
+        setSaving(false);
+        return;
+      }
+    } else {
+      // --- 通常の一般予定 ---
+      await supaFetch('calendar_events', {
+        method: 'POST',
+        body: JSON.stringify({
+          date: dateStr, title: effectiveTitle,
+          location: form.location || null,
+          start_time: form.start_time || null,
+          end_time: form.end_time || null,
+          org_name: form.org || null,
+          description: form.description || null,
+          event_type: 'general', visibility: 'public',
+          is_major: form.is_major,
+        }),
+      });
+    }
+
     setSaving(false);
     onClose();
     onSaved();
@@ -104,7 +172,9 @@ export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, is
       <div className="p-4 space-y-3">
         {/* ヘッダー */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">予定を作成</span>
+          <span className={`text-xs font-bold px-2 py-0.5 rounded ${hasFacilityDetail ? 'text-emerald-600 bg-emerald-50' : 'text-blue-600 bg-blue-50'}`}>
+            {hasFacilityDetail ? '予定+会館予約を作成' : '予定を作成'}
+          </span>
           <div className="flex items-center gap-1">
             <button
               onClick={async () => {
@@ -139,7 +209,8 @@ export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, is
           autoFocus
         />
 
-        {/* 日時 */}
+        {/* 日時（自治会館+時間帯指定時は非表示: スロットで時間が決まるため） */}
+        {!hasFacilityDetail && (
         <IconField icon={<Clock size={18} />}>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -177,6 +248,7 @@ export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, is
             )}
           </div>
         </IconField>
+        )}
 
         {/* 団体 */}
         <IconField icon={<Users size={18} />}>
@@ -194,6 +266,33 @@ export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, is
             {locations.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
         </IconField>
+
+        {/* 自治会館選択時: 時間帯・部屋 */}
+        {isFacility && (
+          <IconField icon={<Home size={18} />}>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <select value={form.slot}
+                  onChange={e => setForm(f => ({ ...f, slot: e.target.value }))}
+                  className="flex-1 px-2 py-1.5 text-sm border border-emerald-300 rounded-lg focus:border-emerald-500 outline-none bg-emerald-50">
+                  <option value="">時間帯（任意）</option>
+                  {TIME_SLOTS.map(s => <option key={s.id} value={s.gasKey}>{s.gasKey} {s.startTime}〜{s.endTime}</option>)}
+                </select>
+                <select value={form.room}
+                  onChange={e => setForm(f => ({ ...f, room: e.target.value }))}
+                  className="flex-1 px-2 py-1.5 text-sm border border-emerald-300 rounded-lg focus:border-emerald-500 outline-none bg-emerald-50">
+                  <option value="">部屋（任意）</option>
+                  {ROOMS.map(r => <option key={r.id} value={r.id}>{r.shortName}</option>)}
+                </select>
+              </div>
+              <p className={hasFacilityDetail ? 'text-sm font-bold text-emerald-600' : 'text-xs text-gray-400'}>
+                {hasFacilityDetail
+                  ? '✓ 会館予約状況にも反映されます'
+                  : '時間帯・部屋を指定すると会館予約状況にも反映されます'}
+              </p>
+            </div>
+          </IconField>
+        )}
 
         {/* 説明 */}
         <IconField icon={<AlignLeft size={18} />}>
@@ -234,13 +333,14 @@ interface BookingCreateProps {
   onClose: () => void;
   onSaved: () => void;
   anchorRect: { top: number; left: number; width: number; height: number };
+  initialSlot?: string;
 }
 
-export function BookingCreatePopover({ date, onClose, onSaved, anchorRect }: BookingCreateProps) {
+export function BookingCreatePopover({ date, onClose, onSaved, anchorRect, initialSlot }: BookingCreateProps) {
   const dateStr = formatDateStr(date);
   const dateLabel = `${date.getMonth() + 1}月${date.getDate()}日 (${DOW[date.getDay()]})`;
   const [form, setForm] = useState({
-    org: '', title: '', slot: '午前', room: ROOMS[0].id as string, description: '',
+    org: '', title: '', slot: initialSlot || '午前', room: ROOMS[0].id as string, description: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -263,7 +363,7 @@ export function BookingCreatePopover({ date, onClose, onSaved, anchorRect }: Boo
       // 既存イベントにも団体名を更新
       if (form.org.trim()) {
         await supaFetch(`calendar_events?id=eq.${eventId}`, {
-          method: 'PATCH', body: JSON.stringify({ memo: form.org.trim() }),
+          method: 'PATCH', body: JSON.stringify({ org_name: form.org.trim() }),
         });
       }
     } else {
@@ -275,7 +375,7 @@ export function BookingCreatePopover({ date, onClose, onSaved, anchorRect }: Boo
           event_type: 'facility',
           visibility: 'public',
           location: '自治会館',
-          memo: form.org.trim() || null,
+          org_name: form.org.trim() || null,
         }),
       });
       const evData = await evRes.json();
@@ -316,7 +416,7 @@ export function BookingCreatePopover({ date, onClose, onSaved, anchorRect }: Boo
     <Popover anchorRect={anchorRect} onClose={onClose}>
       <div className="p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">予約を作成</span>
+          <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">会館予約を作成</span>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full"><X size={16} className="text-gray-400" /></button>
         </div>
         <IconField icon={<Users size={18} />}>

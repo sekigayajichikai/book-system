@@ -15,9 +15,10 @@ interface MobileEventListProps {
   holidays: Record<string, string>;
   closures: Set<string>;
   filterOrgs?: Set<string>;
+  refreshKey?: number;
 }
 
-export default function MobileEventList({ holidays, closures, filterOrgs }: MobileEventListProps) {
+export default function MobileEventList({ holidays, closures, filterOrgs, refreshKey }: MobileEventListProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<EventSummary[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,7 +44,7 @@ export default function MobileEventList({ holidays, closures, filterOrgs }: Mobi
   const fetchMonth = month;
   const fetchYear = year;
 
-  useEffect(() => { fetchEvents(fetchYear, fetchMonth); }, [fetchYear, fetchMonth, fetchEvents]);
+  useEffect(() => { fetchEvents(fetchYear, fetchMonth); }, [fetchYear, fetchMonth, fetchEvents, refreshKey]);
 
   const allEvents = filterOrgs ? events.filter(e => {
     if (e.isMajor) return true;
@@ -112,7 +113,7 @@ export default function MobileEventList({ holidays, closures, filterOrgs }: Mobi
             <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
               <div className="text-lg font-bold text-blue-700 mb-3">主な予定</div>
               <div className="space-y-2.5">
-                {majorEvents.map(evt => {
+                {[...majorEvents].sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || '').localeCompare(b.startTime || '')).map(evt => {
                   const d = new Date(evt.date + 'T00:00:00');
                   const dow = d.getDay();
                   const hol = holidays[evt.date];

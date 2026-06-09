@@ -32,7 +32,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // イベント取得 + 時間帯マスタを並列取得
     let query = supabase
       .from('calendar_events')
-      .select('id,date,title,display_title,event_type,visibility,location,start_time,end_time,memo,description,is_major')
+      .select('id,date,title,display_title,event_type,visibility,location,start_time,end_time,org_name,description,is_major')
       .gte('date', startDate)
       .lt('date', endDate);
 
@@ -110,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         location: e.location,
         startTime,
         endTime,
-        orgName: e.memo || bookingsByEvent[e.id]?.orgName || null,
+        orgName: e.org_name || bookingsByEvent[e.id]?.orgName || null,
         description: e.description,
         rooms: linked?.rooms || [],
         slots: linked?.slots || [],
@@ -122,7 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.query.nocache) {
       res.setHeader('Cache-Control', 'no-cache');
     } else {
-      res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate=30');
+      res.setHeader('Cache-Control', 's-maxage=3, stale-while-revalidate=5');
     }
     return res.status(200).json(result);
   } catch (err: any) {

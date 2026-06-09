@@ -188,7 +188,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       alert(err.includes('23505') ? 'この時間帯・部屋は既に予約されています' : '保存に失敗しました');
       return;
     }
-    // calendar_eventsのmemoにも団体名を同期
+    // calendar_eventsのorg_nameにも団体名を同期
     try {
       const evRes = await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${data.id}&select=event_id`, {
         headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
@@ -196,7 +196,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       const evData = evRes.ok ? await evRes.json() : [];
       if (evData[0]?.event_id) {
         await supaFetch(`calendar_events?id=eq.${evData[0].event_id}`, {
-          method: 'PATCH', body: JSON.stringify({ memo: bookingForm.org.trim() || null }),
+          method: 'PATCH', body: JSON.stringify({ org_name: bookingForm.org.trim() || null }),
         });
       }
     } catch {}
@@ -228,7 +228,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         start_time: editForm.startTime || null,
         end_time: editForm.endTime || null,
         is_major: editForm.isMajor,
-        memo: memoTrimmed || null,
+        org_name: memoTrimmed || null,
         org_id: orgId,
       }),
     });
@@ -269,14 +269,15 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   // 時間表示（ローカルstate優先）
   const effectiveStartTime = data.type === 'event' ? localStartTime : data.startTime;
   const effectiveEndTime = data.type === 'event' ? localEndTime : data.endTime;
+  const trimTime = (t: string | null | undefined) => t ? t.slice(0, 5) : '';
   let timeLabel = '';
   if (data.type === 'booking' && data.slot) {
     timeLabel = data.slot;
-    if (data.startTime) timeLabel += ` ${data.startTime}`;
-    if (data.endTime) timeLabel += `〜${data.endTime}`;
+    if (data.startTime) timeLabel += ` ${trimTime(data.startTime)}`;
+    if (data.endTime) timeLabel += `〜${trimTime(data.endTime)}`;
   } else if (effectiveStartTime) {
-    timeLabel = effectiveStartTime;
-    if (effectiveEndTime) timeLabel += `〜${effectiveEndTime}`;
+    timeLabel = trimTime(effectiveStartTime);
+    if (effectiveEndTime) timeLabel += `〜${trimTime(effectiveEndTime)}`;
   }
 
   // 場所/部屋（結合表示）

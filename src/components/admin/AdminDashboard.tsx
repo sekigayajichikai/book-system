@@ -64,6 +64,43 @@ async function supaFetch(path: string, options?: RequestInit) {
   });
 }
 
+/** 予定タブのリストポップオーバー内容（日付のイベント一覧をfetch） */
+function EventListPopoverBody({ dateStr, anchorRect, onItemClick }: {
+  dateStr: string;
+  anchorRect: { top: number; left: number; width: number; height: number };
+  onItemClick: (evt: EventSummary, rect: DOMRect) => void;
+}) {
+  const [events, setEvents] = useState<EventSummary[]>([]);
+  useEffect(() => {
+    supaFetch(`calendar_events?date=eq.${dateStr}&select=id,date,title,location,start_time,end_time,org_name,event_type,is_major,description&order=start_time.asc.nullsfirst,title.asc`)
+      .then(r => r.json())
+      .then((data: any[]) => {
+        setEvents((data || []).map(e => ({
+          id: e.id, date: e.date, title: e.title, location: e.location || '',
+          startTime: e.start_time || '', endTime: e.end_time || '',
+          orgName: e.org_name || '', eventType: e.event_type, isMajor: e.is_major,
+          description: e.description || '',
+          visibility: e.visibility || 'public',
+          rooms: e.rooms || [],
+          slots: e.slots || [],
+        })));
+      });
+  }, [dateStr]);
+  return (
+    <div className="px-4 pb-3 divide-y divide-gray-100">
+      {events.map((evt) => (
+        <div key={evt.id} onClick={() => onItemClick(evt, anchorRect as unknown as DOMRect)}
+          className="py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-200 rounded-lg px-2 transition-colors">
+          <span className={`w-2 h-2 rounded-full shrink-0 ${evt.isMajor ? 'bg-blue-500' : 'bg-gray-300'}`} />
+          <span className="text-sm text-gray-900 truncate flex-1">{evt.title}</span>
+          {evt.startTime && <span className="text-xs text-gray-400">{evt.startTime.slice(0, 5)}</span>}
+        </div>
+      ))}
+      {events.length === 0 && <div className="py-2 text-sm text-gray-400">予定なし</div>}
+    </div>
+  );
+}
+
 export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [tab, setTabState] = useState<Tab>(() => (localStorage.getItem('admin_tab') as Tab) || 'calendar');
   const setTab = (t: Tab) => { setTabState(t); localStorage.setItem('admin_tab', t); };
@@ -189,12 +226,13 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     date?: Date;
     data?: DetailData;
     initialEditing?: boolean;
+    slot?: string;
   } | null;
   const [popover, setPopover] = useState<PopoverState>(null);
 
   // 空セルクリック → 作成ポップオーバー
-  const handleCellClick = (date: Date, rect: DOMRect) => {
-    setPopover({ type: 'create', anchorRect: rect, date });
+  const handleCellClick = (date: Date, rect: DOMRect, slot?: string) => {
+    setPopover({ type: 'create', anchorRect: rect, date, slot });
   };
 
   // +Nクリック → 一覧ポップオーバー（DayDetailPopover相当）
@@ -535,7 +573,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             <OrgFilterSidebar selectedOrgs={adminFilterOrgs} onToggleOrg={handleAdminToggleOrg} onToggleGroup={handleAdminToggleGroup} onSelectAll={handleAdminSelectAll} onDeselectAll={handleAdminDeselectAll} onSelectOnly={handleAdminSelectOnly} showMajor={adminShowMajor} onToggleMajor={() => setAdminShowMajor(v => !v)} />
             <div className="flex-1 min-w-0 min-h-0">
             {calendarSubView === 'schedule' ? (
-              <CalendarView holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} refreshKey={eventListRefreshKey} isAdmin modeToggle={adminModeToggle} filterOrgs={adminFilterOrgs} showMajor={adminShowMajor} />
+              <CalendarView holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} onOverflowClick={handleOverflowClick} refreshKey={eventListRefreshKey} isAdmin modeToggle={adminModeToggle} filterOrgs={adminFilterOrgs} showMajor={adminShowMajor} popoverDate={popover?.type === 'create' ? popover.date : null} />
             ) : (
               <BookingCalendar
                 currentDate={currentDate}
@@ -565,6 +603,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 disableModal
                 loading={loading}
                 majorEvents={adminShowMajor ? majorEvents : []}
+                popoverDate={popover?.type === 'create' ? popover.date : null}
+                popoverSlot={popover?.type === 'create' ? popover.slot : null}
               />
             )}
             </div>
@@ -999,6 +1039,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
             anchorRect={popover.anchorRect}
             onClose={closePopover}
             onSaved={() => { closePopover(); handleDayPanelRefresh(); }}
+            initialSlot={popover.slot}
           />
         )
       )}
@@ -1038,9 +1079,22 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       {/* +Nクリック時の一覧ポップオーバー */}
       {popover?.type === 'list' && popover.date && (() => {
         const dateStr = `${popover.date.getFullYear()}-${String(popover.date.getMonth() + 1).padStart(2, '0')}-${String(popover.date.getDate()).padStart(2, '0')}`;
-        const dayBookings = bookings.filter(b => b.date === dateStr);
         const dow = ['日', '月', '火', '水', '木', '金', '土'][popover.date.getDay()];
         const ROOM_COLORS: Record<string, string> = { '会議室': 'bg-yellow-400', '和室（畳側）': 'bg-sky-400', '和室（椅子側）': 'bg-sky-400', '図書室': 'bg-pink-400' };
+
+        if (calendarSubView === 'schedule') {
+          return (
+            <Popover anchorRect={popover.anchorRect} onClose={closePopover} width={300}>
+              <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+                <span className="text-base font-bold text-gray-800">{popover.date.getMonth() + 1}月{popover.date.getDate()}日({dow})</span>
+                <button onClick={closePopover} className="p-1 hover:bg-gray-100 rounded-full"><X size={16} className="text-gray-400" /></button>
+              </div>
+              <EventListPopoverBody dateStr={dateStr} anchorRect={popover.anchorRect} onItemClick={(evt, rect) => { closePopover(); handleEventItemClick(evt, rect); }} />
+            </Popover>
+          );
+        }
+
+        const dayBookings = bookings.filter(b => b.date === dateStr);
         return (
           <Popover anchorRect={popover.anchorRect} onClose={closePopover} width={300}>
             <div className="px-4 pt-3 pb-1 flex items-center justify-between">
@@ -1048,7 +1102,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <button onClick={closePopover} className="p-1 hover:bg-gray-100 rounded-full"><X size={16} className="text-gray-400" /></button>
             </div>
             <div className="px-4 pb-3 divide-y divide-gray-100">
-              {dayBookings.map((b, i) => (
+              {[...dayBookings].sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '') || a.room.localeCompare(b.room)).map((b, i) => (
                 <div key={i} onClick={() => { closePopover(); handleBookingItemClick(b, popover.anchorRect as unknown as DOMRect); }}
                   className="py-2 flex items-center gap-2 cursor-pointer hover:bg-gray-200 rounded-lg px-2 transition-colors">
                   <span className={`${ROOM_COLORS[b.room] || 'bg-gray-400'} w-2 h-2 rounded-full shrink-0`} />

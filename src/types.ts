@@ -74,7 +74,7 @@ export interface EventSummary {
   location: string | null;
   startTime: string | null; // HH:mm
   endTime: string | null;   // HH:mm
-  orgName: string | null;  // 主催団体名（DB上は calendar_events.memo）
+  orgName: string | null;  // 主催団体名（DB上は calendar_events.org_name）
   description: string | null;
   rooms: string[];          // facility型: 使用部屋一覧
   slots: string[];          // facility型: 使用時間帯一覧

@@ -102,7 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           start_time: row.start_time || null,
           end_time: row.end_time || null,
           is_major: row.is_major,
-          memo: row.memo || null,
+          org_name: row.memo || null,
           event_type: 'general',
           visibility: 'public',
         });
@@ -125,7 +125,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           start_time: row.start_time || null,
           end_time: row.end_time || null,
           is_major: row.is_major,
-          memo: row.memo || null,
+          org_name: row.memo || null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', match.id);

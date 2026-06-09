@@ -12,18 +12,18 @@ export async function sendLineNotification(
   targetId: string,
   booking: BookingRequest,
 ): Promise<void> {
-  const message = [
+  const lines = [
     '📋 予約リクエストが届きました',
     '',
     `📅 ${booking.date}`,
-    `🕐 ${booking.startTime}〜${booking.endTime}`,
+    `🕐 ${booking.slot}`,
     `🏠 ${booking.room}`,
-    `📝 ${booking.purpose}`,
-    `👤 ${booking.name}（${booking.phone}）`,
-    `💰 ¥${booking.price.toLocaleString()}`,
-    '',
-    'スプレッドシートに登録してください。',
-  ].join('\n');
+    `📝 ${booking.title}`,
+  ];
+  if (booking.org) lines.push(`🏢 ${booking.org}`);
+  if (booking.price != null) lines.push(`💰 ¥${booking.price.toLocaleString()}`);
+  lines.push('', 'スプレッドシートに登録してください。');
+  const message = lines.join('\n');
 
   const res = await fetch('https://api.line.me/v2/bot/message/push', {
     method: 'POST',

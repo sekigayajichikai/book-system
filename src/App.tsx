@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CalendarDays, ClipboardList, Info, Users, User, X, LogOut, Home, Clock, MapPin, Filter } from 'lucide-react';
 import BookingCalendar from './components/BookingCalendar';
 import DailyScheduleGrid from './components/DailyScheduleGrid';
@@ -207,6 +207,8 @@ function App() {
   const [holidays, setHolidays] = useState<Record<string, string>>({});
   const [closures, setClosures] = useState<Set<string>>(new Set());
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const lastFetchRef = useRef(Date.now());
 
   /** 団体マスタ + 祝日を取得 */
   useEffect(() => {
@@ -277,11 +279,24 @@ function App() {
       console.error('カレンダーの取得に失敗しました', err);
     } finally {
       setLoading(false);
+      lastFetchRef.current = Date.now();
     }
   }, []);
 
   useEffect(() => {
     fetchEvents(currentDate.getFullYear(), currentDate.getMonth());
+  }, [currentDate, fetchEvents]);
+
+  /** タブ復帰時にデータを自動再取得（30秒以上経過していた場合） */
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastFetchRef.current > 30_000) {
+        fetchEvents(currentDate.getFullYear(), currentDate.getMonth());
+        setRefreshKey(k => k + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, [currentDate, fetchEvents]);
 
   const handlePrevMonth = () => {
@@ -536,7 +551,7 @@ function App() {
             calendarMode === 'schedule' ? (
               isMobile ? (
                 <>
-                  <MobileEventList holidays={holidays} closures={closures} filterOrgs={filterOrgs} />
+                  <MobileEventList holidays={holidays} closures={closures} filterOrgs={filterOrgs} refreshKey={refreshKey} />
                   {showMobileFilter && (
                     <MobileOrgFilter filterOrgs={filterOrgs} onToggleGroup={handleToggleGroup} onToggleOrg={handleToggleOrg} onSelectAll={handleSelectAll} onDeselectAll={handleDeselectAll} onClose={() => setShowMobileFilter(false)} />
                   )}
@@ -545,7 +560,7 @@ function App() {
                 <div className="flex gap-4">
                   <OrgFilterSidebar selectedOrgs={filterOrgs} onToggleOrg={handleToggleOrg} onToggleGroup={handleToggleGroup} onSelectAll={handleSelectAll} onDeselectAll={handleDeselectAll} onSelectOnly={handleSelectOnly} showMajor={showMajor} onToggleMajor={() => setShowMajor(v => !v)} />
                   <div className="flex-1 min-w-0">
-                    <CalendarView holidays={holidays} closures={closures} modeToggle={modeToggleEl} filterOrgs={filterOrgs} showMajor={showMajor} />
+                    <CalendarView holidays={holidays} closures={closures} modeToggle={modeToggleEl} filterOrgs={filterOrgs} showMajor={showMajor} refreshKey={refreshKey} />
                   </div>
                 </div>
               )

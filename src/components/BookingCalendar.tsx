@@ -9,7 +9,7 @@ interface CalendarProps {
   onNextMonth: () => void;
   bookings: Booking[];
   onDateClick?: (date: Date) => void;
-  onCellClick?: (date: Date, rect: DOMRect) => void;
+  onCellClick?: (date: Date, rect: DOMRect, slot?: string) => void;
   onItemClick?: (booking: Booking, rect: DOMRect) => void;
   onOverflowClick?: (date: Date, rect: DOMRect) => void;
   onEditBookingClick?: (booking: Booking, rect: DOMRect) => void;
@@ -22,6 +22,8 @@ interface CalendarProps {
   subTitle?: string;
   majorEvents?: { date: string; title: string }[];
   hideSubViewToggle?: boolean;
+  popoverDate?: Date | null;
+  popoverSlot?: string | null;
 }
 
 const ROOM_COLORS: Record<string, { bg: string; bar: string }> = {
@@ -82,7 +84,7 @@ const DayDetailPopover: React.FC<{
 
         {/* イベント一覧 */}
         <div className="flex-1 overflow-auto px-3 pb-3 space-y-1">
-          {dayBookings.map((b, i) => {
+          {[...dayBookings].sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '') || a.room.localeCompare(b.room)).map((b, i) => {
             const colors = ROOM_COLORS[b.room] || { bar: 'bg-gray-400' };
             return (
               <div key={i} className="bg-white rounded-xl px-3 py-2.5 hover:shadow-sm transition-shadow">
@@ -361,7 +363,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const BookingCalendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading, modeToggle, subTitle, majorEvents = [], hideSubViewToggle,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading, modeToggle, subTitle, majorEvents = [], hideSubViewToggle, popoverDate, popoverSlot,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
@@ -398,13 +400,14 @@ const BookingCalendar: React.FC<CalendarProps> = ({
 
   const amSlot = TIME_SLOTS.find(s => s.gasKey === '午前');
   const pmSlot = TIME_SLOTS.find(s => s.gasKey === '午後');
+  const nightSlot = TIME_SLOTS.find(s => s.gasKey === '夜間');
 
-  const handleCellClick = (day: number, e: React.MouseEvent) => {
+  const handleCellClick = (day: number, e: React.MouseEvent, slot?: string) => {
     setSelectedBookingId(null);
     const date = new Date(year, month, day);
     if (onCellClick) {
-      const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-      onCellClick(date, rect);
+      const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement || e.currentTarget as HTMLElement).getBoundingClientRect();
+      onCellClick(date, rect, slot);
     } else if (disableModal && onDateClick) {
       onDateClick(date);
     }
@@ -451,16 +454,17 @@ const BookingCalendar: React.FC<CalendarProps> = ({
 
       const amBookings = dayBookings.filter(b => amSlot && b.startTime === amSlot.startTime);
       const pmBookings = dayBookings.filter(b => pmSlot && b.startTime === pmSlot.startTime);
+      const nightBookings = dayBookings.filter(b => nightSlot && b.startTime === nightSlot.startTime);
+      const isPopoverTarget = popoverDate && popoverDate.getFullYear() === year && popoverDate.getMonth() === month && popoverDate.getDate() === day;
 
       days.push(
         <div
           key={day}
           data-cell
-          onClick={(e) => handleCellClick(day, e)}
           className={`border border-gray-200 relative cursor-pointer hover:bg-emerald-50/30 transition-colors flex flex-col ${isToday ? 'outline outline-2 outline-emerald-400 -outline-offset-1 z-10' : ''} ${isClosure ? 'bg-gray-50' : ''}`}
         >
           {/* Date number */}
-          <div className="px-1 pt-0.5 shrink-0 flex items-center gap-1 overflow-hidden">
+          <div className="px-1 pt-0.5 shrink-0 flex items-center gap-1 overflow-hidden" onClick={(e) => { const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)!.getBoundingClientRect(); const date = new Date(year, month, day); setSelectedBookingId(null); if (onCellClick) onCellClick(date, rect); else if (disableModal && onDateClick) onDateClick(date); }}>
             <span className={`text-sm font-bold ${
               isToday ? 'bg-emerald-600 text-white px-1 rounded' : (isHoliday || dow === 0) ? 'text-red-500' : dow === 6 ? 'text-blue-500' : 'text-gray-600'
             }`}>
@@ -476,8 +480,11 @@ const BookingCalendar: React.FC<CalendarProps> = ({
 
           <div className="flex flex-col flex-1 min-h-0">
             {/* AM */}
-            <div className="flex-1 px-0.5 py-0.5 space-y-px">
-              {amBookings.slice(0, 2).map((b, i) => {
+            <div className="flex-1 px-0.5 py-0.5 space-y-px" onClick={e => { e.stopPropagation(); handleCellClick(day, e, '午前'); }}>
+              {isPopoverTarget && (!popoverSlot || popoverSlot === '午前') && (
+                <div className="text-sm font-bold text-white bg-emerald-500 rounded px-0.5 truncate">(タイトルなし)</div>
+              )}
+              {[...amBookings].sort((a, b) => a.room.localeCompare(b.room)).slice(0, 2).map((b, i) => {
                 const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
                 return (
                   <div key={i} onClick={e => handleItemClick(e, b)} className={`text-sm font-normal text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] rounded-sm relative z-10' : 'hover:bg-gray-200'}`}>
@@ -492,19 +499,31 @@ const BookingCalendar: React.FC<CalendarProps> = ({
             </div>
 
             {/* PM */}
-            <div className="flex-1 px-0.5 py-0.5 bg-gray-100 border-t border-[var(--md-outline)] space-y-px">
-              {pmBookings.slice(0, 2).map((b, i) => {
-                const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
-                return (
-                  <div key={i} onClick={e => handleItemClick(e, b)} className={`text-sm font-normal text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] rounded-sm relative z-10' : 'hover:bg-gray-200'}`}>
-                    <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
-                    <span className="truncate">{b.title}</span>
-                  </div>
-                );
-              })}
-              {pmBookings.length > 2 && (
-                <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || new DOMRect(); const d = new Date(year, month, day); if (onOverflowClick) onOverflowClick(d, rect); else if (onCellClick) onCellClick(d, rect); else if (onDateClick) onDateClick(d); }} className="text-sm text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{pmBookings.length - 2}件</div>
+            <div className="flex-1 px-0.5 py-0.5 bg-gray-100 border-t border-[var(--md-outline)] space-y-px" onClick={e => { e.stopPropagation(); handleCellClick(day, e, '午後'); }}>
+              {isPopoverTarget && popoverSlot === '午後' && (
+                <div className="text-sm font-bold text-white bg-emerald-500 rounded px-0.5 truncate">(タイトルなし)</div>
               )}
+              {(() => {
+                const pmAndNight = [...[...pmBookings].sort((a, b) => a.room.localeCompare(b.room)).map(b => ({ ...b, isNight: false })), ...[...nightBookings].sort((a, b) => a.room.localeCompare(b.room)).map(b => ({ ...b, isNight: true }))];
+                const overflow = pmAndNight.length - 2;
+                return (
+                  <>
+                    {pmAndNight.slice(0, 2).map((b, i) => {
+                      const colors = ROOM_COLORS[b.room] || { bg: 'bg-gray-100', bar: 'bg-gray-400' };
+                      return (
+                        <div key={i} onClick={e => handleItemClick(e, b)} className={`text-sm font-normal text-gray-800 rounded flex items-center gap-1 px-0.5 py-px overflow-hidden cursor-pointer transition-colors ${selectedBookingId === b.id ? 'bg-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] rounded-sm relative z-10' : 'hover:bg-gray-200'}`}>
+                          <span className={`${colors.bar} w-2 h-2 rounded-full shrink-0`} />
+                          {b.isNight && <span className="text-[10px] font-bold text-white bg-violet-600 px-1 rounded shrink-0">夜</span>}
+                          <span className="truncate">{b.title}</span>
+                        </div>
+                      );
+                    })}
+                    {overflow > 0 && (
+                      <div onClick={e => { e.stopPropagation(); const rect = (e.currentTarget.closest('[data-cell]') as HTMLElement)?.getBoundingClientRect() || new DOMRect(); const d = new Date(year, month, day); if (onOverflowClick) onOverflowClick(d, rect); else if (onCellClick) onCellClick(d, rect); else if (onDateClick) onDateClick(d); }} className="text-sm text-blue-500 pl-1 cursor-pointer hover:text-blue-700 hover:underline">+{overflow}件</div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>,
