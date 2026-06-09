@@ -11,13 +11,13 @@ import * as XLSX from 'xlsx';
 const DEFAULT_DRIVE_FILE_ID = process.env.DRIVE_FILE_ID || '1i7e4xbTqsUqseRS5NBQftZY61BoKDjcJ';
 
 /** DBからファイルIDを取得（未設定なら環境変数/デフォルト値） */
-async function getDriveFileId(supabase: ReturnType<typeof createClient>): Promise<string> {
+async function getDriveFileId(supabase: ReturnType<typeof createClient<any>>): Promise<string> {
   const { data } = await supabase
     .from('app_settings')
     .select('value')
     .eq('key', 'drive_file_id')
     .single();
-  return data?.value || DEFAULT_DRIVE_FILE_ID;
+  return (data as any)?.value || DEFAULT_DRIVE_FILE_ID;
 }
 
 // ORG_MAP（団体推測用）
