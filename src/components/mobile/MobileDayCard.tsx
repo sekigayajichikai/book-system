@@ -55,7 +55,7 @@ export default function MobileDayCard({ date, bookings, isToday, holidayName, is
         <div className="px-4 pb-3 space-y-2">
           {slotGroups.map(({ slot, items }) => (
             <div key={slot.id}>
-              <div className="text-gray-600 mb-1"><span className="text-lg font-bold">{slot.gasKey}</span> <span className="text-base">{slot.startTime}〜{slot.endTime}</span></div>
+              <div className="text-gray-600 mb-1"><span className="text-lg font-bold">{slot.gasKey}</span></div>
               {items.map(b => (
                 <div key={b.id} className="flex items-center gap-2 py-1">
                   <span className={`w-3 h-3 rounded-full shrink-0 ${ROOM_DOT[b.room] || 'bg-gray-300'}`} />

@@ -95,7 +95,7 @@ const DayDetailPopover: React.FC<{
                 <div className="flex items-center gap-4 mt-1 pl-[18px]">
                   <span className="flex items-center gap-1 text-xs text-gray-600">
                     <Clock size={12} className="text-gray-500" />
-                    {b.startTime}〜{b.endTime}
+                    {b.startTime === '09:00' ? '午前' : b.startTime === '13:00' ? '午後' : '夜間'}
                   </span>
                   <span className="flex items-center gap-1 text-xs text-gray-600">
                     <MapPin size={12} className="text-gray-500" />
@@ -667,7 +667,7 @@ const BookingCalendar: React.FC<CalendarProps> = ({
                   )}
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <Clock size={14} className="text-emerald-500" />
-                    <span>{slotLabel} {b.startTime}〜{b.endTime}</span>
+                    <span>{slotLabel}</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <MapPin size={14} className="text-emerald-500" />
