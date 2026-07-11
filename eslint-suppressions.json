@@ -1,8 +1,5 @@
 {
   "src/App.tsx": {
-    "react-hooks/rules-of-hooks": {
-      "count": 35
-    },
     "react-hooks/set-state-in-effect": {
       "count": 2
     }

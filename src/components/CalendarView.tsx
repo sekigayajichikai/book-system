@@ -279,6 +279,11 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
           )}
         </div>
 
+        {/* 時間帯に関する注記 */}
+        <div className="px-3 py-1.5 bg-amber-50 border-b border-amber-100 text-sm text-amber-800 shrink-0">
+          ※ 時間帯は部屋の予約時間です。開催時刻は主催者からの連絡をご確認ください。
+        </div>
+
         {subView === 'month' ? (
         <>
         {/* 曜日ヘッダー */}

@@ -39,9 +39,13 @@ function AdminApp() {
 
 function App() {
   // 管理画面ルーティング（#admin）
+  // Hooksより前のearly returnを避けるため、本体はUserAppに分離
   const isAdminRoute = window.location.hash === '#admin';
   if (isAdminRoute) return <AdminApp />;
+  return <UserApp />;
+}
 
+function UserApp() {
   const isMobile = useIsMobile();
 
   // 団体フィルタ
@@ -208,7 +212,8 @@ function App() {
   const [closures, setClosures] = useState<Set<string>>(new Set());
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const lastFetchRef = useRef(Date.now());
+  // 初回フェッチ完了時に更新される（レンダー中のDate.now()呼び出しを避けるため0初期化）
+  const lastFetchRef = useRef(0);
 
   /** 団体マスタ + 祝日を取得 */
   useEffect(() => {
@@ -475,6 +480,13 @@ function App() {
           </div>
         </div>
       </header>
+      )}
+
+      {/* スマホ版 予定タブ: 時間帯に関する注記（ヘッダー直下に固定表示） */}
+      {isMobile && !showMyPage && calendarMode === 'schedule' && (
+        <div className="px-4 py-1.5 bg-amber-50 border-b border-amber-200 text-sm leading-snug text-amber-800 shrink-0">
+          ※ 時間帯は部屋の予約時間です。開催時刻は主催者からの連絡をご確認ください。
+        </div>
       )}
 
       {/* Main Content */}

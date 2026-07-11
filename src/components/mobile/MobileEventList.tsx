@@ -143,6 +143,19 @@ export default function MobileEventList({ holidays, closures, filterOrgs, refres
           {sortedDates.map(dateStr => (
             <DayCard key={dateStr} dateStr={dateStr} events={grouped[dateStr]} todayStr={todayStr} todayRef={todayRef} holidays={holidays} closures={closures} />
           ))}
+
+          {/* 下側の月切り替え */}
+          <div className="flex items-center justify-between pt-1 pb-2">
+            <button onClick={handlePrevMonth} className="p-2 hover:bg-gray-100 rounded-full">
+              <ChevronLeft size={40} className="text-gray-500" />
+            </button>
+            <h2 className="text-xl font-bold text-gray-800">
+              {year}年 {month + 1}月
+            </h2>
+            <button onClick={handleNextMonth} className="p-2 hover:bg-gray-100 rounded-full">
+              <ChevronRight size={40} className="text-gray-500" />
+            </button>
+          </div>
         </div>
       )}
     </div>
