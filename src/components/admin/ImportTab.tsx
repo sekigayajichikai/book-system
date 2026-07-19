@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload, Cloud, Settings, Link, Users } from 'lucide-react';
+import CircularCandidates from './CircularCandidates';
 import { shortRoomName } from '../../constants';
 import * as XLSX from 'xlsx';
 
@@ -649,6 +650,9 @@ export default function ImportTab() {
         )}
       </button>
     </div>
+
+    {/* ===== 回覧板からの予定候補 ===== */}
+    <CircularCandidates />
 
     </div>
   );

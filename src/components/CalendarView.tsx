@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { ChevronLeft, ChevronRight, X, Clock, MapPin, Check, MoreVertical, Star, AlignLeft, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Clock, MapPin, Check, MoreVertical, Star, AlignLeft, Users, Newspaper } from 'lucide-react';
 import { EventSummary } from '../types';
 import { shortRoomName, ROOMS, TIME_SLOTS } from '../constants';
 
@@ -371,6 +371,17 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
                     <span className="whitespace-pre-wrap">{evt.description}</span>
                   </div>
                 )}
+                {evt.articleUrl && (
+                  <a
+                    href={evt.articleUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 text-sm text-blue-600 hover:text-blue-800 font-bold"
+                  >
+                    <Newspaper size={14} className="shrink-0" />
+                    <span>回覧板の記事を読む</span>
+                  </a>
+                )}
               </div>
             </div>
           </>
@@ -678,6 +689,19 @@ function EventWeekView({ events, weekStart, holidays, closures, onItemClick }: {
                         {evt.orgName && <span className="flex items-center gap-1"><Users size={12} /> {evt.orgName}</span>}
                       </div>
                       {evt.description && <div className="text-xs text-gray-400 mt-1 pl-[5.5rem] line-clamp-2">{evt.description}</div>}
+                      {evt.articleUrl && (
+                        <div className="mt-1 pl-[5.5rem]">
+                          <a
+                            href={evt.articleUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-bold inline-flex items-center gap-1"
+                          >
+                            <Newspaper size={12} /> 回覧板の記事を読む
+                          </a>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

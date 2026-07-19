@@ -28,3 +28,5 @@ npm-debug.log*
 *.csv
 excel-data.json
 test-data.json
+
+.vercel

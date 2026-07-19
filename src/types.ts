@@ -79,6 +79,7 @@ export interface EventSummary {
   rooms: string[];          // facility型: 使用部屋一覧
   slots: string[];          // facility型: 使用時間帯一覧
   isMajor: boolean;         // 主な予定フラグ
+  articleUrl?: string | null; // 回覧板記事へのリンク（calendar_events.article_url）
 }
 
 /** 団体マスタ（1団体分） */
