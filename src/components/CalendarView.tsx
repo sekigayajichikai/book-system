@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, ChevronRight, X, Clock, MapPin, Check, MoreVertical, Star, AlignLeft, Users, Newspaper } from 'lucide-react';
 import { EventSummary } from '../types';
 import { shortRoomName, ROOMS, TIME_SLOTS } from '../constants';
+import { useKnownOrgNames, isFilterableOrg } from '../utils/orgFilter';
 
 const WEEK_DAYS = ['月', '火', '水', '木', '金', '土', '日'];
 
@@ -120,6 +121,9 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
     } else { setWeekExtraEvents([]); }
   }, [subView, weekStart]);
 
+  // 団体マスタに登録がある団体名（フィルタで切り替えられる団体）
+  const knownOrgs = useKnownOrgNames();
+
   // フィルタ適用
   const filterEvent = (e: EventSummary): boolean => {
     if (!showMajor && e.isMajor) return false;
@@ -132,8 +136,9 @@ export default function CalendarView({ holidays, closures, onDateClick, onCellCl
     }
     // memo（団体名）で明確にマッチ → 表示
     if (e.orgName && filterOrgs.has(e.orgName)) return true;
-    // memo（団体名）が明確に存在するがフィルタに含まれない → 非表示
-    if (e.orgName && !filterOrgs.has(e.orgName)) return false;
+    // 団体マスタにある団体名なのにフィルタから外されている → 非表示
+    // （マスタに無い団体名はフィルタに現れないので、下の「未分類」の扱いに回す）
+    if (isFilterableOrg(e.orgName, knownOrgs)) return false;
     // originalTitle（タイトルが団体名の場合）でマッチ
     if (e.originalTitle && filterOrgs.has(e.originalTitle)) return true;
     // title でマッチ

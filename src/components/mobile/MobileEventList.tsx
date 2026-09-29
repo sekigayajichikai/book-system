@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, MapPin, Clock, Home, Users } from 'lucide-re
 import { EventSummary } from '../../types';
 import { shortRoomName } from '../../constants';
 import { useSwipe } from '../../hooks/useSwipe';
+import { useKnownOrgNames, isFilterableOrg } from '../../utils/orgFilter';
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -46,10 +47,15 @@ export default function MobileEventList({ holidays, closures, filterOrgs, refres
 
   useEffect(() => { fetchEvents(fetchYear, fetchMonth); }, [fetchYear, fetchMonth, fetchEvents, refreshKey]);
 
+  // 団体マスタに登録がある団体名（フィルタで切り替えられる団体）
+  const knownOrgs = useKnownOrgNames();
+
   const allEvents = filterOrgs ? events.filter(e => {
     if (e.isMajor) return true;
     if (e.orgName && filterOrgs.has(e.orgName)) return true;
-    if (e.orgName && !filterOrgs.has(e.orgName)) return false;
+    // 団体マスタにある団体名なのにフィルタから外されている → 非表示
+    // （マスタに無い団体名はフィルタに現れないので「未分類」の扱いに回す）
+    if (isFilterableOrg(e.orgName, knownOrgs)) return false;
     return filterOrgs.has('__未分類__');
   }) : events;
 
