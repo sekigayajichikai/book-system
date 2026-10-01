@@ -17,7 +17,8 @@ interface Org {
   id: string;
   name: string;
   category: string;
-  passcode: string | null;
+  // パスコードは booking_org_secrets に隔離してあり、ここには入っていない。
+  // 設定の有無は has_org_passcode、設定・解除は set_org_passcode を呼ぶ。
   contact_email: string | null;
   registration_no: string | null;
   furigana: string | null;
@@ -62,6 +63,14 @@ async function supaFetch(path: string, options?: RequestInit) {
       ...(options?.headers || {}),
     },
   });
+}
+
+/** DBの関数を呼ぶ（パスコードのように、直接は読み書きさせない項目に使う） */
+async function supaRpc(fn: string, args: Record<string, unknown>) {
+  const res = await supaFetch(`rpc/${fn}`, { method: 'POST', body: JSON.stringify(args) });
+  if (!res.ok) throw new Error(`${fn} に失敗しました (${res.status})`);
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
 }
 
 /** 予定タブのリストポップオーバー内容（日付のイベント一覧をfetch） */
@@ -287,6 +296,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [equipmentList, setEquipmentList] = useState<{ id: string; name: string }[]>([]);
   const [editOrg, setEditOrg] = useState<Org | null>(null);
   const [orgEditing, setOrgEditing] = useState(false);
+  /** 選んでいる団体にパスコードが設定されているか（null = 確認中・不明）。中身は取り出せない */
+  const [orgHasPasscode, setOrgHasPasscode] = useState<boolean | null>(null);
   const [keywordsText, setKeywordsText] = useState<string | null>(null);
   const [orgSearch, setOrgSearch] = useState('');
   const [showOrgPanel, setShowOrgPanel] = useState(false);
@@ -376,9 +387,14 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const openOrgForm = (org?: Org) => {
     if (org) {
       setEditOrg(org);
+      // パスコードそのものは取り出せないので、設定されているかどうかだけ聞く
+      setOrgHasPasscode(null);
+      supaRpc('has_org_passcode', { p_org_id: org.id })
+        .then((v) => setOrgHasPasscode(v === true))
+        .catch(() => setOrgHasPasscode(null));
       setOrgForm({
         name: org.name, furigana: org.furigana || '', category: org.category,
-        passcode: org.passcode || '', contact_email: org.contact_email || '',
+        passcode: '', contact_email: org.contact_email || '',
         registration_no: org.registration_no || '', representative: org.representative || '',
         rep_last_name: org.rep_last_name || '', rep_first_name: org.rep_first_name || '',
         rep_last_name_kana: org.rep_last_name_kana || '', rep_first_name_kana: org.rep_first_name_kana || '',
@@ -396,6 +412,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     } else {
       setEditOrg(null);
       setOrgEditing(true);
+      setOrgHasPasscode(false);
       setOrgForm({
         name: '', furigana: '', category: '2', passcode: '', contact_email: '',
         registration_no: '', representative: '', rep_last_name: '', rep_first_name: '', rep_last_name_kana: '', rep_first_name_kana: '', han_ko: '', phone: '',
@@ -437,7 +454,6 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       name: orgForm.name.trim(),
       furigana: orgForm.furigana ? toKatakana(orgForm.furigana.trim()) : null,
       category: orgForm.category,
-      passcode: orgForm.passcode ? toHalf(orgForm.passcode.trim()) : null,
       contact_email: orgForm.contact_email ? orgForm.contact_email.trim().toLowerCase() : null,
       registration_no: orgForm.registration_no ? toHalf(orgForm.registration_no.trim()) : null,
       representative: [orgForm.rep_last_name, orgForm.rep_first_name].filter(Boolean).join(' ').trim() || null,
@@ -456,12 +472,28 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       notes: orgForm.notes?.trim() || null,
       is_active: orgForm.is_active,
     };
+    let targetId = editOrg?.id ?? null;
     if (editOrg) {
       await supaFetch(`booking_organizations?id=eq.${editOrg.id}`, { method: 'PATCH', body: JSON.stringify(body) });
     } else {
       // 新規作成時: registration_dateを今日に設定（半年間アーカイブされない）
       (body as any).registration_date = new Date().toISOString().slice(0, 10);
-      await supaFetch('booking_organizations', { method: 'POST', body: JSON.stringify(body) });
+      const res = await supaFetch('booking_organizations', { method: 'POST', body: JSON.stringify(body) });
+      const created = await res.json().catch(() => null);
+      targetId = Array.isArray(created) ? created[0]?.id ?? null : created?.id ?? null;
+    }
+
+    // パスコードは別の場所にあるので、関数に渡して設定する。
+    // 欄が空のときは「変更しない」。解除したいときは「解除」ボタンから。
+    const typedPasscode = orgForm.passcode ? toHalf(orgForm.passcode.trim()) : '';
+    if (targetId && typedPasscode) {
+      try {
+        await supaRpc('set_org_passcode', { p_org_id: targetId, p_passcode: typedPasscode });
+        setOrgHasPasscode(true);
+      } catch (e) {
+        console.error('パスコードを設定できませんでした:', e);
+        alert('団体は保存しましたが、パスコードを設定できませんでした。');
+      }
     }
     setOrgEditing(false);
     const savedId = editOrg?.id;
@@ -865,7 +897,12 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                     <div><span className="text-xs text-gray-400">メモ</span><div className="text-gray-800 whitespace-pre-wrap">{(orgForm as any).notes || '—'}</div></div>
                     <div><span className="text-xs text-gray-400">月謝</span><div className="text-gray-800">{orgForm.has_monthly_fee ? 'あり' : 'なし'}</div></div>
                     <div><span className="text-xs text-gray-400">紐づけキーワード</span><div className="flex flex-wrap gap-1 mt-1">{(orgForm as any).keywords?.length > 0 ? (orgForm as any).keywords.map((k: string) => <span key={k} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{k}</span>) : <span className="text-gray-400">—</span>}</div></div>
-                    <div><span className="text-xs text-gray-400">パスコード</span><div className="text-gray-800 font-mono">{orgForm.passcode || '—'}</div></div>
+                    <div>
+                      <span className="text-xs text-gray-400">パスコード</span>
+                      <div className="text-gray-800">
+                        {orgHasPasscode === null ? '確認中…' : orgHasPasscode ? '設定済み（表示できません）' : '未設定'}
+                      </div>
+                    </div>
                     {orgForm.default_equipment.length > 0 && (
                       <div><span className="text-xs text-gray-400">利用設備</span><div className="flex flex-wrap gap-1 mt-1">{orgForm.default_equipment.map(e => <span key={e} className="text-xs bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">{e}</span>)}</div></div>
                     )}
@@ -965,7 +1002,40 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                         />
                         <p className="text-xs text-gray-400 mt-0.5">インポート時にタイトルとマッチして自動紐づけされます</p>
                       </div>
-                      <div><label className="block text-xs font-medium text-gray-500 mb-1">パスコード</label><input value={orgForm.passcode} onChange={e => setOrgForm(f => ({ ...f, passcode: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono" placeholder="4桁の数字など" /></div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">パスコード</label>
+                        <input
+                          value={orgForm.passcode}
+                          onChange={e => setOrgForm(f => ({ ...f, passcode: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
+                          placeholder={orgHasPasscode ? '変えるときだけ入力' : '4桁の数字など'}
+                          autoComplete="off"
+                        />
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[11px] text-gray-400">
+                            {orgHasPasscode === null ? '確認中…' : orgHasPasscode ? '設定済み。空のままなら変わりません' : '未設定'}
+                          </span>
+                          {orgHasPasscode && editOrg && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!confirm('この団体のパスコードを解除しますか？ログインできなくなります。')) return;
+                                try {
+                                  await supaRpc('set_org_passcode', { p_org_id: editOrg.id, p_passcode: null });
+                                  setOrgHasPasscode(false);
+                                  setOrgForm(f => ({ ...f, passcode: '' }));
+                                } catch (e) {
+                                  console.error('パスコードを解除できませんでした:', e);
+                                  alert('解除できませんでした。');
+                                }
+                              }}
+                              className="text-[11px] text-red-600 hover:underline"
+                            >
+                              解除する
+                            </button>
+                          )}
+                        </div>
+                      </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1">主に利用予定の設備（予約ごとに変更できます）</label>
                         <div className="flex flex-wrap gap-2">

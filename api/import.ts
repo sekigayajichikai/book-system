@@ -23,6 +23,10 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
   const { api_key, year, month, source_hash, source_updated_at, rows } = req.body;
 
   // 認証（API keyまたはブラウザアップロード）
+  // TODO(第2段): 'browser-upload' は決め打ちの文字列なので、鍵を知らなくても通ってしまう。
+  //   管理画面（ImportTab）がこれを使っているため、Supabase Auth を入れて
+  //   「ログイン済みか」で判定できるようになってから外す。
+  //   同じ抜け道は import-events.ts にもあったが、そちらは旧経路なので 2026-10-01 に閉じた。
   if (api_key !== process.env.IMPORT_API_KEY && api_key !== 'browser-upload') {
     return res.status(401).json({ error: 'Invalid API key' });
   }

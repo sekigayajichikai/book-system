@@ -262,17 +262,17 @@ function supabaseProxyPlugin(supabaseUrl: string, supabaseKey: string): Plugin {
                 return;
               }
 
-              // 団体認証
+              // 団体認証（パスコードは booking_org_secrets に隔離済み。照合は関数に任せる）
               if (parsed.type === 'org') {
-                const { data: org } = await supabase
-                  .from('booking_organizations')
-                  .select('id, name, category, passcode')
-                  .eq('name', parsed.org_name)
-                  .single();
+                const { data: rows } = await supabase.rpc('verify_org_passcode', {
+                  p_org_name: parsed.org_name,
+                  p_passcode: parsed.passcode,
+                });
+                const org = Array.isArray(rows) ? rows[0] : rows;
 
-                if (!org || org.passcode !== parsed.passcode) {
+                if (!org) {
                   res.statusCode = 401;
-                  res.end(JSON.stringify({ error: org ? 'パスコードが正しくありません' : '団体が見つかりません' }));
+                  res.end(JSON.stringify({ error: '団体名またはパスコードが正しくありません' }));
                   return;
                 }
                 const token = Buffer.from(JSON.stringify({ role: 'org', org_id: org.id, org_name: org.name, t: Date.now() })).toString('base64');

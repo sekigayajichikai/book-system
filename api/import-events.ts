@@ -50,8 +50,14 @@ function sanitizeRow(row: any): CandidateRow | null {
 async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any) {
   const { api_key, rows } = req.body || {};
 
-  // 認証（回覧板アプリからのAPIキー or 管理画面からの貼り付け）
-  if (api_key !== process.env.IMPORT_API_KEY && api_key !== 'browser-upload') {
+  // 認証（回覧板アプリからのAPIキー）
+  // かつては 'browser-upload' という決め打ちの文字列でも通っていたが、
+  // それだと鍵を知らなくても候補を投入できてしまうので外した（2026-10-01）。
+  const expected = process.env.IMPORT_API_KEY;
+  if (!expected) {
+    return res.status(500).json({ error: 'IMPORT_API_KEY が設定されていません' });
+  }
+  if (api_key !== expected) {
     return res.status(401).json({ error: 'Invalid API key' });
   }
   if (!Array.isArray(rows) || rows.length === 0) {

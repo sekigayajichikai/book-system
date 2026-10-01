@@ -33,18 +33,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
 
-    const { data: org, error } = await supabase
-      .from('booking_organizations')
-      .select('id, name, category, passcode')
-      .eq('name', org_name)
-      .single();
+    // パスコードは booking_org_secrets に隔離してあり、公開鍵では読めない。
+    // 照合は中だけ特権で動く関数に任せ、合っていれば団体の情報だけが返る。
+    // （団体名が存在するかどうかも答えないよう、エラーの文言は1つにまとめている）
+    const { data: rows, error } = await supabase.rpc('verify_org_passcode', {
+      p_org_name: org_name,
+      p_passcode: passcode,
+    });
 
+    const org = Array.isArray(rows) ? rows[0] : rows;
     if (error || !org) {
-      return res.status(401).json({ error: '団体が見つかりません' });
-    }
-
-    if (org.passcode !== passcode) {
-      return res.status(401).json({ error: 'パスコードが正しくありません' });
+      return res.status(401).json({ error: '団体名またはパスコードが正しくありません' });
     }
 
     const token = Buffer.from(JSON.stringify({

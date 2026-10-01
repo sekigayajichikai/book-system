@@ -7,6 +7,12 @@ import { Check, X, RefreshCw, ClipboardPaste, Newspaper, AlertTriangle } from 'l
  * デジタル回覧板アプリがAI抽出した予定候補（general_import_rows）を一覧表示し、
  * 承認（calendar_eventsへ登録）/ 却下する。回覧板アプリでコピーした
  * JSONを貼り付けて手動で候補を追加することもできる。
+ *
+ * ※ この経路はもう使っていない（2026-09-29 以降）。
+ *   回覧板ポータルの「予定タブ → カレンダーに反映」が calendar_events に直接書く方式に変わった。
+ *   貼り付けの投入口（/api/import-events の POST）は、鍵を知らなくても通る抜け道があったため
+ *   2026-10-01 に閉じた。いま貼り付けを押すと 401 が返る。
+ *   一覧と承認・却下（GET / PATCH）はそのまま動く。
  */
 
 interface CandidateRow {
