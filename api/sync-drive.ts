@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { requireAdmin, writeClient } from './_auth';
+import { requireAdmin, writeClient } from './_auth.js';
 import * as XLSX from 'xlsx';
 
 /**

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireAdmin, writeClient } from './_auth';
+import { requireAdmin, writeClient } from './_auth.js';
 
 /**
  * /api/import
