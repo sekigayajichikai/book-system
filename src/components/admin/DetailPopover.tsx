@@ -3,7 +3,7 @@ import { Pencil, Trash2, X, Clock, MapPin, Users, AlignLeft, Star, Check, Type }
 import Popover from './Popover';
 import OrgPicker from './OrgPicker';
 import { ROOMS, TIME_SLOTS } from '../../constants';
-import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaFetch as sharedSupaFetch } from '../../lib/supabase';
+import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaWrite, writeErrorMessage } from '../../lib/supabase';
 
 const TIME_OPTIONS: string[] = [];
 for (let h = 7; h <= 21; h++) {
@@ -19,14 +19,9 @@ const ROOM_COLORS: Record<string, string> = {
   '図書室': 'bg-pink-400',
 };
 
-// 読み書きの入口は src/lib/supabase.ts にまとめた（ログイン済みならその資格で届く）
-// ここは戻り値を使わない書き込みが多いので Prefer: return=minimal を既定にする
-async function supaFetch(path: string, options?: RequestInit) {
-  return sharedSupaFetch(path, {
-    ...options,
-    headers: { Prefer: 'return=minimal', ...((options?.headers as Record<string, string>) || {}) },
-  });
-}
+// 書き込みは src/lib/supabase.ts の supaWrite を通す（ログイン済みの資格で届き、断られたら例外になる）。
+// 以前はここで公開鍵の Authorization を上書きしていた箇所があり、行の保護（RLS）を入れてからは
+// 「主な予定」「時間」「カレンダー用タイトル」の変更が黙って弾かれていた。
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
 
@@ -120,37 +115,54 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   const handleSaveTime = async () => {
     const s = timeStart || null;
     const e = timeEnd || null;
+    const prev = [localStartTime, localEndTime];
     setLocalStartTime(s);
     setLocalEndTime(e);
     setEditingTime(false);
-    await supaFetch(`calendar_events?id=eq.${data.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ start_time: s, end_time: e }),
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-    });
+    try {
+      await supaWrite(`calendar_events?id=eq.${data.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ start_time: s, end_time: e }),
+      });
+    } catch (err) {
+      setLocalStartTime(prev[0]);
+      setLocalEndTime(prev[1]);
+      return alert(`時間を保存できませんでした。\n${writeErrorMessage(err)}`);
+    }
     onRefresh();
   };
 
   const handleSaveDisplayTitle = async () => {
     const val = displayTitleValue.trim() || null;
+    const prev = localDisplayTitle;
     setLocalDisplayTitle(val);
     setEditingDisplayTitle(false);
-    await supaFetch(`calendar_events?id=eq.${data.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ display_title: val }),
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-    });
+    try {
+      await supaWrite(`calendar_events?id=eq.${data.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ display_title: val }),
+      });
+    } catch (err) {
+      setLocalDisplayTitle(prev);
+      return alert(`カレンダー用タイトルを保存できませんでした。\n${writeErrorMessage(err)}`);
+    }
     onRefresh();
   };
 
   const handleSaveDescription = async () => {
     const val = descriptionValue.trim() || null;
+    const prev = localDescription;
     setLocalDescription(val);
     setEditingDescription(false);
-    await supaFetch(`calendar_events?id=eq.${data.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ description: val }),
-    });
+    try {
+      await supaWrite(`calendar_events?id=eq.${data.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ description: val }),
+      });
+    } catch (err) {
+      setLocalDescription(prev);
+      return alert(`説明を保存できませんでした。\n${writeErrorMessage(err)}`);
+    }
     onRefresh();
   };
 
@@ -167,20 +179,19 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         orgId = d[0]?.id || null;
       } catch {}
     }
-    const res = await supaFetch(`bookings?id=eq.${data.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        title: bookingForm.title.trim(),
-        slot: bookingForm.slot,
-        room: bookingForm.room,
-        memo: bookingForm.memo.trim() || null,
-        org_id: orgId,
-      }),
-    });
-    if (res && !res.ok) {
-      const err = await res.text();
-      alert(err.includes('23505') ? 'この時間帯・部屋は既に予約されています' : '保存に失敗しました');
-      return;
+    try {
+      await supaWrite(`bookings?id=eq.${data.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: bookingForm.title.trim(),
+          slot: bookingForm.slot,
+          room: bookingForm.room,
+          memo: bookingForm.memo.trim() || null,
+          org_id: orgId,
+        }),
+      });
+    } catch (err) {
+      return alert(writeErrorMessage(err));
     }
     // calendar_eventsのorg_nameにも団体名を同期
     try {
@@ -189,11 +200,13 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       });
       const evData = evRes.ok ? await evRes.json() : [];
       if (evData[0]?.event_id) {
-        await supaFetch(`calendar_events?id=eq.${evData[0].event_id}`, {
+        await supaWrite(`calendar_events?id=eq.${evData[0].event_id}`, {
           method: 'PATCH', body: JSON.stringify({ org_name: bookingForm.org.trim() || null }),
         });
       }
-    } catch {}
+    } catch {
+      alert('予約は保存しましたが、カレンダー側の団体名を更新できませんでした。予定を開いて団体名を確かめてください。');
+    }
     setEditing(false);
     onClose();
     onRefresh();
@@ -213,29 +226,43 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         orgId = d[0]?.id || null;
       } catch {}
     }
-    await supaFetch(`calendar_events?id=eq.${data.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        title: editForm.title.trim(),
-        description: editForm.description.trim() || null,
-        location: editForm.location || null,
-        start_time: editForm.startTime || null,
-        end_time: editForm.endTime || null,
-        is_major: editForm.isMajor,
-        org_name: memoTrimmed || null,
-        org_id: orgId,
-      }),
-    });
+    try {
+      await supaWrite(`calendar_events?id=eq.${data.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: editForm.title.trim(),
+          description: editForm.description.trim() || null,
+          location: editForm.location || null,
+          start_time: editForm.startTime || null,
+          end_time: editForm.endTime || null,
+          is_major: editForm.isMajor,
+          org_name: memoTrimmed || null,
+          org_id: orgId,
+        }),
+      });
+    } catch (err) {
+      return alert(writeErrorMessage(err));
+    }
     setEditing(false);
     onClose();
     onRefresh();
   };
 
   const handleDelete = async () => {
-    if (!confirm(`「${data.title}」を削除しますか？`)) return;
+    if (!confirm(`「${data.title}」を削除しますか？\n削除すると元に戻せません。`)) return;
 
+    try {
+      await deleteTarget();
+    } catch (err) {
+      return alert(`削除できませんでした。\n${writeErrorMessage(err)}`);
+    }
+    onClose();
+    onRefresh();
+  };
+
+  const deleteTarget = async () => {
     if (data.type === 'event') {
-      await supaFetch(`calendar_events?id=eq.${data.id}`, { method: 'DELETE' });
+      await supaWrite(`calendar_events?id=eq.${data.id}`, { method: 'DELETE' });
     } else {
       // booking: event_idを取得して孤立イベントも削除
       const evRes = await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${data.id}&select=event_id`, {
@@ -244,7 +271,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       const evData = evRes.ok ? await evRes.json() : [];
       const eventId = evData[0]?.event_id;
 
-      await supaFetch(`bookings?id=eq.${data.id}`, { method: 'DELETE' });
+      await supaWrite(`bookings?id=eq.${data.id}`, { method: 'DELETE' });
 
       if (eventId) {
         const remRes = await fetch(`${SUPABASE_URL}/rest/v1/bookings?event_id=eq.${eventId}&status=in.(CONFIRMED,PENDING)&select=id&limit=1`, {
@@ -252,12 +279,10 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
         });
         const remaining = remRes.ok ? await remRes.json() : [1];
         if (remaining.length === 0) {
-          await supaFetch(`calendar_events?id=eq.${eventId}`, { method: 'DELETE' });
+          await supaWrite(`calendar_events?id=eq.${eventId}`, { method: 'DELETE' });
         }
       }
     }
-    onClose();
-    onRefresh();
   };
 
   // 時間表示（ローカルstate優先）
@@ -293,11 +318,14 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
       <div className="flex items-center justify-end gap-1 px-3 pt-3 pb-1">
         {data.type === 'event' && (
           <button onClick={async () => {
-            await supaFetch(`calendar_events?id=eq.${data.id}`, {
-              method: 'PATCH',
-              body: JSON.stringify({ is_major: !data.isMajor }),
-              headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-            });
+            try {
+              await supaWrite(`calendar_events?id=eq.${data.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ is_major: !data.isMajor }),
+              });
+            } catch (err) {
+              return alert(writeErrorMessage(err));
+            }
             onClose();
             onRefresh();
           }} className="p-1.5 hover:bg-gray-100 rounded-full" title={data.isMajor ? '主な予定を解除' : '主な予定にする'}>

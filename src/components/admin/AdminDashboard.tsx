@@ -10,7 +10,7 @@ import { EventCreatePopover, BookingCreatePopover } from './QuickCreatePopover';
 import Popover from './Popover';
 import { Booking, BookingStatus, RoomType, CalendarEvent, EventSummary, OrgEntry } from '../../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../../constants';
-import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaFetch, supaRpc } from '../../lib/supabase';
+import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaFetch, supaRpc, supaWrite, writeErrorMessage } from '../../lib/supabase';
 
 type Tab = 'calendar' | 'import' | 'approvals' | 'organizations' | 'settings';
 
@@ -452,14 +452,19 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       is_active: orgForm.is_active,
     };
     let targetId = editOrg?.id ?? null;
-    if (editOrg) {
-      await supaFetch(`booking_organizations?id=eq.${editOrg.id}`, { method: 'PATCH', body: JSON.stringify(body) });
-    } else {
-      // 新規作成時: registration_dateを今日に設定（半年間アーカイブされない）
-      (body as any).registration_date = new Date().toISOString().slice(0, 10);
-      const res = await supaFetch('booking_organizations', { method: 'POST', body: JSON.stringify(body) });
-      const created = await res.json().catch(() => null);
-      targetId = Array.isArray(created) ? created[0]?.id ?? null : created?.id ?? null;
+    try {
+      if (editOrg) {
+        await supaWrite(`booking_organizations?id=eq.${editOrg.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+      } else {
+        // 新規作成時: registration_dateを今日に設定（半年間アーカイブされない）
+        (body as any).registration_date = new Date().toISOString().slice(0, 10);
+        const res = await supaWrite('booking_organizations', { method: 'POST', body: JSON.stringify(body) });
+        const created = await res.json().catch(() => null);
+        targetId = Array.isArray(created) ? created[0]?.id ?? null : created?.id ?? null;
+      }
+    } catch (e) {
+      // 入力欄は開いたままにして、直してもう一度押せるようにする
+      return alert(`団体を保存できませんでした。\n${writeErrorMessage(e)}`);
     }
 
     // パスコードは別の場所にあるので、関数に渡して設定する。
@@ -493,7 +498,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     const res = await supaFetch(`booking_organizations?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
     if (!res.ok) {
       if (confirm(`「${name}」は予約データが紐づいているため削除できません。\n非表示（アーカイブ）にしますか？`)) {
-        await supaFetch(`booking_organizations?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ is_active: false }) });
+        try {
+          await supaWrite(`booking_organizations?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ is_active: false }) });
+        } catch (e) {
+          return alert(writeErrorMessage(e));
+        }
         setOrgs(prev => prev.map(o => o.id === id ? { ...o, is_active: false } : o));
         setEditOrg(null);
       }
@@ -518,19 +527,27 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   }, [tab]);
 
   const handleApprove = async (id: string) => {
-    await supaFetch(`bookings?id=eq.${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: 'CONFIRMED', approved_at: new Date().toISOString() }),
-    });
+    try {
+      await supaWrite(`bookings?id=eq.${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'CONFIRMED', approved_at: new Date().toISOString() }),
+      });
+    } catch (e) {
+      return alert(`承認できませんでした。\n${writeErrorMessage(e)}`);
+    }
     setPendingBookings(prev => prev.filter(b => b.id !== id));
   };
 
   const handleReject = async (id: string) => {
     if (!rejectReason.trim()) return alert('却下理由を入力してください');
-    await supaFetch(`bookings?id=eq.${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: 'REJECTED', reject_reason: rejectReason.trim() }),
-    });
+    try {
+      await supaWrite(`bookings?id=eq.${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'REJECTED', reject_reason: rejectReason.trim() }),
+      });
+    } catch (e) {
+      return alert(`却下できませんでした。\n${writeErrorMessage(e)}`);
+    }
     setPendingBookings(prev => prev.filter(b => b.id !== id));
     setRejectingId(null);
     setRejectReason('');
@@ -781,7 +798,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                               title="常に表示にする"
                               onClick={async e => {
                                 e.stopPropagation();
-                                await supaFetch(`booking_organizations?id=eq.${o.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: true }) });
+                                try {
+                                  await supaWrite(`booking_organizations?id=eq.${o.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: true }) });
+                                } catch (err) {
+                                  return alert(writeErrorMessage(err));
+                                }
                                 setOrgs(prev => prev.map(org => org.id === o.id ? { ...org, is_active: true } : org));
                               }}
                               className="text-xs text-blue-400 hover:text-blue-600 px-1"
@@ -900,7 +921,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                             <button
                               key={opt.label}
                               onClick={async () => {
-                                await supaFetch(`booking_organizations?id=eq.${editOrg!.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: opt.value }) });
+                                try {
+                                  await supaWrite(`booking_organizations?id=eq.${editOrg!.id}`, { method: 'PATCH', body: JSON.stringify({ is_active: opt.value }) });
+                                } catch (err) {
+                                  return alert(writeErrorMessage(err));
+                                }
                                 setOrgs(prev => prev.map(o => o.id === editOrg!.id ? { ...o, is_active: opt.value as any } : o));
                                 setEditOrg(prev => prev ? { ...prev, is_active: opt.value as any } : prev);
                               }}

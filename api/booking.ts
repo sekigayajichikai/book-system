@@ -52,6 +52,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         price: body.price || 0,
         memo: body.memo || null,
         event_id: body.event_id || null,
+        // Web の申込だと記録する（会館の Excel 取込で「Excelに無い」として消されないように）
+        created_by: 'web',
         // 誰の申し込みかは、画面から来た値ではなく通行証の中身を使う
         org_id: org.org_id,
       })

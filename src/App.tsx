@@ -390,24 +390,16 @@ function UserApp() {
     });
   };
 
+  /**
+   * 予約の保存。サーバーの返事を待ってから「保存しました」を出す
+   * （以前は先に成功表示を出し、失敗すると後からアラートで取り消していた。ボタンの二度押しもできた）
+   */
   const handleBookingSubmit = async (data: BookingRequest) => {
+    if (submitting) return;
     const isPending = isOrgLoggedIn;
     const status = isPending ? BookingStatus.PENDING : BookingStatus.CONFIRMED;
 
-    const newBooking: Booking = {
-      id: 'temp_' + Date.now(),
-      date: data.date,
-      startTime: TIME_SLOTS.find(s => s.gasKey === data.slot)?.startTime || '09:00',
-      endTime: TIME_SLOTS.find(s => s.gasKey === data.slot)?.endTime || '12:00',
-      room: (data.room as RoomType) || RoomType.KAIGISHITSU,
-      title: data.title,
-      status,
-    };
-    setBookings(prev => [...prev, newBooking]);
-    setShowBookingForm(false);
-    setShowSuccessMessage(true);
-    setTimeout(() => setShowSuccessMessage(false), 5000);
-
+    setSubmitting(true);
     try {
       // 団体ログインの通行証を添える。どの団体の申し込みかは、窓口がこの中身で決める
       const orgToken = localStorage.getItem('org_token');
@@ -420,16 +412,31 @@ function UserApp() {
         body: JSON.stringify({ ...data, status }),
       });
       if (!res.ok) {
-        if (res.status === 401) throw new Error('団体としてログインし直してください');
-        throw new Error('保存エラー');
+        if (res.status === 401) throw new Error('団体としてログインし直してから、もう一度お試しください。');
+        if (res.status === 409) throw new Error('この時間帯・部屋は、ほかの予約が先に入りました。別の時間帯か部屋を選んでください。');
+        throw new Error('保存に失敗しました。通信を確かめて、もう一度お試しください。');
       }
+      const saved = await res.json().catch(() => null);
+
+      const newBooking: Booking = {
+        id: saved?.id ?? 'temp_' + Date.now(),
+        date: data.date,
+        startTime: TIME_SLOTS.find(s => s.gasKey === data.slot)?.startTime || '09:00',
+        endTime: TIME_SLOTS.find(s => s.gasKey === data.slot)?.endTime || '12:00',
+        room: (data.room as RoomType) || RoomType.KAIGISHITSU,
+        title: data.title,
+        status,
+      };
+      setBookings(prev => [...prev, newBooking]);
+      setShowBookingForm(false);
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 5000);
     } catch (err) {
       console.error('保存エラー:', err);
-      // 失敗したら楽観的更新を巻き戻す
-      setBookings(prev => prev.filter(b => b.id !== newBooking.id));
-      alert(err instanceof Error && err.message.includes('ログイン')
-        ? '団体としてログインし直してから、もう一度お試しください。'
-        : '保存に失敗しました。もう一度お試しください。');
+      // 入力内容を残したままフォームを開いておく
+      alert(err instanceof Error ? err.message : '保存に失敗しました。もう一度お試しください。');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -533,8 +540,17 @@ function UserApp() {
           <div className="mb-6 p-4 bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl flex items-start gap-3 shadow-sm relative">
             <div className="bg-white p-1 rounded-full mt-0.5"><Info size={20} className="text-emerald-500" /></div>
             <div className="flex-1">
-              <p className="font-bold">保存しました</p>
-              <p className="text-sm">スプレッドシートの確定シートに登録されました。</p>
+              {isOrgLoggedIn ? (
+                <>
+                  <p className="font-bold">申し込みました</p>
+                  <p className="text-sm">事務局が承認すると予約が確定します。状況はマイページで確認できます。</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold">予約を登録しました</p>
+                  <p className="text-sm">会館予約状況に反映されています。</p>
+                </>
+              )}
             </div>
             <button onClick={() => setShowSuccessMessage(false)} className="text-emerald-400 hover:text-emerald-600"><X size={18} /></button>
           </div>

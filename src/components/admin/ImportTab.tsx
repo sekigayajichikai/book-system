@@ -437,58 +437,62 @@ export default function ImportTab() {
     }
   }, [rows, orgOptions]);
 
-  const updateRowStatus = async (rowId: string, status: 'approved' | 'rejected') => {
-    setRows(prev => prev.map(r => r.id === rowId ? { ...r, review_status: status } : r));
-    await apiFetch('/api/import', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rows: [{ id: rowId, review_status: status }] }),
-    });
+  /**
+   * 行の承認状態をまとめて書き換える。先に画面を変え、保存に失敗したら元に戻して知らせる
+   * （以前は失敗しても画面だけ「承認済み」になり、反映しても何も起きなかった）
+   */
+  const patchRowStatuses = async (targets: ImportRow[], status: ImportRow['review_status']) => {
+    const before = new Map(targets.map(t => [t.id, t.review_status]));
+    setRows(prev => prev.map(r => (before.has(r.id) ? { ...r, review_status: status } : r)));
+    let ok: boolean;
+    try {
+      const res = await apiFetch('/api/import', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows: targets.map(r => ({ id: r.id, review_status: status })) }),
+      });
+      ok = res.ok;
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      setRows(prev => prev.map(r => (before.has(r.id) ? { ...r, review_status: before.get(r.id)! } : r)));
+      setMessage({ type: 'error', text: '保存できませんでした。通信を確かめて、もう一度押してください。' });
+    }
   };
 
-  // 一括取込
+  const updateRowStatus = async (rowId: string, status: 'approved' | 'rejected') => {
+    const target = rows.find(r => r.id === rowId);
+    if (target) await patchRowStatuses([target], status);
+  };
+
+  // 一括取込。「削除」行は含めない（Excelに無いだけの予約を消してしまわないよう、1件ずつ確かめてもらう）
   const approveAll = async () => {
-    const targets = filteredRows.filter(r => r.review_status === 'pending');
+    const targets = filteredRows.filter(r => r.review_status === 'pending' && r.diff_type !== 'delete');
     if (targets.length === 0) return;
-
-    setRows(prev => prev.map(r => {
-      if (targets.some(t => t.id === r.id)) return { ...r, review_status: 'approved' as const };
-      return r;
-    }));
-
-    await apiFetch('/api/import', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        rows: targets.map(r => ({ id: r.id, review_status: 'approved' })),
-      }),
-    });
+    await patchRowStatuses(targets, 'approved');
+    const skippedDeletes = filteredRows.filter(r => r.review_status === 'pending' && r.diff_type === 'delete').length;
+    if (skippedDeletes > 0) {
+      setMessage({
+        type: 'success',
+        text: `${targets.length}件を承認しました。「削除」の${skippedDeletes}件は、本当に消してよいか1件ずつ確かめて✓を押してください。`,
+      });
+    }
   };
 
   // 承認を取消（approvedをpendingに戻す）
   const resetApproval = async () => {
     const targets = rows.filter(r => r.review_status === 'approved');
     if (targets.length === 0) return;
-
-    setRows(prev => prev.map(r => {
-      if (targets.some(t => t.id === r.id)) return { ...r, review_status: 'pending' as const };
-      return r;
-    }));
-
-    await apiFetch('/api/import', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        rows: targets.map(r => ({ id: r.id, review_status: 'pending' })),
-      }),
-    });
+    await patchRowStatuses(targets, 'pending');
   };
 
   // 全て取消（バッチごとDBから削除）
   const rejectAll = async () => {
     if (!confirm('インポートデータを全て取消しますか？')) return;
     try {
-      await apiFetch('/api/import', { method: 'DELETE' });
+      const res = await apiFetch('/api/import', { method: 'DELETE' });
+      if (!res.ok) throw new Error(String(res.status));
       setBatches([]);
       setRows([]);
       setMessage({ type: 'success', text: 'インポートデータを取消しました' });
@@ -505,17 +509,28 @@ export default function ImportTab() {
     setApplying(true);
     setMessage(null);
     let totalApplied = 0;
+    let failedBatches = 0;
     try {
       for (const b of batches) {
-        const res = await apiFetch('/api/import-apply', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ batch_id: b.id, source_updated_at: sourceDate }),
-        });
-        const data = await res.json();
-        if (data.ok) totalApplied += data.applied || 0;
+        try {
+          const res = await apiFetch('/api/import-apply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ batch_id: b.id, source_updated_at: sourceDate }),
+          });
+          const data = await res.json().catch(() => ({}));
+          totalApplied += data.applied || 0;
+          if (!res.ok || !data.ok) failedBatches++;
+        } catch {
+          failedBatches++;
+        }
       }
-      setMessage({ type: 'success', text: `${totalApplied}件を反映しました` });
+      // 一部の月だけ失敗しても「反映しました」で終わらせない
+      setMessage(
+        failedBatches > 0
+          ? { type: 'error', text: `${totalApplied}件を反映しましたが、${failedBatches}か月分は反映できませんでした。残っている行を確かめて、もう一度「反映する」を押してください。` }
+          : { type: 'success', text: `${totalApplied}件を反映しました` }
+      );
       await fetchImport();
     } catch {
       setMessage({ type: 'error', text: '反映に失敗しました' });
@@ -717,7 +732,7 @@ export default function ImportTab() {
             disabled={pendingCount === 0}
             className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            全て承認
+            全て承認（削除以外）
           </button>
         </div>
       </div>
@@ -768,7 +783,10 @@ export default function ImportTab() {
                               <span className={row.diff_type === 'title_diff' ? 'text-yellow-700' : 'font-bold'}>{row.title}</span>
                             </span>
                           ) : row.diff_type === 'delete' ? (
-                            <span className="line-through">{row.title}</span>
+                            <span>
+                              <span className="line-through">{row.title}</span>
+                              <span className="ml-2 text-[11px] text-red-600">Excelに無い予約です。消してよいときだけ✓</span>
+                            </span>
                           ) : (
                             <span className="font-bold">{row.title}</span>
                           )}

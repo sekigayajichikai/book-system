@@ -3,7 +3,7 @@ import { Clock, MapPin, Users, AlignLeft, Star, X, Home } from 'lucide-react';
 import Popover from './Popover';
 import OrgPicker from './OrgPicker';
 import { ROOMS, TIME_SLOTS } from '../../constants';
-import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaFetch } from '../../lib/supabase';
+import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaFetch, supaWrite, writeErrorMessage, WriteError } from '../../lib/supabase';
 
 const FACILITY_LOCATION = '自治会館';
 
@@ -35,6 +35,66 @@ function IconField({ icon, children }: IconFieldProps) {
       <div className="flex-1 min-w-0">{children}</div>
     </div>
   );
+}
+
+/**
+ * 会館の予約を作る（同日同タイトルの facility 予定があれば使い、無ければ作る）。
+ * 予約の作成に失敗したら、ここで新しく作った予定は消して戻す。
+ * 以前は予定を先に作ったまま予約だけ失敗し、カレンダーに中身の無い予定が残っていた。
+ */
+async function createFacilityBooking(p: {
+  dateStr: string; title: string; org: string; slot: string; room: string;
+  description: string; isMajor?: boolean;
+}): Promise<void> {
+  const existRes = await supaFetch(
+    `calendar_events?date=eq.${p.dateStr}&title=eq.${encodeURIComponent(p.title)}&event_type=eq.facility&select=id&limit=1`
+  );
+  const existing = existRes.ok ? await existRes.json() : [];
+  let eventId: string | undefined;
+  let createdEvent = false;
+
+  if (existing.length > 0) {
+    eventId = existing[0].id;
+  } else {
+    const evRes = await supaWrite('calendar_events', {
+      method: 'POST',
+      body: JSON.stringify({
+        date: p.dateStr, title: p.title,
+        event_type: 'facility', visibility: 'public',
+        location: FACILITY_LOCATION, org_name: p.org || null,
+        description: p.description || null, is_major: p.isMajor ?? false,
+      }),
+    });
+    const evData = await evRes.json();
+    eventId = evData[0]?.id;
+    createdEvent = true;
+  }
+  if (!eventId) throw new WriteError(500, 'event id missing');
+
+  try {
+    await supaWrite('bookings', {
+      method: 'POST',
+      body: JSON.stringify({
+        date: p.dateStr, slot: p.slot, room: p.room,
+        title: p.title, status: 'CONFIRMED',
+        event_id: eventId, memo: p.description || null,
+        // 管理画面で入れた予約だと記録する（会館の Excel 取込で「Excelに無い」として消されないように）
+        created_by: 'admin',
+      }),
+    });
+  } catch (e) {
+    if (createdEvent) {
+      await supaFetch(`calendar_events?id=eq.${eventId}`, { method: 'DELETE' }).catch(() => {});
+    }
+    throw e;
+  }
+
+  // 既存の予定を使ったときは、団体名だけそろえる（失敗しても予約は成立している）
+  if (!createdEvent && p.org) {
+    await supaWrite(`calendar_events?id=eq.${eventId}`, {
+      method: 'PATCH', body: JSON.stringify({ org_name: p.org }),
+    }).catch(() => {});
+  }
 }
 
 // ======== 予定作成 (カレンダータブ) ========
@@ -71,85 +131,66 @@ export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, is
   const handleSave = async () => {
     const effectiveTitle = (form.title.trim() || form.org).trim();
     if (!effectiveTitle) return alert('タイトルを入力してください');
+    if (saving) return;
     setSaving(true);
 
-    if (hasFacilityDetail) {
-      // --- 自治会館 + 時間帯・部屋あり → facility型 + bookings ---
-      // calendar_events に同日同タイトルがあるか確認
-      const existRes = await supaFetch(
-        `calendar_events?date=eq.${dateStr}&title=eq.${encodeURIComponent(effectiveTitle)}&event_type=eq.facility&select=id&limit=1`
-      );
-      const existing = existRes.ok ? await existRes.json() : [];
-      let eventId: string;
-
-      if (existing.length > 0) {
-        eventId = existing[0].id;
-        if (form.org.trim()) {
-          await supaFetch(`calendar_events?id=eq.${eventId}`, {
-            method: 'PATCH', body: JSON.stringify({ org_name: form.org.trim() }),
-          });
-        }
+    try {
+      if (hasFacilityDetail) {
+        // --- 自治会館 + 時間帯・部屋あり → facility型 + bookings ---
+        await createFacilityBooking({
+          dateStr, title: effectiveTitle, org: form.org.trim(),
+          slot: form.slot, room: form.room,
+          description: form.description, isMajor: form.is_major,
+        });
       } else {
-        const evRes = await supaFetch('calendar_events', {
+        // --- 通常の一般予定 ---
+        await supaWrite('calendar_events', {
           method: 'POST',
           body: JSON.stringify({
             date: dateStr, title: effectiveTitle,
-            event_type: 'facility', visibility: 'public',
-            location: FACILITY_LOCATION, org_name: form.org.trim() || null,
-            description: form.description || null, is_major: form.is_major,
+            location: form.location || null,
+            start_time: form.start_time || null,
+            end_time: form.end_time || null,
+            org_name: form.org || null,
+            description: form.description || null,
+            event_type: 'general', visibility: 'public',
+            is_major: form.is_major,
           }),
         });
-        const evData = await evRes.json();
-        eventId = evData[0]?.id;
       }
-
-      if (!eventId) {
-        console.error('calendar_events のID取得に失敗しました');
-        alert('予定の作成に失敗しました');
-        setSaving(false);
-        return;
-      }
-
-      // booking 作成
-      const bookRes = await supaFetch('bookings', {
-        method: 'POST',
-        body: JSON.stringify({
-          date: dateStr, slot: form.slot, room: form.room,
-          title: effectiveTitle, status: 'CONFIRMED',
-          event_id: eventId, memo: form.description || null,
-        }),
-      });
-
-      if (!bookRes.ok) {
-        const err = await bookRes.text();
-        console.error('booking作成エラー:', err);
-        if (err.includes('23505')) {
-          alert('この時間帯・部屋は既に予約されています');
-          setSaving(false);
-          return;
-        }
-        alert('予約の作成に失敗しました');
-        setSaving(false);
-        return;
-      }
-    } else {
-      // --- 通常の一般予定 ---
-      await supaFetch('calendar_events', {
-        method: 'POST',
-        body: JSON.stringify({
-          date: dateStr, title: effectiveTitle,
-          location: form.location || null,
-          start_time: form.start_time || null,
-          end_time: form.end_time || null,
-          org_name: form.org || null,
-          description: form.description || null,
-          event_type: 'general', visibility: 'public',
-          is_major: form.is_major,
-        }),
-      });
+    } catch (e) {
+      setSaving(false);
+      return alert(`予定を作成できませんでした。
+${writeErrorMessage(e)}`);
     }
 
     setSaving(false);
+    onClose();
+    onSaved();
+  };
+
+  /** 休館の切り替え。ほかの人にも見える変更なので確認してから行う */
+  const handleToggleClosure = async () => {
+    const ok = confirm(isClosure
+      ? `${dateLabel} の休館を解除しますか？`
+      : `${dateLabel} を休館日にしますか？
+カレンダーに「休館」と表示されます。`);
+    if (!ok) return;
+    try {
+      if (isClosure) {
+        await supaWrite(`calendar_events?date=eq.${dateStr}&is_closure=eq.true`, {
+          method: 'DELETE', headers: { 'Prefer': 'return=minimal' },
+        });
+      } else {
+        await supaWrite('calendar_events', {
+          method: 'POST',
+          body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true, event_type: 'closure' }),
+        });
+      }
+    } catch (e) {
+      return alert(writeErrorMessage(e));
+    }
+    onClosureChange?.();
     onClose();
     onSaved();
   };
@@ -164,21 +205,7 @@ export function EventCreatePopover({ date, onClose, onSaved, onClosureChange, is
           </span>
           <div className="flex items-center gap-1">
             <button
-              onClick={async () => {
-                if (isClosure) {
-                  await supaFetch(`calendar_events?date=eq.${dateStr}&is_closure=eq.true`, {
-                    method: 'DELETE', headers: { 'Prefer': 'return=minimal' },
-                  });
-                } else {
-                  await supaFetch('calendar_events', {
-                    method: 'POST',
-                    body: JSON.stringify({ date: dateStr, title: '休館日', is_closure: true, event_type: 'closure' }),
-                  });
-                }
-                onClosureChange?.();
-                onClose();
-                onSaved();
-              }}
+              onClick={handleToggleClosure}
               className={`text-xs px-2 py-1 rounded-lg ${isClosure ? 'text-orange-600 bg-orange-50 hover:bg-orange-100 font-bold' : 'text-gray-500 hover:text-orange-600 hover:bg-orange-50'}`}
             >
               {isClosure ? '休館を解除' : '休館にする'}
@@ -336,62 +363,17 @@ export function BookingCreatePopover({ date, onClose, onSaved, anchorRect, initi
 
   const handleSave = async () => {
     if (!effectiveTitle.trim()) return alert('団体名またはタイトルを入力してください');
+    if (saving) return;
     setSaving(true);
 
-    // calendar_events に同日同タイトルがあるか確認
-    const existRes = await supaFetch(
-      `calendar_events?date=eq.${dateStr}&title=eq.${encodeURIComponent(effectiveTitle.trim())}&event_type=eq.facility&select=id&limit=1`
-    );
-    const existing = existRes.ok ? await existRes.json() : [];
-    let eventId: string;
-
-    if (existing.length > 0) {
-      eventId = existing[0].id;
-      // 既存イベントにも団体名を更新
-      if (form.org.trim()) {
-        await supaFetch(`calendar_events?id=eq.${eventId}`, {
-          method: 'PATCH', body: JSON.stringify({ org_name: form.org.trim() }),
-        });
-      }
-    } else {
-      const evRes = await supaFetch('calendar_events', {
-        method: 'POST',
-        body: JSON.stringify({
-          date: dateStr,
-          title: effectiveTitle.trim(),
-          event_type: 'facility',
-          visibility: 'public',
-          location: '自治会館',
-          org_name: form.org.trim() || null,
-        }),
+    try {
+      await createFacilityBooking({
+        dateStr, title: effectiveTitle.trim(), org: form.org.trim(),
+        slot: form.slot, room: form.room, description: form.description,
       });
-      const evData = await evRes.json();
-      eventId = evData[0]?.id;
-    }
-
-    // booking作成
-    const bookRes = await supaFetch('bookings', {
-      method: 'POST',
-      body: JSON.stringify({
-        date: dateStr,
-        slot: form.slot,
-        room: form.room,
-        title: effectiveTitle.trim(),
-        status: 'CONFIRMED',
-        event_id: eventId,
-        memo: form.description || null,
-      }),
-    });
-
-    if (!bookRes.ok) {
-      const err = await bookRes.text();
-      if (err.includes('23505')) {
-        alert('この時間帯・部屋は既に予約されています');
-      } else {
-        alert('保存に失敗しました');
-      }
+    } catch (e) {
       setSaving(false);
-      return;
+      return alert(writeErrorMessage(e));
     }
 
     setSaving(false);

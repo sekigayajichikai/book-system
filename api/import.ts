@@ -70,16 +70,16 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
 
     const { data: existingBookings } = await supabase
       .from('bookings')
-      .select('id, date, slot, room, title')
+      .select('id, date, slot, room, title, created_by')
       .gte('date', startDate)
       .lt('date', endDate)
       .in('status', ['CONFIRMED', 'PENDING']);
 
     // 既存bookingsをキーでマップ化
-    const existingMap: Record<string, { id: string; title: string }> = {};
+    const existingMap: Record<string, { id: string; title: string; created_by: string | null }> = {};
     (existingBookings || []).forEach((b: any) => {
       const key = `${b.date}|${b.slot}|${b.room}`;
-      existingMap[key] = { id: b.id, title: b.title };
+      existingMap[key] = { id: b.id, title: b.title, created_by: b.created_by ?? null };
     });
 
     // 団体自動マッチ（アクティブ優先、見つからなければ非アクティブも検索）
@@ -181,8 +181,11 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
     }
 
     // 削除検出: bookingsにあるがExcelにない（「予約あり」は除外）
+    // Web の申込や管理画面で入れた予約（created_by が 'web' / 'admin'）は Excel に無くて当然なので候補にしない。
+    // created_by が空の古い行は取込由来か区別できないため候補に出す（画面側で1件ずつ確かめる）。
     for (const [key, existing] of Object.entries(existingMap)) {
-      if (!importKeySet.has(key) && existing.title !== '予約あり') {
+      const enteredOnWeb = existing.created_by === 'web' || existing.created_by === 'admin';
+      if (!importKeySet.has(key) && existing.title !== '予約あり' && !enteredOnWeb) {
         const [date, slot, room] = key.split('|');
         stats.delete++;
         importRows.push({

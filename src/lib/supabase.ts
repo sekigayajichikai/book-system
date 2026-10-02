@@ -54,6 +54,47 @@ export async function supaFetch(path: string, options?: RequestInit): Promise<Re
   return fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...options, headers });
 }
 
+/** 書き込みが通らなかったとき（status 0 = 通信できなかった） */
+export class WriteError extends Error {
+  constructor(public status: number, public body: string) {
+    super(`書き込みに失敗しました (${status})`);
+  }
+}
+
+/**
+ * 書き込み用の supaFetch。失敗したら WriteError を投げる。
+ *
+ * 以前は管理画面の承認・保存・削除の多くが結果を見ておらず、
+ * 断られても画面上は成功したように見えていた。
+ * 権限（RLS）で弾かれた PATCH は 200 と空配列で返るので、それも失敗として扱う。
+ */
+export async function supaWrite(path: string, options: RequestInit): Promise<Response> {
+  let res: Response;
+  try {
+    res = await supaFetch(path, options);
+  } catch {
+    throw new WriteError(0, '');
+  }
+  if (!res.ok) throw new WriteError(res.status, await res.text().catch(() => ''));
+  if (options.method === 'PATCH') {
+    const rows = await res.clone().json().catch(() => null);
+    if (Array.isArray(rows) && rows.length === 0) throw new WriteError(403, 'no rows updated');
+  }
+  return res;
+}
+
+/** 書き込み失敗を、次に何をすればよいかが分かる文に直す */
+export function writeErrorMessage(e: unknown): string {
+  if (e instanceof WriteError) {
+    if (e.body.includes('23505')) return 'この時間帯・部屋は既に予約されています。';
+    if (e.status === 0) return '通信できませんでした。インターネット接続を確かめて、もう一度お試しください。';
+    if (e.status === 401 || e.status === 403) {
+      return 'ログインが切れたか、変更する権限がありません。ログインし直してから、もう一度お試しください。';
+    }
+  }
+  return '保存できませんでした。時間をおいて、もう一度お試しください。';
+}
+
 /** 1件だけ書き換える（戻り値は使わないことが多いので return=minimal） */
 export async function supaPatch(path: string, body: unknown): Promise<Response> {
   const headers = await authHeaders({ Prefer: 'return=minimal' });

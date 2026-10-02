@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Pencil, Check, X, ChevronUp, ChevronDown } from 'lucide-react';
 
-import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaFetch } from '../../lib/supabase';
+import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaFetch, supaWrite, writeErrorMessage } from '../../lib/supabase';
 // 読み書きの入口は src/lib/supabase.ts にまとめた（ログイン済みならその資格で届く）
 
 interface MasterItem {
@@ -57,10 +57,15 @@ function MasterSection<T extends MasterItem>({
     });
     if (body.sort_order === undefined || body.sort_order === null || body.sort_order === '') body.sort_order = items.length + 1;
 
-    if (editId === 'new') {
-      await supaFetch(table, { method: 'POST', body: JSON.stringify(body) });
-    } else {
-      await supaFetch(`${table}?id=eq.${editId}`, { method: 'PATCH', body: JSON.stringify(body) });
+    try {
+      if (editId === 'new') {
+        await supaWrite(table, { method: 'POST', body: JSON.stringify(body) });
+      } else {
+        await supaWrite(`${table}?id=eq.${editId}`, { method: 'PATCH', body: JSON.stringify(body) });
+      }
+    } catch (e) {
+      // 入力欄は開いたままにする
+      return alert(writeErrorMessage(e));
     }
     setEditId(null);
     fetchItems();
@@ -68,7 +73,11 @@ function MasterSection<T extends MasterItem>({
 
   const handleDelete = async (id: string) => {
     if (!confirm('削除しますか？')) return;
-    await supaFetch(`${table}?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+    try {
+      await supaWrite(`${table}?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': 'return=minimal' } });
+    } catch (e) {
+      alert(`削除できませんでした。予約などで使われている項目は消せません。\n${writeErrorMessage(e)}`);
+    }
     fetchItems();
   };
 
@@ -77,10 +86,14 @@ function MasterSection<T extends MasterItem>({
     if (targetIndex < 0 || targetIndex >= items.length) return;
     const a = items[index];
     const b = items[targetIndex];
-    await Promise.all([
-      supaFetch(`${table}?id=eq.${a.id}`, { method: 'PATCH', body: JSON.stringify({ sort_order: b.sort_order }) }),
-      supaFetch(`${table}?id=eq.${b.id}`, { method: 'PATCH', body: JSON.stringify({ sort_order: a.sort_order }) }),
-    ]);
+    try {
+      await Promise.all([
+        supaWrite(`${table}?id=eq.${a.id}`, { method: 'PATCH', body: JSON.stringify({ sort_order: b.sort_order }) }),
+        supaWrite(`${table}?id=eq.${b.id}`, { method: 'PATCH', body: JSON.stringify({ sort_order: a.sort_order }) }),
+      ]);
+    } catch (e) {
+      alert(`並べ替えを保存できませんでした。\n${writeErrorMessage(e)}`);
+    }
     fetchItems();
   };
 

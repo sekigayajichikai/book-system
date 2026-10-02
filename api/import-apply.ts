@@ -62,8 +62,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // バッチステータス更新
-    await supabase
+    // 失敗した行があればバッチは「反映済み」にしない。画面に行が残り、もう一度「反映する」でやり直せる
+    // （反映済みの行をもう一度流しても、追加は重複として飛ばされ、変更・削除は同じ結果になる）
+    if (errors.length > 0) {
+      console.error('Import apply partial failure:', errors);
+      return res.status(200).json({ ok: false, applied, errors });
+    }
+
+    const { error: batchUpdErr } = await supabase
       .from('import_batches')
       .update({
         status: 'applied',
@@ -71,8 +77,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         source_updated_at: source_updated_at || null,
       })
       .eq('id', batch_id);
+    if (batchUpdErr) throw batchUpdErr;
 
-    return res.status(200).json({ ok: true, applied, errors: errors.length > 0 ? errors : undefined });
+    return res.status(200).json({ ok: true, applied });
   } catch (err: any) {
     console.error('Import apply error:', err);
     return res.status(500).json({ error: '反映に失敗しました', detail: err?.message });
@@ -120,6 +127,8 @@ async function applyAdd(supabase: any, row: any) {
     title: row.title,
     status: 'CONFIRMED',
     event_id: eventId,
+    // どこから入った予約か（次回の取込で「Excelに無い」を判定するときに使う）
+    created_by: 'import',
   };
   if (row.org_id) bookingData.org_id = row.org_id;
 
@@ -145,10 +154,11 @@ async function applyUpdate(supabase: any, row: any) {
   const updateData: any = { title: row.title, updated_at: new Date().toISOString() };
   if (row.org_id) updateData.org_id = row.org_id;
 
-  await supabase
+  const { error: updErr } = await supabase
     .from('bookings')
     .update(updateData)
     .eq('id', row.existing_booking_id);
+  if (updErr) throw updErr;
 
   // 紐づくcalendar_events のタイトルも更新（あれば）
   const { data: booking } = await supabase
@@ -177,10 +187,11 @@ async function applyDelete(supabase: any, row: any) {
     .single();
 
   // bookings削除
-  await supabase
+  const { error: delErr } = await supabase
     .from('bookings')
     .delete()
     .eq('id', row.existing_booking_id);
+  if (delErr) throw delErr;
 
   // 紐づくcalendar_eventsに他のbookingsが残っていなければ削除
   if (booking?.event_id) {
