@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, X, Clock, MapPin, MoreVertical, Check, Users, AlignLeft } from 'lucide-react';
 import { Booking } from '../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../constants';
+import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaPatch as sharedSupaPatch } from '../lib/supabase';
 
 interface CalendarProps {
   currentDate: Date;
@@ -126,14 +127,9 @@ const BookingSheetView: React.FC<{
   const [editCell, setEditCell] = useState<{ id: string; field: 'title' | 'org' } | null>(null);
   const [editValue, setEditValue] = useState('');
 
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-  const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
+  // 読み書きの入口は src/lib/supabase.ts にまとめた（ログイン済みならその資格で届く）
   const supaPatch = async (path: string, body: any) => {
-    await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-      method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify(body),
-    });
+    await sharedSupaPatch(path, body);
   };
 
   useEffect(() => {

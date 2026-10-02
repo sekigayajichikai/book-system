@@ -10,6 +10,7 @@ import { EventCreatePopover, BookingCreatePopover } from './QuickCreatePopover';
 import Popover from './Popover';
 import { Booking, BookingStatus, RoomType, CalendarEvent, EventSummary, OrgEntry } from '../../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../../constants';
+import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaFetch, supaRpc } from '../../lib/supabase';
 
 type Tab = 'calendar' | 'import' | 'approvals' | 'organizations' | 'settings';
 
@@ -49,29 +50,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-async function supaFetch(path: string, options?: RequestInit) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-      ...(options?.headers || {}),
-    },
-  });
-}
-
-/** DBの関数を呼ぶ（パスコードのように、直接は読み書きさせない項目に使う） */
-async function supaRpc(fn: string, args: Record<string, unknown>) {
-  const res = await supaFetch(`rpc/${fn}`, { method: 'POST', body: JSON.stringify(args) });
-  if (!res.ok) throw new Error(`${fn} に失敗しました (${res.status})`);
-  const text = await res.text();
-  return text ? JSON.parse(text) : null;
-}
+// 読み書きの入口は src/lib/supabase.ts に1つにまとめた（ログイン済みならその資格で届く）
 
 /** 予定タブのリストポップオーバー内容（日付のイベント一覧をfetch） */
 function EventListPopoverBody({ dateStr, anchorRect, onItemClick }: {

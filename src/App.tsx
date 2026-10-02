@@ -21,20 +21,48 @@ import Popover from './components/admin/Popover';
 import { useIsMobile } from './hooks/useIsMobile';
 import { Booking, BookingStatus, RoomType, BookingRequest, CalendarEvent, OrgEntry } from './types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from './constants';
+import { supabase } from './lib/supabase';
 
 /** 日付文字列を YYYY-MM-DD で返す */
 function formatDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** 管理画面ラッパー（Hooksルール違反を防ぐため分離） */
+/**
+ * 管理画面ラッパー（Hooksルール違反を防ぐため分離）
+ *
+ * 2026-10-02 まで、ここは localStorage に 'admin_token' という文字列があるかだけを見ていた。
+ * 署名が無いので自分で作れば誰でも入れた。いまは Supabase のログイン状態を見る。
+ */
 function AdminApp() {
-  const [adminToken, setAdminToken] = useState<string | null>(() => localStorage.getItem('admin_token'));
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
 
-  if (!adminToken) {
-    return <AdminLogin onLogin={(token) => setAdminToken(token)} />;
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (active) setLoggedIn(!!data.session);
+    }).catch(() => { if (active) setLoggedIn(false); });
+    const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
+      setLoggedIn(!!session);
+    });
+    return () => { active = false; listener?.subscription?.unsubscribe(); };
+  }, []);
+
+  if (loggedIn === null) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-400">読み込み中…</div>;
   }
-  return <AdminDashboard onLogout={() => { localStorage.removeItem('admin_token'); setAdminToken(null); }} />;
+  if (!loggedIn) {
+    return <AdminLogin onLogin={() => setLoggedIn(true)} />;
+  }
+  return (
+    <AdminDashboard
+      onLogout={() => {
+        void supabase.auth.signOut();
+        localStorage.removeItem('admin_token');
+        setLoggedIn(false);
+      }}
+    />
+  );
 }
 
 function App() {

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, X, Clock, MapPin, Check, MoreVertical, Star,
 import { EventSummary } from '../types';
 import { shortRoomName, ROOMS, TIME_SLOTS } from '../constants';
 import { useKnownOrgNames, isFilterableOrg } from '../utils/orgFilter';
+import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaPatch as sharedSupaPatch } from '../lib/supabase';
 
 const WEEK_DAYS = ['月', '火', '水', '木', '金', '土', '日'];
 
@@ -468,8 +469,7 @@ function EventDayPopover({ date, events, anchorRect, onClose }: { date: Date; ev
 }
 
 const DOW_LABELS = ['日', '月', '火', '水', '木', '金', '土'];
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// 読み書きの入口は src/lib/supabase.ts にまとめた（ログイン済みならその資格で届く）
 
 /** カレンダー一覧ビュー（display_title編集対応 + ⋮メニュー） */
 function EventSheetView({ events, year, month, holidays, onRefresh, onItemClick }: {
@@ -483,12 +483,7 @@ function EventSheetView({ events, year, month, holidays, onRefresh, onItemClick 
 
   const sorted = [...events].sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || '').localeCompare(b.startTime || ''));
 
-  const supaPatch = async (path: string, body: any) => {
-    return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-      method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify(body),
-    });
-  };
+  const supaPatch = sharedSupaPatch;
 
   const handleSave = async (id: string) => {
     await supaPatch(`calendar_events?id=eq.${id}`, { display_title: editValue.trim() || null });

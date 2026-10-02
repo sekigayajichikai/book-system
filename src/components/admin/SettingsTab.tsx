@@ -1,21 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Plus, Trash2, Pencil, Check, X, ChevronUp, ChevronDown } from 'lucide-react';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-async function supaFetch(path: string, options?: RequestInit) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-      ...(options?.headers || {}),
-    },
-  });
-}
+import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaFetch } from '../../lib/supabase';
+// 読み書きの入口は src/lib/supabase.ts にまとめた（ログイン済みならその資格で届く）
 
 interface MasterItem {
   id: string;

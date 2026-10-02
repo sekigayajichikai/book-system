@@ -1,5 +1,17 @@
 import { useState } from 'react';
 import { Lock } from 'lucide-react';
+import { supabase, ADMIN_EMAIL } from '../../lib/supabase';
+
+/**
+ * 事務局ログイン
+ *
+ * 2026-10-02 に Supabase Auth へ移行した。
+ * それまでは署名のない文字列をブラウザに置くだけで、自分で作れば誰でも入れた。
+ * いまはログイン状態を Supabase のクライアントが持ち、以後の読み書きが
+ * 「ログイン済みの人」としてデータベースに届く。
+ *
+ * 画面はパスワード欄だけのまま。メールアドレスは回覧板ポータルと共通のものを裏で使う。
+ */
 
 interface AdminLoginProps {
   onLogin: (token: string) => void;
@@ -16,18 +28,14 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: ADMIN_EMAIL,
+        password,
       });
-      const data = await res.json();
-
-      if (res.ok && data.token) {
-        localStorage.setItem('admin_token', data.token);
-        onLogin(data.token);
+      if (authError || !data.session) {
+        setError('パスワードが正しくありません');
       } else {
-        setError(data.error || 'ログインに失敗しました');
+        onLogin(data.session.access_token);
       }
     } catch {
       setError('通信エラーが発生しました');

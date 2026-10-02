@@ -3,24 +3,11 @@ import { Clock, MapPin, Users, AlignLeft, Star, X, Home } from 'lucide-react';
 import Popover from './Popover';
 import OrgPicker from './OrgPicker';
 import { ROOMS, TIME_SLOTS } from '../../constants';
+import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaFetch } from '../../lib/supabase';
 
 const FACILITY_LOCATION = '自治会館';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-
-async function supaFetch(path: string, options?: RequestInit) {
-  return fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
-    ...options,
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
-      ...(options?.headers || {}),
-    },
-  });
-}
+// 読み書きの入口は src/lib/supabase.ts にまとめた（ログイン済みならその資格で届く）
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
 
