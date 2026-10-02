@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Check, X, RefreshCw, ClipboardPaste, Newspaper, AlertTriangle } from 'lucide-react';
+import { apiFetch } from '../../lib/apiFetch';
 
 /**
  * 回覧板からの予定候補セクション（インポートタブ用）
@@ -10,9 +11,8 @@ import { Check, X, RefreshCw, ClipboardPaste, Newspaper, AlertTriangle } from 'l
  *
  * ※ この経路はもう使っていない（2026-09-29 以降）。
  *   回覧板ポータルの「予定タブ → カレンダーに反映」が calendar_events に直接書く方式に変わった。
- *   貼り付けの投入口（/api/import-events の POST）は、鍵を知らなくても通る抜け道があったため
- *   2026-10-01 に閉じた。いま貼り付けを押すと 401 が返る。
- *   一覧と承認・却下（GET / PATCH）はそのまま動く。
+ *   窓口（/api/import-events）は 2026-10-02 から事務局のログインを確かめる。
+ *   画面からは apiFetch 経由で呼ぶので、ログインしていれば一覧・貼り付け・承認とも動く。
  */
 
 interface CandidateRow {
@@ -35,7 +35,7 @@ export default function CircularCandidates() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchRows = useCallback(async () => {
-    const res = await fetch('/api/import-events');
+    const res = await apiFetch('/api/import-events');
     if (!res.ok) throw new Error('API error');
     const data = await res.json();
     return (data.rows || []) as CandidateRow[];
@@ -75,10 +75,11 @@ export default function CircularCandidates() {
     const rowsToSend = Array.isArray(parsed) ? parsed : [parsed];
     setProcessing(true);
     try {
-      const res = await fetch('/api/import-events', {
+      const res = await apiFetch('/api/import-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: 'browser-upload', rows: rowsToSend }),
+        // 鍵は送らない。事務局としてログインしていれば、その証明書で通る（apiFetch が付ける）
+        body: JSON.stringify({ rows: rowsToSend }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'API error');
@@ -102,7 +103,7 @@ export default function CircularCandidates() {
     setProcessing(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/import-events', {
+      const res = await apiFetch('/api/import-events', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids, action }),

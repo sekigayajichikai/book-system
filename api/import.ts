@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+import { requireAdmin, writeClient } from './_auth';
 
 /**
  * /api/import
@@ -7,9 +7,19 @@ import { createClient } from '@supabase/supabase-js';
  * POST: PC側スクリプトからステージングデータ受付 + 差分計算
  * GET:  管理画面用の差分一覧取得
  * PATCH: 行ごとのレビューステータス更新
+ *
+ * 2026-10-02 から、事務局のログインを確かめる（PC側スクリプトは IMPORT_API_KEY でも通る）。
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+  // PC側スクリプトからの投入だけは、これまでどおり鍵でも通す。
+  // それ以外（管理画面からの操作）はログインが要る。
+  const hasImportKey =
+    req.method === 'POST' &&
+    !!process.env.IMPORT_API_KEY &&
+    req.body?.api_key === process.env.IMPORT_API_KEY;
+  if (!hasImportKey && !(await requireAdmin(req, res))) return;
+
+  const supabase = writeClient();
 
   if (req.method === 'POST') return handlePost(req, res, supabase);
   if (req.method === 'GET') return handleGet(req, res, supabase);
@@ -20,16 +30,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 /** POST: ステージングデータ受付 + 差分計算 */
 async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any) {
-  const { api_key, year, month, source_hash, source_updated_at, rows } = req.body;
+  const { year, month, source_hash, source_updated_at, rows } = req.body;
 
-  // 認証（API keyまたはブラウザアップロード）
-  // TODO(第2段): 'browser-upload' は決め打ちの文字列なので、鍵を知らなくても通ってしまう。
-  //   管理画面（ImportTab）がこれを使っているため、Supabase Auth を入れて
-  //   「ログイン済みか」で判定できるようになってから外す。
-  //   同じ抜け道は import-events.ts にもあったが、そちらは旧経路なので 2026-10-01 に閉じた。
-  if (api_key !== process.env.IMPORT_API_KEY && api_key !== 'browser-upload') {
-    return res.status(401).json({ error: 'Invalid API key' });
-  }
+  // 認証は handler の先頭で済んでいる（事務局のログイン、または PC側スクリプトの鍵）。
+  // かつては 'browser-upload' という決め打ちの文字列でも通っていたが、2026-10-02 に外した。
   if (!year || !month || !rows || !Array.isArray(rows)) {
     return res.status(400).json({ error: 'year, month, rows are required' });
   }

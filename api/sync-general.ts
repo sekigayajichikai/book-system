@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+import { requireAdmin, writeClient } from './_auth';
 
 /**
  * POST /api/sync-general
@@ -16,6 +16,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  // 2026-10-02 から、事務局のログインを確かめる
+  if (!(await requireAdmin(req, res))) return;
 
   const sheetId = req.body?.sheet_id || SHEET_ID;
   if (!sheetId) {
@@ -45,7 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ ok: true, imported: 0, skipped: 0 });
     }
 
-    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+    const supabase = writeClient();
 
     // 既存のgeneral eventsを取得（重複チェック用）
     const dates = [...new Set(rows.map(r => r.date))];

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { requireAdmin, writeClient } from './_auth';
 import * as XLSX from 'xlsx';
 
 /**
@@ -108,6 +109,9 @@ function parseWorkbook(buffer: ArrayBuffer): ParsedMonth[] {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // 2026-10-02 から、どの操作も事務局のログインを確かめる
+  if (!(await requireAdmin(req, res))) return;
+
   if (req.method === 'GET') return handleGetMeta(req, res);
   if (req.method === 'PATCH') return handleUpdateFileId(req, res);
   if (req.method !== 'POST') {
@@ -117,7 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const sourceUpdatedAt = req.body?.source_updated_at || null;
 
   try {
-    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+    const supabase = writeClient();
     const DRIVE_FILE_ID = await getDriveFileId(supabase);
 
     // Google DriveからExcelをダウンロード（リダイレクト対応）
@@ -268,7 +272,7 @@ async function processMonth(supabase: any, year: number, month: number, rows: Pa
 /** GET: Driveファイルの最終更新日時を取得（Google Drive API） */
 async function handleGetMeta(_req: VercelRequest, res: VercelResponse) {
   try {
-    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+    const supabase = writeClient();
     const fileId = await getDriveFileId(supabase);
     const apiKey = process.env.GOOGLE_API_KEY;
 
@@ -308,7 +312,7 @@ async function handleUpdateFileId(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'file_id is required' });
     }
 
-    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+    const supabase = writeClient();
 
     // upsert: 既存ならupdate、なければinsert
     const { error } = await supabase

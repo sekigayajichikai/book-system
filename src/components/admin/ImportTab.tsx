@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload, Cloud, Settings, Link, Users } from 'lucide-react';
+import { apiFetch } from '../../lib/apiFetch';
 import CircularCandidates from './CircularCandidates';
 import { shortRoomName } from '../../constants';
 import * as XLSX from 'xlsx';
@@ -165,7 +166,7 @@ export default function ImportTab() {
   const fetchImport = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/import');
+      const res = await apiFetch('/api/import');
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
       setBatches(data.batches || []);
@@ -193,7 +194,7 @@ export default function ImportTab() {
   }, []);
 
   const fetchDriveMeta = useCallback(() => {
-    fetch('/api/sync-drive').then(r => r.json()).then(d => {
+    apiFetch('/api/sync-drive').then(r => r.json()).then(d => {
       if (d.fileId) setDriveFileId(d.fileId);
       if (d.fileName) setDriveFileName(d.fileName);
       if (d.ownerName) setDriveOwnerName(d.ownerName);
@@ -234,7 +235,7 @@ export default function ImportTab() {
     }
     setSavingFileId(true);
     try {
-      const res = await fetch('/api/sync-drive', {
+      const res = await apiFetch('/api/sync-drive', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ file_id: newFileId }),
@@ -280,14 +281,11 @@ export default function ImportTab() {
       // 各月ごとにAPIにPOST
       const totalStats = { add: 0, update: 0, delete: 0, skip: 0 };
       for (const { year, month, rows: parsedRows } of parsed) {
-        const res = await fetch('/api/import', {
+        const res = await apiFetch('/api/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            api_key: 'browser-upload',
-            year, month,
-            rows: parsedRows,
-          }),
+          // 鍵は送らない。事務局としてログインしていれば、その証明書で通る（apiFetch が付ける）
+          body: JSON.stringify({ year, month, rows: parsedRows }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || data.error || `API error ${res.status}`);
@@ -328,7 +326,7 @@ export default function ImportTab() {
     setSyncing(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/sync-drive', {
+      const res = await apiFetch('/api/sync-drive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -355,7 +353,7 @@ export default function ImportTab() {
     setSyncingGeneral(true);
     setMessage(null);
     try {
-      const res = await fetch('/api/sync-general', {
+      const res = await apiFetch('/api/sync-general', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -417,7 +415,7 @@ export default function ImportTab() {
       const org = orgOptions.find(o => o.id === orgId);
       if (org?.group_name) setRowGroupSelection(prev => ({ ...prev, [rowId]: org.group_name! }));
     }
-    await fetch('/api/import', {
+    await apiFetch('/api/import', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rows: [{ id: rowId, org_id: orgId }] }),
@@ -441,7 +439,7 @@ export default function ImportTab() {
 
   const updateRowStatus = async (rowId: string, status: 'approved' | 'rejected') => {
     setRows(prev => prev.map(r => r.id === rowId ? { ...r, review_status: status } : r));
-    await fetch('/api/import', {
+    await apiFetch('/api/import', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rows: [{ id: rowId, review_status: status }] }),
@@ -458,7 +456,7 @@ export default function ImportTab() {
       return r;
     }));
 
-    await fetch('/api/import', {
+    await apiFetch('/api/import', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -477,7 +475,7 @@ export default function ImportTab() {
       return r;
     }));
 
-    await fetch('/api/import', {
+    await apiFetch('/api/import', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -490,7 +488,7 @@ export default function ImportTab() {
   const rejectAll = async () => {
     if (!confirm('インポートデータを全て取消しますか？')) return;
     try {
-      await fetch('/api/import', { method: 'DELETE' });
+      await apiFetch('/api/import', { method: 'DELETE' });
       setBatches([]);
       setRows([]);
       setMessage({ type: 'success', text: 'インポートデータを取消しました' });
@@ -509,7 +507,7 @@ export default function ImportTab() {
     let totalApplied = 0;
     try {
       for (const b of batches) {
-        const res = await fetch('/api/import-apply', {
+        const res = await apiFetch('/api/import-apply', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ batch_id: b.id, source_updated_at: sourceDate }),

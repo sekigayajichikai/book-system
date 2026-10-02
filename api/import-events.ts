@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+import { requireAdmin, writeClient } from './_auth';
 
 /**
  * /api/import-events
@@ -14,7 +14,14 @@ import { createClient } from '@supabase/supabase-js';
  *        apply は calendar_events(event_type=general) へ登録して applied にする
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+  // 回覧板アプリからの投入（POST）は鍵で、管理画面からの一覧・承認はログインで通す。
+  const hasImportKey =
+    req.method === 'POST' &&
+    !!process.env.IMPORT_API_KEY &&
+    req.body?.api_key === process.env.IMPORT_API_KEY;
+  if (!hasImportKey && !(await requireAdmin(req, res))) return;
+
+  const supabase = writeClient();
 
   if (req.method === 'POST') return handlePost(req, res, supabase);
   if (req.method === 'GET') return handleGet(req, res, supabase);

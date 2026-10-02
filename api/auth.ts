@@ -14,6 +14,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { type, password, org_name, passcode } = req.body;
 
   // === 事務局認証 ===
+  // ※ 2026-10-02 に管理画面のログインを Supabase Auth へ移したので、この経路はもう使われない。
+  //    窓口（api/）は Supabase の証明書を見るようになっており、ここで出すトークンでは通らない。
+  //    古いブックマークや外部から叩かれたときのために残してあるだけ。いずれ削除する。
   if (type === 'admin' || (!type && password)) {
     const adminPassword = process.env.ADMIN_PASSWORD;
     if (!adminPassword) return res.status(500).json({ error: 'ADMIN_PASSWORD not configured' });

@@ -1,22 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+import { requireAdmin, writeClient } from './_auth';
 
 /**
  * POST /api/import-apply
  *
  * 承認済みのインポート行をbookings/calendar_eventsに反映する。
+ * 2026-10-02 から、事務局のログインを確かめる。
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  if (!(await requireAdmin(req, res))) return;
 
   const { batch_id, source_updated_at } = req.body;
   if (!batch_id) {
     return res.status(400).json({ error: 'batch_id is required' });
   }
 
-  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+  const supabase = writeClient();
 
   try {
     // バッチ確認
