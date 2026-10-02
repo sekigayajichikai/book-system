@@ -179,12 +179,30 @@ async function applyUpdate(supabase: any, row: any) {
 async function applyDelete(supabase: any, row: any) {
   if (!row.existing_booking_id) return;
 
-  // 先にevent_idを取得
+  // 先に予約の中身（event_id を含む）を取得
   const { data: booking } = await supabase
     .from('bookings')
-    .select('event_id')
+    .select('*')
     .eq('id', row.existing_booking_id)
     .single();
+
+  // 消す前に控えをゴミ箱へ（回覧板ポータルの管理画面から元に戻せる）
+  if (booking) {
+    const { data: eventRows } = booking.event_id
+      ? await supabase.from('calendar_events').select('*').eq('id', booking.event_id)
+      : { data: [] };
+    const { error: trashErr } = await supabase.from('trash_items').insert({
+      kind: 'booking',
+      label: `${row.date} ${booking.title}（${row.slot} ${row.room}）`,
+      payload: [
+        { table: 'calendar_events', rows: eventRows || [] },
+        { table: 'bookings', rows: [booking] },
+      ],
+      source: 'import',
+    });
+    // テーブルがまだ無い（SQL 未実行）ときだけは控え無しで続ける。それ以外は消さずに止める
+    if (trashErr && !/PGRST205|42P01/.test(`${trashErr.code} ${trashErr.message}`)) throw trashErr;
+  }
 
   // bookings削除
   const { error: delErr } = await supabase

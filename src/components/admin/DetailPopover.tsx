@@ -4,6 +4,7 @@ import Popover from './Popover';
 import OrgPicker from './OrgPicker';
 import { ROOMS, TIME_SLOTS } from '../../constants';
 import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaWrite, writeErrorMessage } from '../../lib/supabase';
+import { fetchRows, saveToTrash } from '../../lib/trash';
 
 const TIME_OPTIONS: string[] = [];
 for (let h = 7; h <= 21; h++) {
@@ -249,7 +250,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   };
 
   const handleDelete = async () => {
-    if (!confirm(`「${data.title}」を削除しますか？\n削除すると元に戻せません。`)) return;
+    if (!confirm(`「${data.title}」を削除しますか？\n間違えたときは、回覧板ポータルの管理画面「ゴミ箱」から元に戻せます。`)) return;
 
     try {
       await deleteTarget();
@@ -261,15 +262,22 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   };
 
   const deleteTarget = async () => {
+    // 消す前に控えをゴミ箱へ（回覧板ポータルの管理画面から元に戻せる）
+    const label = `${dateLabel} ${data.title}${data.room ? `（${data.slot ?? ''} ${data.room}）` : ''}`;
     if (data.type === 'event') {
+      const eventRows = await fetchRows('calendar_events', `id=eq.${data.id}`);
+      await saveToTrash('calendar_event', label, [{ table: 'calendar_events', rows: eventRows }]);
       await supaWrite(`calendar_events?id=eq.${data.id}`, { method: 'DELETE' });
     } else {
       // booking: event_idを取得して孤立イベントも削除
-      const evRes = await fetch(`${SUPABASE_URL}/rest/v1/bookings?id=eq.${data.id}&select=event_id`, {
-        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
-      });
-      const evData = evRes.ok ? await evRes.json() : [];
-      const eventId = evData[0]?.event_id;
+      const bookingRows = await fetchRows('bookings', `id=eq.${data.id}`);
+      const eventId = bookingRows[0]?.event_id as string | undefined;
+      // 予定も一緒に消える場合に備えて、予定を先に入れ直す順で控える（残っていれば戻すときに飛ばされる）
+      const eventRows = eventId ? await fetchRows('calendar_events', `id=eq.${eventId}`) : [];
+      await saveToTrash('booking', label, [
+        { table: 'calendar_events', rows: eventRows },
+        { table: 'bookings', rows: bookingRows },
+      ]);
 
       await supaWrite(`bookings?id=eq.${data.id}`, { method: 'DELETE' });
 
