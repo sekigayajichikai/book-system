@@ -587,6 +587,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
               <CalendarView holidays={holidays} closures={closures} onCellClick={handleCellClick} onItemClick={handleEventItemClick} onOverflowClick={handleOverflowClick} refreshKey={eventListRefreshKey} isAdmin modeToggle={adminModeToggle} filterOrgs={adminFilterOrgs} showMajor={adminShowMajor} popoverDate={popover?.type === 'create' ? popover.date : null} />
             ) : (
               <BookingCalendar
+                canEdit
                 currentDate={currentDate}
                 onPrevMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
                 onNextMonth={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}

@@ -1,10 +1,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createClient } from '@supabase/supabase-js';
+import { writeClient } from './_auth.js';
 
 /**
  * POST /api/booking
  *
  * Supabase に予約を保存する。
+ *
+ * ここは団体が予約を申し込む窓口なので、事務局のログインは求めない。
+ * 行単位の保護（RLS）を入れたあとも書けるよう、強い鍵を使う。
+ *
+ * ただし **いまは誰でも予約を作れる**。団体ログインのトークンに署名が無く、
+ * 検証できないため。署名を付けてここで確かめるのが次の課題。
+ * 詳細は CC-SaaS の docs/セキュリティ-RLS.md。
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -18,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
+    const supabase = writeClient();
     const { data, error } = await supabase
       .from('bookings')
       .insert({

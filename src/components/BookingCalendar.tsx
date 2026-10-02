@@ -25,6 +25,12 @@ interface CalendarProps {
   hideSubViewToggle?: boolean;
   popoverDate?: Date | null;
   popoverSlot?: string | null;
+  /**
+   * 予約の団体名・題名をその場で書き換えられるようにするか。
+   * 既定は不可。管理画面からだけ true を渡す。
+   * （以前は一般の画面でも誰でも書き換えられた）
+   */
+  canEdit?: boolean;
 }
 
 const ROOM_COLORS: Record<string, { bg: string; bar: string }> = {
@@ -122,7 +128,9 @@ const BookingSheetView: React.FC<{
   onItemClick?: (booking: Booking, rect: DOMRect) => void;
   onEditClick?: (booking: Booking, rect: DOMRect) => void;
   onRefresh?: () => void;
-}> = ({ bookings, year, month, holidays, onItemClick, onEditClick, onRefresh }) => {
+  /** 団体名・題名をその場で書き換えられるか（管理画面だけ true） */
+  canEdit?: boolean;
+}> = ({ bookings, year, month, holidays, onItemClick, onEditClick, onRefresh, canEdit = false }) => {
   const [orgMap, setOrgMap] = useState<Record<string, string>>({});
   const [editCell, setEditCell] = useState<{ id: string; field: 'title' | 'org' } | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -206,7 +214,7 @@ const BookingSheetView: React.FC<{
                       {shortRoomName(b.room)}
                     </span>
                   </td>
-                  <td className="px-3 py-2" onClick={e => { e.stopPropagation(); setEditCell({ id: b.id, field: 'org' }); setEditValue(orgMap[b.id] || ''); }}>
+                  <td className="px-3 py-2" onClick={e => { if (!canEdit) return; e.stopPropagation(); setEditCell({ id: b.id, field: 'org' }); setEditValue(orgMap[b.id] || ''); }}>
                     {isEditingOrg ? (
                       <div className="flex items-center gap-1">
                         <input value={editValue} onChange={e => setEditValue(e.target.value)}
@@ -215,10 +223,10 @@ const BookingSheetView: React.FC<{
                         <button onClick={e => { e.stopPropagation(); handleSave(b); }} className="text-blue-500"><Check size={14} /></button>
                       </div>
                     ) : (
-                      <span className="text-gray-500 hover:text-gray-800 hover:underline cursor-text">{orgMap[b.id] || '—'}</span>
+                      <span className={canEdit ? 'text-gray-500 hover:text-gray-800 hover:underline cursor-text' : 'text-gray-500'}>{orgMap[b.id] || '—'}</span>
                     )}
                   </td>
-                  <td className="px-3 py-2" onClick={e => { e.stopPropagation(); setEditCell({ id: b.id, field: 'title' }); setEditValue(b.title); }}>
+                  <td className="px-3 py-2" onClick={e => { if (!canEdit) return; e.stopPropagation(); setEditCell({ id: b.id, field: 'title' }); setEditValue(b.title); }}>
                     {isEditingTitle ? (
                       <div className="flex items-center gap-1">
                         <input value={editValue} onChange={e => setEditValue(e.target.value)}
@@ -227,7 +235,7 @@ const BookingSheetView: React.FC<{
                         <button onClick={e => { e.stopPropagation(); handleSave(b); }} className="text-blue-500"><Check size={14} /></button>
                       </div>
                     ) : (
-                      <span className="font-medium text-gray-800 hover:underline cursor-text">{b.title}</span>
+                      <span className={canEdit ? 'font-medium text-gray-800 hover:underline cursor-text' : 'font-medium text-gray-800'}>{b.title}</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">
@@ -359,7 +367,7 @@ const CalendarWeeklyView: React.FC<{
 
 /** --- Main Calendar Component --- */
 const BookingCalendar: React.FC<CalendarProps> = ({
-  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading, modeToggle, subTitle, majorEvents = [], hideSubViewToggle, popoverDate, popoverSlot,
+  currentDate, onPrevMonth, onNextMonth, bookings, onDateClick, onCellClick, onItemClick, onOverflowClick, onEditBookingClick, onRefreshBookings, holidays = {}, closures = new Set(), disableModal, loading, modeToggle, subTitle, majorEvents = [], hideSubViewToggle, popoverDate, popoverSlot, canEdit = false,
 }) => {
   const [subView, setSubView] = useState<'month' | 'week' | 'list'>('month');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
@@ -601,6 +609,7 @@ const BookingCalendar: React.FC<CalendarProps> = ({
             onItemClick={onItemClick}
             onEditClick={onEditBookingClick}
             onRefresh={onRefreshBookings}
+            canEdit={canEdit}
           />
         ) : (
           <div className="p-4">
