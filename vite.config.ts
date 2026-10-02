@@ -275,7 +275,11 @@ function supabaseProxyPlugin(supabaseUrl: string, supabaseKey: string): Plugin {
                   res.end(JSON.stringify({ error: '団体名またはパスコードが正しくありません' }));
                   return;
                 }
-                const token = Buffer.from(JSON.stringify({ role: 'org', org_id: org.id, org_name: org.name, t: Date.now() })).toString('base64');
+                // 本番（api/_orgToken.ts）と同じ形の通行証を出す。
+                // 開発では署名の鍵を使わないので、署名なしの本文だけ（本番側も鍵が無ければ同じ形）。
+                const token = Buffer.from(
+                  JSON.stringify({ role: 'org', org_id: org.id, org_name: org.name, t: Date.now() })
+                ).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
                 res.end(JSON.stringify({ ok: true, role: 'org', token, org_id: org.id, org_name: org.name }));
                 return;
               }

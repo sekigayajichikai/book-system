@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { issueOrgToken } from './_orgToken.js';
 
 /**
  * POST /api/auth
@@ -49,9 +50,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: '団体名またはパスコードが正しくありません' });
     }
 
-    const token = Buffer.from(JSON.stringify({
-      role: 'org', org_id: org.id, org_name: org.name, category: org.category, t: Date.now(),
-    })).toString('base64');
+    // 署名付きの通行証を出す（ORG_TOKEN_SECRET が未設定のあいだは署名なし＝これまでと同じ形）
+    const token = issueOrgToken({
+      role: 'org',
+      org_id: org.id,
+      org_name: org.name,
+      category: org.category,
+    });
 
     return res.status(200).json({ ok: true, role: 'org', token, org_id: org.id, org_name: org.name });
   }

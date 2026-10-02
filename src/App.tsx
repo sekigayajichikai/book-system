@@ -409,17 +409,27 @@ function UserApp() {
     setTimeout(() => setShowSuccessMessage(false), 5000);
 
     try {
+      // 団体ログインの通行証を添える。どの団体の申し込みかは、窓口がこの中身で決める
+      const orgToken = localStorage.getItem('org_token');
       const res = await fetch('/api/booking', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...data, status, org_id: orgId || undefined }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(orgToken ? { Authorization: `Bearer ${orgToken}` } : {}),
+        },
+        body: JSON.stringify({ ...data, status }),
       });
-      if (!res.ok) throw new Error('保存エラー');
+      if (!res.ok) {
+        if (res.status === 401) throw new Error('団体としてログインし直してください');
+        throw new Error('保存エラー');
+      }
     } catch (err) {
       console.error('保存エラー:', err);
       // 失敗したら楽観的更新を巻き戻す
       setBookings(prev => prev.filter(b => b.id !== newBooking.id));
-      alert('保存に失敗しました。もう一度お試しください。');
+      alert(err instanceof Error && err.message.includes('ログイン')
+        ? '団体としてログインし直してから、もう一度お試しください。'
+        : '保存に失敗しました。もう一度お試しください。');
     }
   };
 
