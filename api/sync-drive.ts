@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { requireAdmin, writeClient } from './_auth.js';
-import * as XLSX from 'xlsx';
+import { parseScheduleWorkbook, type ParsedMonth } from './_scheduleExcel.js';
 
 /**
  * POST /api/sync-drive   — Google DriveからExcelファイルを取得→パース→差分計算→ステージング保存
@@ -19,93 +19,6 @@ async function getDriveFileId(supabase: ReturnType<typeof createClient<any>>): P
     .eq('key', 'drive_file_id')
     .single();
   return (data as any)?.value || DEFAULT_DRIVE_FILE_ID;
-}
-
-// ORG_MAP（団体推測用）
-const ORG_MAP: Record<string, string> = {
-  '囲碁': '自主活動部', 'カラオケ': '自主活動部', '関ヶ谷クラブ': '自主活動部',
-  'ディスクコンサート': '自主活動部', '図書': '自主活動部', 'ふれあい': '自主活動部',
-  'ブルーベル': '自主活動部', 'ブル―ベル': '自主活動部', 'トーンチャイム': '自主活動部',
-  'ちりとてちん': '自主活動部', 'オペラ': '自主活動部', '読書': '自主活動部',
-  'つなぎの会': '自主活動部', 'ききょう': '自主活動部', '見まわり隊': '自主活動部',
-  '役員': '役員', '総会': '役員', '新役員': '役員',
-  '事務局': '事務局', '会館予約': '事務局', '会計監査': '事務局',
-  '防災': '委員会', 'HP': '委員会', 'DX': '委員会', '環境': '委員会',
-  '広報': '委員会', '青少年': '委員会',
-  '地区長': '地区長・班長', '班長': '地区長・班長', '合同会議': '地区長・班長',
-};
-
-function guessOrg(title: string): string {
-  for (const [kw, org] of Object.entries(ORG_MAP)) {
-    if (title.includes(kw)) return org;
-  }
-  return '';
-}
-
-// 行定義（0-indexed row）
-const ROWS_DEF: [number, string, string][] = [
-  [3, '午前', '会議室'], [4, '午前', '和室（畳側）'],
-  [5, '午前', '和室（椅子側）'], [6, '午前', '図書室'],
-  [8, '午後', '会議室'], [9, '午後', '和室（畳側）'],
-  [10, '午後', '和室（椅子側）'], [11, '午後', '図書室'],
-  [12, '夜間', '会議室'],
-];
-
-interface ParsedMonth {
-  year: number;
-  month: number;
-  rows: { date: string; slot: string; room: string; title: string; org_guess: string }[];
-}
-
-function parseWorkbook(buffer: ArrayBuffer): ParsedMonth[] {
-  const wb = XLSX.read(buffer, { type: 'array' });
-  const results: ParsedMonth[] = [];
-
-  const now = new Date();
-  const minYM = now.getFullYear() * 12 + now.getMonth();
-  const maxYM = minYM + 12;
-
-  for (const name of wb.SheetNames) {
-    const ws = wb.Sheets[name];
-    if (!ws['I1'] || !ws['L1']) continue;
-    const year = Number(ws['I1'].v);
-    const month = Number(ws['L1'].v);
-    if (!(year >= 2020 && year <= 2099 && month >= 1 && month <= 12)) continue;
-
-    const ym = year * 12 + (month - 1);
-    if (ym < minYM || ym > maxYM) continue;
-
-    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-    const dateCols: { col: number; day: number }[] = [];
-    for (let c = 0; c <= range.e.c; c++) {
-      const cell = ws[XLSX.utils.encode_cell({ r: 1, c })];
-      if (cell && cell.t === 'n' && cell.v > 40000) {
-        // Excelシリアル値→日付変換（1900年起算、1/0バグ補正）
-        const utcDays = cell.v - 25569; // Unix epoch (1970-01-01) との差
-        const d = new Date(utcDays * 86400000);
-        if (d.getUTCMonth() + 1 === month) dateCols.push({ col: c, day: d.getUTCDate() });
-      }
-    }
-
-    const rows: ParsedMonth['rows'] = [];
-    for (const [rowIdx, slot, room] of ROWS_DEF) {
-      for (const { col, day } of dateCols) {
-        const cell = ws[XLSX.utils.encode_cell({ r: rowIdx, c: col })];
-        if (!cell || !cell.v) continue;
-        const title = String(cell.v).trim().replace(/\u3000/g, '');
-        if (!title || title === '×') continue;
-        rows.push({
-          date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-          slot, room, title,
-          org_guess: guessOrg(title),
-        });
-      }
-    }
-
-    if (rows.length > 0) results.push({ year, month, rows });
-  }
-
-  return results;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -144,10 +57,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const buffer = await dlRes.arrayBuffer();
-    const parsed = parseWorkbook(buffer);
+    const { months: parsed, warnings } = parseScheduleWorkbook(buffer);
 
     if (parsed.length === 0) {
-      return res.status(200).json({ ok: true, months: 0, stats: { add: 0, update: 0, delete: 0, skip: 0 } });
+      return res.status(200).json({ ok: true, months: 0, stats: { add: 0, update: 0, delete: 0, skip: 0 }, warnings });
     }
 
     // 各月ごとに /api/import と同じ差分計算を実行
@@ -161,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalStats.skip += result.skip;
     }
 
-    return res.status(200).json({ ok: true, months: parsed.length, stats: totalStats });
+    return res.status(200).json({ ok: true, months: parsed.length, stats: totalStats, warnings });
   } catch (err: any) {
     console.error('sync-drive error:', err);
     return res.status(500).json({ error: '同期に失敗しました', detail: err?.message });

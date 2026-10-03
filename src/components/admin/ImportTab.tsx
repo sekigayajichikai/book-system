@@ -3,7 +3,7 @@ import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload, C
 import { apiFetch } from '../../lib/apiFetch';
 import CircularCandidates from './CircularCandidates';
 import { shortRoomName } from '../../constants';
-import * as XLSX from 'xlsx';
+import { parseScheduleWorkbook } from '../../../api/_scheduleExcel';
 
 interface ImportBatch {
   id: string;
@@ -51,94 +51,13 @@ const DIFF_LABELS: Record<string, { label: string; bg: string; text: string }> =
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
 
-// Excelパース: ORG_MAP
-const ORG_MAP: Record<string, string> = {
-  '囲碁': '自主活動部', 'カラオケ': '自主活動部', '関ヶ谷クラブ': '自主活動部',
-  'ディスクコンサート': '自主活動部', '図書': '自主活動部', 'ふれあい': '自主活動部',
-  'ブルーベル': '自主活動部', 'ブル―ベル': '自主活動部', 'トーンチャイム': '自主活動部',
-  'ちりとてちん': '自主活動部', 'オペラ': '自主活動部', '読書': '自主活動部',
-  'つなぎの会': '自主活動部', 'ききょう': '自主活動部', '見まわり隊': '自主活動部',
-  '役員': '役員', '総会': '役員', '新役員': '役員',
-  '事務局': '事務局', '会館予約': '事務局', '会計監査': '事務局',
-  '防災': '委員会', 'HP': '委員会', 'DX': '委員会', '環境': '委員会',
-  '広報': '委員会', '青少年': '委員会',
-  '地区長': '地区長・班長', '班長': '地区長・班長', '合同会議': '地区長・班長',
+const MESSAGE_STYLES = {
+  success: 'bg-emerald-100 text-emerald-700',
+  warning: 'bg-amber-100 text-amber-800',
+  error: 'bg-red-100 text-red-700',
 };
 
-function guessOrg(title: string): string {
-  for (const [kw, org] of Object.entries(ORG_MAP)) {
-    if (title.includes(kw)) return org;
-  }
-  return '';
-}
-
-// Excelパース: シートからイベント抽出
-const ROWS_DEF: [number, string, string][] = [
-  [3, '午前', '会議室'], [4, '午前', '和室（畳側）'],
-  [5, '午前', '和室（椅子側）'], [6, '午前', '図書室'],
-  [8, '午後', '会議室'], [9, '午後', '和室（畳側）'],
-  [10, '午後', '和室（椅子側）'], [11, '午後', '図書室'],
-  [12, '夜間', '会議室'],
-];
-
-interface ParsedRow {
-  date: string;
-  slot: string;
-  room: string;
-  title: string;
-  org_guess: string;
-}
-
-function parseExcel(file: ArrayBuffer): { year: number; month: number; rows: ParsedRow[] }[] {
-  const wb = XLSX.read(file, { type: 'array' });
-  const results: { year: number; month: number; rows: ParsedRow[] }[] = [];
-
-  // 当月〜12ヶ月先のみ対象
-  const now = new Date();
-  const minYM = now.getFullYear() * 12 + now.getMonth(); // 当月
-  const maxYM = minYM + 12; // 12ヶ月先
-
-  for (const name of wb.SheetNames) {
-    const ws = wb.Sheets[name];
-    if (!ws['I1'] || !ws['L1']) continue;
-    const year = Number(ws['I1'].v);
-    const month = Number(ws['L1'].v);
-    if (!(year >= 2020 && year <= 2099 && month >= 1 && month <= 12)) continue;
-
-    const ym = year * 12 + (month - 1);
-    if (ym < minYM || ym > maxYM) continue; // 範囲外はスキップ
-
-    // 日付列を検出（Row2, 0-indexed row=1）
-    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-    const dateCols: { col: number; day: number }[] = [];
-    for (let c = 0; c <= range.e.c; c++) {
-      const cell = ws[XLSX.utils.encode_cell({ r: 1, c })];
-      if (cell && cell.t === 'n' && cell.v > 40000) {
-        const d = XLSX.SSF.parse_date_code(cell.v);
-        if (d.m === month) dateCols.push({ col: c, day: d.d });
-      }
-    }
-
-    const rows: ParsedRow[] = [];
-    for (const [rowIdx, slot, room] of ROWS_DEF) {
-      for (const { col, day } of dateCols) {
-        const cell = ws[XLSX.utils.encode_cell({ r: rowIdx, c: col })];
-        if (!cell || !cell.v) continue;
-        const title = String(cell.v).trim().replace(/\u3000/g, '');
-        if (!title || title === '×') continue;
-        rows.push({
-          date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
-          slot, room, title,
-          org_guess: guessOrg(title),
-        });
-      }
-    }
-
-    if (rows.length > 0) results.push({ year, month, rows });
-  }
-
-  return results;
-}
+// Excelの読み取りは api/_scheduleExcel.ts（Googleドライブ同期と共通）
 
 export default function ImportTab() {
   const [batches, setBatches] = useState<ImportBatch[]>([]);
@@ -146,7 +65,7 @@ export default function ImportTab() {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'add' | 'update' | 'delete'>('all');
   const [applying, setApplying] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{ type: 'success' | 'warning' | 'error'; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncingGeneral, setSyncingGeneral] = useState(false);
@@ -270,10 +189,10 @@ export default function ImportTab() {
     setMessage(null);
     try {
       const buffer = await file.arrayBuffer();
-      const parsed = parseExcel(buffer);
+      const { months: parsed, warnings } = parseScheduleWorkbook(buffer);
 
       if (parsed.length === 0) {
-        setMessage({ type: 'error', text: '有効なシートが見つかりませんでした' });
+        setMessage({ type: 'error', text: ['有効なシートが見つかりませんでした', ...warnings].join('\n') });
         setUploading(false);
         return;
       }
@@ -298,8 +217,8 @@ export default function ImportTab() {
       }
 
       setMessage({
-        type: 'success',
-        text: `${parsed.length}ヶ月分を取込みました（新規${totalStats.add} / 変更${totalStats.update} / 削除${totalStats.delete}）`,
+        type: warnings.length > 0 ? 'warning' : 'success',
+        text: [`${parsed.length}ヶ月分を取込みました（新規${totalStats.add} / 変更${totalStats.update} / 削除${totalStats.delete}）`, ...warnings].join('\n'),
       });
       await fetchImport();
     } catch (err: any) {
@@ -333,9 +252,10 @@ export default function ImportTab() {
       });
       const data = await res.json();
       if (data.ok) {
+        const warnings: string[] = data.warnings || [];
         setMessage({
-          type: 'success',
-          text: `Googleドライブから${data.months}ヶ月分を取込みました（新規${data.stats.add} / 変更${data.stats.update} / 削除${data.stats.delete}）`,
+          type: warnings.length > 0 ? 'warning' : 'success',
+          text: [`Googleドライブから${data.months}ヶ月分を取込みました（新規${data.stats.add} / 変更${data.stats.update} / 削除${data.stats.delete}）`, ...warnings].join('\n'),
         });
         await fetchImport();
       } else {
@@ -675,7 +595,7 @@ export default function ImportTab() {
       <div className="space-y-6">
         {uploadArea}
         {message && (
-          <div className={`p-3 rounded-lg text-sm font-bold ${message.type === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+          <div className={`p-3 rounded-lg text-sm font-bold whitespace-pre-line ${MESSAGE_STYLES[message.type]}`}>
             {message.text}
           </div>
         )}
@@ -695,7 +615,7 @@ export default function ImportTab() {
 
       {/* メッセージ */}
       {message && (
-        <div className={`p-3 rounded-lg text-sm font-bold ${message.type === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+        <div className={`p-3 rounded-lg text-sm font-bold whitespace-pre-line ${MESSAGE_STYLES[message.type]}`}>
           {message.text}
         </div>
       )}
