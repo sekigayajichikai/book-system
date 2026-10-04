@@ -281,13 +281,20 @@ async function handlePatch(req: VercelRequest, res: VercelResponse, supabase: an
       const update: any = {};
       if (row.review_status !== undefined) update.review_status = row.review_status;
       if (row.review_note !== undefined) update.review_note = row.review_note;
-      if (row.title !== undefined) update.title = row.title;
+      if (row.title !== undefined) {
+        // 反映前に題名を直せる（取込の確認画面から）。空にはできない
+        const title = String(row.title).trim();
+        if (!title) return res.status(400).json({ error: '題名を空にはできません' });
+        update.title = title;
+      }
       if (row.org_id !== undefined) update.org_id = row.org_id;
 
-      await supabase
+      // 保存に失敗したら画面に知らせる（以前は失敗しても ok を返していた）
+      const { error } = await supabase
         .from('import_rows')
         .update(update)
         .eq('id', row.id);
+      if (error) throw error;
     }
 
     return res.status(200).json({ ok: true });

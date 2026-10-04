@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload, Cloud, Settings, Link, Users } from 'lucide-react';
+import { Check, X, AlertTriangle, Plus, Trash2, RefreshCw, ArrowRight, Upload, Cloud, Settings, Link, Users, Pencil } from 'lucide-react';
 import { apiFetch } from '../../lib/apiFetch';
 import CircularCandidates from './CircularCandidates';
 import { shortRoomName } from '../../constants';
@@ -65,6 +65,8 @@ export default function ImportTab() {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<'all' | 'add' | 'update' | 'delete'>('all');
   const [applying, setApplying] = useState(false);
+  // 反映中にどの月を処理しているか（1か月に数十秒かかることがあるので、止まっていないと分かるように）
+  const [applyProgress, setApplyProgress] = useState('');
   const [message, setMessage] = useState<{ type: 'success' | 'warning' | 'error'; text: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -381,6 +383,37 @@ export default function ImportTab() {
     }
   };
 
+  // 題名の手直し（反映する前に、Excelの書き方を整えるため）
+  const [editingRowId, setEditingRowId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+
+  const startEditTitle = (row: ImportRow) => {
+    setEditingRowId(row.id);
+    setEditingTitle(row.title);
+  };
+
+  const saveTitle = async (row: ImportRow) => {
+    const title = editingTitle.trim();
+    setEditingRowId(null);
+    if (!title || title === row.title) return;
+    setRows(prev => prev.map(r => (r.id === row.id ? { ...r, title } : r)));
+    let ok: boolean;
+    try {
+      const res = await apiFetch('/api/import', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows: [{ id: row.id, title }] }),
+      });
+      ok = res.ok;
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      setRows(prev => prev.map(r => (r.id === row.id ? { ...r, title: row.title } : r)));
+      setMessage({ type: 'error', text: '題名を保存できませんでした。通信を確かめて、もう一度直してください。' });
+    }
+  };
+
   const updateRowStatus = async (rowId: string, status: 'approved' | 'rejected') => {
     const target = rows.find(r => r.id === rowId);
     if (target) await patchRowStatuses([target], status);
@@ -431,7 +464,8 @@ export default function ImportTab() {
     let totalApplied = 0;
     let failedBatches = 0;
     try {
-      for (const b of batches) {
+      for (const [i, b] of batches.entries()) {
+        setApplyProgress(`${b.target_month}月（${i + 1}/${batches.length}）`);
         try {
           const res = await apiFetch('/api/import-apply', {
             method: 'POST',
@@ -456,6 +490,7 @@ export default function ImportTab() {
       setMessage({ type: 'error', text: '反映に失敗しました' });
     } finally {
       setApplying(false);
+      setApplyProgress('');
     }
   };
 
@@ -695,8 +730,22 @@ export default function ImportTab() {
                         </td>
                         <td className="px-3 py-2 w-12 whitespace-nowrap">{row.slot}</td>
                         <td className="px-3 py-2 w-20 whitespace-nowrap">{shortRoomName(row.room)}</td>
-                        <td className="px-3 py-2 truncate">
-                          {row.diff_type === 'update' || row.diff_type === 'title_diff' ? (
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-1 min-w-0">
+                          <div className="truncate min-w-0 flex-1">
+                          {editingRowId === row.id ? (
+                            <input
+                              value={editingTitle}
+                              onChange={e => setEditingTitle(e.target.value)}
+                              onBlur={() => saveTitle(row)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' && !e.nativeEvent.isComposing) e.currentTarget.blur();
+                                if (e.key === 'Escape') setEditingRowId(null);
+                              }}
+                              autoFocus
+                              className="w-full text-sm border border-blue-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-300"
+                            />
+                          ) : row.diff_type === 'update' || row.diff_type === 'title_diff' ? (
                             <span>
                               <span className="line-through text-gray-400">{row.existing_title}</span>
                               <span className="mx-1">→</span>
@@ -710,6 +759,13 @@ export default function ImportTab() {
                           ) : (
                             <span className="font-bold">{row.title}</span>
                           )}
+                          </div>
+                          {editingRowId !== row.id && row.diff_type !== 'delete' && (
+                            <button onClick={() => startEditTitle(row)} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded shrink-0" title="題名を直す">
+                              <Pencil size={13} />
+                            </button>
+                          )}
+                          </div>
                         </td>
                         <td className="px-3 py-2" style={{ width: 280 }}>
                           <div className="flex items-center gap-1">
@@ -798,7 +854,7 @@ export default function ImportTab() {
               disabled={applying || !sourceDate}
               className="px-6 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 shadow-sm"
             >
-              {applying ? '反映中...' : `反映する（承認済み: ${approvedCount}件）`}
+              {applying ? `反映中… ${applyProgress}` : `反映する（承認済み: ${approvedCount}件）`}
             </button>
           </div>
         </div>
