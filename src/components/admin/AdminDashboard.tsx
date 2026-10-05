@@ -98,7 +98,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const setCalendarSubView = (v: 'schedule' | 'facility') => { setCalendarSubViewState(v); localStorage.setItem('admin_cal_sub', v); };
   const [loading, setLoading] = useState(false);
 
-  // 団体フィルタ
+  // 団体フィルタ（UNCLASSIFIED は主催が団体マスタに無い予定の絞り込みキー）
+  const UNCLASSIFIED = '__未分類__';
   const [adminFilterOrgs, setAdminFilterOrgs] = useState<Set<string>>(() => {
     const saved = localStorage.getItem('admin_filter_orgs');
     return saved ? new Set(JSON.parse(saved)) : new Set<string>();
@@ -118,6 +119,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         const next = saved
           ? reconcileOrgFilter(new Set(JSON.parse(saved)), orgs, savedSeen ? new Set(JSON.parse(savedSeen)) : null)
           : new Set<string>(orgs.map(o => o.name));
+        // 未分類の予定（主催が団体マスタに無い）は既定で表示する（B8）。保存済みの絞り込みにも一度だけ足す
+        if (!saved || !localStorage.getItem('admin_filter_unclassified_on')) {
+          next.add(UNCLASSIFIED);
+          localStorage.setItem('admin_filter_unclassified_on', '1');
+        }
         setAdminFilterOrgs(next);
         localStorage.setItem('admin_filter_orgs', JSON.stringify([...next]));
         localStorage.setItem('admin_filter_orgs_seen', JSON.stringify(orgNamesForSeen(orgs)));
@@ -146,6 +152,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
     supaFetch('booking_organizations?select=name&is_active=not.is.false')
       .then(r => r.json()).then(d => {
         const all = new Set<string>((d || []).map((o: any) => o.name));
+        all.add(UNCLASSIFIED);
         setAdminFilterOrgs(all);
         localStorage.setItem('admin_filter_orgs', JSON.stringify([...all]));
       }).catch(() => {});
@@ -525,13 +532,15 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [rejectReason, setRejectReason] = useState('');
   const [rejectingId, setRejectingId] = useState<string | null>(null);
 
+  // ログイン直後にも取りに行き、タブを開く前から件数をバッジに出す（B8）。申請タブを開いたら取り直す
   useEffect(() => {
-    if (tab !== 'approvals') return;
-    setLoading(true);
+    const onApprovals = tab === 'approvals';
+    if (onApprovals) setLoading(true);
     supaFetch('bookings?status=eq.PENDING&order=date.asc&select=*')
       .then(r => r.json())
-      .then(data => setPendingBookings(data || []))
-      .finally(() => setLoading(false));
+      .then(data => setPendingBookings(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => { if (onApprovals) setLoading(false); });
   }, [tab]);
 
   const handleApprove = async (id: string) => {
