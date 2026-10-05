@@ -15,6 +15,8 @@ interface OrgItem {
   name: string;
   group_name: string | null;
   is_active: boolean | null;
+  /** 会館を予約する団体か（外部団体は false。DB変更前は列が無いので undefined） */
+  can_book?: boolean;
 }
 
 // キャッシュ（同一セッション内で再fetchしない）
@@ -26,7 +28,7 @@ async function fetchMasters() {
   const headers = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` };
   const [gRes, oRes] = await Promise.all([
     fetch(`${SUPABASE_URL}/rest/v1/booking_org_groups?order=sort_order.asc&select=id,name,sort_order`, { headers }),
-    fetch(`${SUPABASE_URL}/rest/v1/booking_organizations?order=name.asc&select=id,name,group_name,is_active`, { headers }),
+    fetch(`${SUPABASE_URL}/rest/v1/booking_organizations?order=name.asc&select=*`, { headers }),
   ]);
   cachedGroups = gRes.ok ? await gRes.json() : [];
   cachedOrgs = oRes.ok ? await oRes.json() : [];
@@ -38,9 +40,11 @@ interface OrgPickerProps {
   onChange: (name: string) => void;
   placeholder?: string;
   className?: string;
+  /** 会館の予約用。会館を予約しない外部団体（can_book = false）を出さない */
+  bookingOnly?: boolean;
 }
 
-export default function OrgPicker({ value, onChange, placeholder = '団体名', className = '' }: OrgPickerProps) {
+export default function OrgPicker({ value, onChange, placeholder = '団体名', className = '', bookingOnly = false }: OrgPickerProps) {
   const [groups, setGroups] = useState<OrgGroup[]>([]);
   const [orgs, setOrgs] = useState<OrgItem[]>([]);
   const [selectedGroup, setSelectedGroup] = useState('');
@@ -58,9 +62,12 @@ export default function OrgPicker({ value, onChange, placeholder = '団体名', 
     });
   }, []);
 
+  const pickableOrgs = bookingOnly ? orgs.filter(o => o.can_book !== false) : orgs;
   const filteredOrgs = selectedGroup
-    ? orgs.filter(o => o.group_name === selectedGroup && o.is_active !== false)
+    ? pickableOrgs.filter(o => o.group_name === selectedGroup && o.is_active !== false)
     : [];
+  // 予約用では、選べる団体が1つも無いグループ（地域の団体・施設 など）は出さない
+  const pickableGroups = bookingOnly ? groups.filter(g => pickableOrgs.some(o => o.group_name === g.name)) : groups;
 
   if (freeInput) {
     return (
@@ -81,7 +88,7 @@ export default function OrgPicker({ value, onChange, placeholder = '団体名', 
         <select value={selectedGroup} onChange={e => { setSelectedGroup(e.target.value); if (!e.target.value) onChange(''); }}
           className="flex-1 min-w-0 px-1.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 bg-white">
           <option value="">-- グループ --</option>
-          {groups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
+          {pickableGroups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
         </select>
         <select value={value} onChange={e => onChange(e.target.value)} disabled={!selectedGroup}
           className="flex-1 min-w-0 px-1.5 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 bg-white disabled:bg-gray-100 disabled:text-gray-400">

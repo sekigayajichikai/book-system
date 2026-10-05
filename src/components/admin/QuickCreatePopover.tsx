@@ -389,7 +389,7 @@ export function BookingCreatePopover({ date, onClose, onSaved, anchorRect, initi
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full"><X size={16} className="text-gray-400" /></button>
         </div>
         <IconField icon={<Users size={18} />}>
-          <OrgPicker value={form.org} onChange={v => setForm(f => ({ ...f, org: v }))} />
+          <OrgPicker value={form.org} onChange={v => setForm(f => ({ ...f, org: v }))} bookingOnly />
         </IconField>
         <div className="pl-9">
           <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}

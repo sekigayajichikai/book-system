@@ -484,7 +484,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
           <div className="space-y-3 border-t border-emerald-200 pt-3">
             <div className="flex items-start gap-2.5">
               <Users size={18} className="text-gray-400 mt-2 shrink-0" />
-              <OrgPicker value={bookingForm.org} onChange={v => setBookingForm(f => ({ ...f, org: v }))} className="flex-1" />
+              <OrgPicker value={bookingForm.org} onChange={v => setBookingForm(f => ({ ...f, org: v }))} className="flex-1" bookingOnly />
             </div>
             <div className="pl-9">
               <input value={bookingForm.title} onChange={e => setBookingForm(f => ({ ...f, title: e.target.value }))}
