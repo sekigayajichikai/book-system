@@ -52,9 +52,7 @@ export default function MobileBookingView({
   const weekEnd = days[6];
   const rooms = filterRoom ? ROOMS.filter(r => r.id === filterRoom) : ROOMS;
 
-  return (
-    <div ref={containerRef} className="space-y-3">
-      {/* Week navigation */}
+  const weekNav = (
       <div className="flex items-center justify-between px-1">
         <button onClick={onPrevWeek} className="p-2 rounded-full hover:bg-gray-100 active:scale-90 transition-transform">
           <ChevronLeft size={20} className="text-gray-500" />
@@ -66,6 +64,12 @@ export default function MobileBookingView({
           <ChevronRight size={20} className="text-gray-500" />
         </button>
       </div>
+  );
+
+  return (
+    <div ref={containerRef} className="space-y-3">
+      {/* Week navigation */}
+      {weekNav}
 
       {/* 凡例 */}
       <div className="flex items-center justify-center gap-5 text-sm text-gray-500">
@@ -135,6 +139,9 @@ export default function MobileBookingView({
           </div>
         );
       })}
+
+      {/* 下側の週切り替え */}
+      {weekNav}
     </div>
   );
 }

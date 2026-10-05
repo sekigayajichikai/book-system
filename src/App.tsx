@@ -527,10 +527,10 @@ function UserApp() {
       </header>
       )}
 
-      {/* スマホ版 予定タブ: 時間帯に関する注記（ヘッダー直下に固定表示） */}
+      {/* スマホ版 予定タブ: 予定に関する注記（ヘッダー直下に固定表示） */}
       {isMobile && !showMyPage && calendarMode === 'schedule' && (
         <div className="px-4 py-1.5 bg-amber-50 border-b border-amber-200 text-sm leading-snug text-amber-800 shrink-0">
-          ※ 時間帯は部屋の予約時間です。開催時刻は主催者からの連絡をご確認ください。
+          ※ 回覧板に載った予定です。変更があることもあるので、主催者からの連絡もご確認ください。
         </div>
       )}
 

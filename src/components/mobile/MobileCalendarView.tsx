@@ -46,9 +46,7 @@ export default function MobileCalendarView({
     days.push(new Date(year, month, i));
   }
 
-  return (
-    <div ref={containerRef} className="space-y-3">
-      {/* Month navigation */}
+  const monthNav = (
       <div className="flex items-center justify-between px-1">
         <button onClick={onPrevMonth} className="p-2 rounded-full hover:bg-gray-100 active:scale-90 transition-transform">
           <ChevronLeft size={40} className="text-gray-500" />
@@ -60,6 +58,12 @@ export default function MobileCalendarView({
           <ChevronRight size={40} className="text-gray-500" />
         </button>
       </div>
+  );
+
+  return (
+    <div ref={containerRef} className="space-y-3">
+      {/* Month navigation */}
+      {monthNav}
 
       {/* 凡例 */}
       <div className="flex items-center justify-center gap-5 text-base text-gray-500">
@@ -86,6 +90,9 @@ export default function MobileCalendarView({
           </div>
         );
       })}
+
+      {/* 下側の月切り替え（予定タブと同じ） */}
+      {monthNav}
     </div>
   );
 }
