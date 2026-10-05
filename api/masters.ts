@@ -5,6 +5,9 @@ import { createClient } from '@supabase/supabase-js';
  * GET /api/masters
  *
  * Supabase から各種マスタデータを取得する。
+ *
+ * 団体は、住民向けの予約フォームと団体ログインの一覧に使うので、
+ * 会館を予約する活動中の団体だけを返す（外部団体 can_book = false と、活動していない団体は出さない）。
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
@@ -14,7 +17,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!);
     const [orgsRes, roomsRes, slotsRes, equipRes, categoriesRes, locationsRes] = await Promise.all([
-      supabase.from('booking_organizations').select('*').order('category').order('name'),
+      supabase.from('booking_organizations').select('*')
+        .not('is_active', 'is', false).not('can_book', 'is', false)
+        .order('category').order('name'),
       supabase.from('booking_rooms').select('*').order('sort_order'),
       supabase.from('booking_time_slots').select('*').order('sort_order'),
       supabase.from('booking_equipment').select('*').order('sort_order'),

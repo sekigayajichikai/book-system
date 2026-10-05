@@ -52,7 +52,9 @@ function supabaseProxyPlugin(supabaseUrl: string, supabaseKey: string): Plugin {
 
           } else if (req.url.startsWith('/api/masters')) {
             const [orgsRes, roomsRes, slotsRes] = await Promise.all([
-              supabase.from('booking_organizations').select('*').order('category').order('name'),
+              supabase.from('booking_organizations').select('*')
+                .not('is_active', 'is', false).not('can_book', 'is', false)
+                .order('category').order('name'),
               supabase.from('booking_rooms').select('*').order('sort_order'),
               supabase.from('booking_time_slots').select('*').order('sort_order'),
             ]);
