@@ -110,12 +110,13 @@ function supabaseProxyPlugin(supabaseUrl: string, supabaseKey: string): Plugin {
             const startDate = `${y}-${String(m).padStart(2, '0')}-01`;
             const endDate = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`;
 
+            // 会館予約から自動作成された facility 型はカレンダーに出さない（本番 api/events.ts と同じ）
             let query = supabase
               .from('calendar_events')
-              .select('id,date,title,display_title,event_type,visibility,location,start_time,end_time,org_name,description,is_major')
+              .select('id,date,title,display_title,event_type,visibility,location,start_time,end_time,org_name,description,is_major,article_url')
               .gte('date', startDate)
               .lt('date', endDate)
-              .neq('event_type', 'closure')
+              .eq('event_type', 'general')
               .order('date')
               .order('start_time');
 
@@ -123,58 +124,20 @@ function supabaseProxyPlugin(supabaseUrl: string, supabaseKey: string): Plugin {
               query = query.eq('visibility', vis);
             }
 
-            const [eventsResult, slotResult] = await Promise.all([
-              query,
-              supabase.from('booking_time_slots').select('slot_key, start_time, end_time').order('sort_order'),
-            ]);
-            if (eventsResult.error) throw eventsResult.error;
-            const events = eventsResult.data || [];
+            const { data: events, error } = await query;
+            if (error) throw error;
 
-            const facilityIds = events.filter(e => e.event_type === 'facility').map(e => e.id);
-            const bookingsByEvent: Record<string, { rooms: string[]; slots: string[]; orgName: string | null }> = {};
-            if (facilityIds.length > 0) {
-              const { data: bks } = await supabase
-                .from('bookings')
-                .select('event_id, room, slot, booking_organizations(name)')
-                .in('event_id', facilityIds)
-                .in('status', ['CONFIRMED', 'PENDING']);
-              for (const b of bks || []) {
-                if (!bookingsByEvent[b.event_id]) bookingsByEvent[b.event_id] = { rooms: [], slots: [], orgName: null };
-                const entry = bookingsByEvent[b.event_id];
-                if (!entry.rooms.includes(b.room)) entry.rooms.push(b.room);
-                if (!entry.slots.includes(b.slot)) entry.slots.push(b.slot);
-                if (!entry.orgName && (b as any).booking_organizations?.name) {
-                  entry.orgName = (b as any).booking_organizations.name;
-                }
-              }
-            }
-
-            const slotMap: Record<string, { start: string; end: string }> = {};
-            (slotResult.data || []).forEach((s: any) => {
-              slotMap[s.slot_key] = { start: s.start_time.slice(0, 5), end: s.end_time.slice(0, 5) };
-            });
-
-            const result = events.map(e => {
-              const linked = bookingsByEvent[e.id];
-              let startTime = e.start_time ? String(e.start_time).slice(0, 5) : null;
-              let endTime = e.end_time ? String(e.end_time).slice(0, 5) : null;
-              if (e.event_type === 'facility' && !startTime && linked) {
-                const order = ['午前', '午後', '夜間'];
-                const sorted = linked.slots.sort((a, b) => order.indexOf(a) - order.indexOf(b));
-                const first = slotMap[sorted[0]];
-                const last = slotMap[sorted[sorted.length - 1]];
-                if (first) startTime = first.start;
-                if (last) endTime = last.end;
-              }
-              return {
-                id: e.id, date: e.date, title: e.display_title || e.title,
-                originalTitle: e.title, displayTitle: e.display_title || null,
-                eventType: e.event_type, visibility: e.visibility, location: e.location,
-                startTime, endTime, orgName: e.org_name || bookingsByEvent[e.id]?.orgName || null, description: e.description,
-                rooms: linked?.rooms || [], slots: linked?.slots || [],
-                isMajor: e.is_major || false,
-              };
-            });
+            const result = (events || []).map(e => ({
+              id: e.id, date: e.date, title: e.display_title || e.title,
+              originalTitle: e.title, displayTitle: e.display_title || null,
+              eventType: e.event_type, visibility: e.visibility, location: e.location,
+              startTime: e.start_time ? String(e.start_time).slice(0, 5) : null,
+              endTime: e.end_time ? String(e.end_time).slice(0, 5) : null,
+              orgName: e.org_name || null, description: e.description,
+              rooms: [], slots: [],
+              isMajor: e.is_major || false,
+              articleUrl: e.article_url || null,
+            }));
 
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify(result));

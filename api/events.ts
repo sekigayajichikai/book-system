@@ -5,7 +5,8 @@ import { createClient } from '@supabase/supabase-js';
  * GET /api/events?year=2026&month=5
  *
  * イベント一覧を取得（住民向け「予定」タブ用）。
- * calendar_events から取得し、facility 型は紐づく bookings の部屋・時間帯情報を結合。
+ * calendar_events から回覧板由来・手入力の一般予定（general）を取得する。
+ * 会館予約から自動作成された facility 型は返さない。
  *
  * オプション:
  *   &visibility=public  — 公開イベントのみ（デフォルト: 全件）
@@ -36,69 +37,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .gte('date', startDate)
       .lt('date', endDate);
 
-    if (include_closures !== 'true') {
-      query = query.neq('event_type', 'closure');
-    }
+    // 会館予約から自動作成された facility 型はカレンダーに出さない（会館予約状況タブで見る）
+    query = query.in('event_type', include_closures === 'true' ? ['general', 'closure'] : ['general']);
     if (visibility === 'public' || visibility === 'internal') {
       query = query.eq('visibility', visibility);
     }
     query = query.order('date').order('start_time');
 
-    // 時間帯マスタは並列取得
-    const [eventsResult, slotResult] = await Promise.all([
-      query,
-      supabase.from('booking_time_slots').select('slot_key, start_time, end_time').order('sort_order'),
-    ]);
-
-    if (eventsResult.error) throw eventsResult.error;
-    const events = eventsResult.data || [];
-
-    // facility型のbookings情報を並列取得（団体名も含む）
-    const facilityEventIds = events.filter(e => e.event_type === 'facility').map(e => e.id);
-    const bookingsByEvent: Record<string, { rooms: string[]; slots: string[]; orgName: string | null }> = {};
-
-    if (facilityEventIds.length > 0) {
-      const { data: bookings, error: bErr } = await supabase
-        .from('bookings')
-        .select('event_id, room, slot, booking_organizations(name)')
-        .in('event_id', facilityEventIds)
-        .in('status', ['CONFIRMED', 'PENDING']);
-
-      if (bErr) throw bErr;
-      for (const b of bookings || []) {
-        if (!bookingsByEvent[b.event_id]) bookingsByEvent[b.event_id] = { rooms: [], slots: [], orgName: null };
-        const entry = bookingsByEvent[b.event_id];
-        if (!entry.rooms.includes(b.room)) entry.rooms.push(b.room);
-        if (!entry.slots.includes(b.slot)) entry.slots.push(b.slot);
-        if (!entry.orgName && (b as any).booking_organizations?.name) {
-          entry.orgName = (b as any).booking_organizations.name;
-        }
-      }
-    }
-
-    const { data: slotMaster } = slotResult;
-
-    const slotMap: Record<string, { start: string; end: string }> = {};
-    (slotMaster || []).forEach(s => {
-      slotMap[s.slot_key] = { start: s.start_time.slice(0, 5), end: s.end_time.slice(0, 5) };
-    });
+    const { data: events, error } = await query;
+    if (error) throw error;
 
     // レスポンス組み立て
     const result = (events || []).map(e => {
-      const linked = bookingsByEvent[e.id];
-      let startTime = e.start_time ? String(e.start_time).slice(0, 5) : null;
-      let endTime = e.end_time ? String(e.end_time).slice(0, 5) : null;
-
-      // facility 型で start_time/end_time が未設定の場合、bookings の時間帯から推定
-      if (e.event_type === 'facility' && !startTime && linked) {
-        const slotOrder = ['午前', '午後', '夜間'];
-        const sorted = linked.slots.sort((a, b) => slotOrder.indexOf(a) - slotOrder.indexOf(b));
-        const first = slotMap[sorted[0]];
-        const last = slotMap[sorted[sorted.length - 1]];
-        if (first) startTime = first.start;
-        if (last) endTime = last.end;
-      }
-
+      const startTime = e.start_time ? String(e.start_time).slice(0, 5) : null;
+      const endTime = e.end_time ? String(e.end_time).slice(0, 5) : null;
       return {
         id: e.id,
         date: e.date,
@@ -110,10 +62,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         location: e.location,
         startTime,
         endTime,
-        orgName: e.org_name || bookingsByEvent[e.id]?.orgName || null,
+        orgName: e.org_name || null,
         description: e.description,
-        rooms: linked?.rooms || [],
-        slots: linked?.slots || [],
+        rooms: [],
+        slots: [],
         isMajor: e.is_major || false,
         articleUrl: e.article_url || null,
       };
