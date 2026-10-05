@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { reconcileOrgFilter, orgNamesForSeen } from './orgFilter';
+import { reconcileOrgFilter, orgNamesForSeen, buildOrgDirectory, resolveEventOrgName, orgFilterDecision } from './orgFilter';
 
 // 保存済みの「表示する団体」を今の団体マスタに合わせて直すテスト。
 // 改名・新しい団体で住民の画面から予定が黙って消えないことを確かめる。
@@ -59,5 +59,48 @@ describe('orgNamesForSeen', () => {
       { name: '関ヶ谷クラブ', aliases: ['関ケ谷クラブ'] },
       { name: '図書部' },
     ])).toEqual(['関ヶ谷クラブ', '関ケ谷クラブ', '図書部']);
+  });
+});
+
+// 予定の主催団体で絞り込むテスト。団体の番号を優先し、改名や表記ゆれに左右されないことを確かめる。
+describe('orgFilterDecision', () => {
+  const dir = buildOrgDirectory([
+    { id: 'jichikai', name: '関ヶ谷自治会', aliases: ['自治会'] },
+    { id: 'club', name: '関ヶ谷クラブ', aliases: ['関ケ谷クラブ'] },
+    { id: 'tosho', name: '図書部', aliases: [] },
+  ]);
+
+  it('団体の番号があれば、主催者名が古くても今の正式名で判定する', () => {
+    expect(resolveEventOrgName({ orgId: 'jichikai', orgName: '自治会' }, dir)).toBe('関ヶ谷自治会');
+    expect(orgFilterDecision({ orgId: 'jichikai', orgName: '自治会' }, new Set(['関ヶ谷自治会']), dir)).toBe(true);
+  });
+
+  it('番号が無くても、別名や ケ/ヶ の違いは正式名に寄せる', () => {
+    expect(resolveEventOrgName({ orgName: '関ケ谷クラブ' }, dir)).toBe('関ヶ谷クラブ');
+    expect(resolveEventOrgName({ orgName: '関 ケ谷クラブ' }, dir)).toBe('関ヶ谷クラブ');
+    expect(resolveEventOrgName({ orgName: '関ヶ谷　クラブ' }, dir)).toBe('関ヶ谷クラブ'); // 全角スペース
+    expect(resolveEventOrgName({ orgName: 'u30図書部' }, dir)).toBeNull(); // 英数字は消さない
+  });
+
+  it('マスタにある団体でチェックが外れていれば非表示', () => {
+    expect(orgFilterDecision({ orgId: 'tosho', orgName: '図書部' }, new Set(['関ヶ谷自治会']), dir)).toBe(false);
+  });
+
+  it('マスタに無い主催・空の主催は呼び出し側（未分類）に任せる', () => {
+    expect(orgFilterDecision({ orgName: '知らない団体' }, new Set(['図書部']), dir)).toBeNull();
+    expect(orgFilterDecision({ orgName: null }, new Set(['図書部']), dir)).toBeNull();
+  });
+
+  it('引き当て表の読み込み中は非表示にしない', () => {
+    expect(orgFilterDecision({ orgName: '図書部' }, new Set(['関ヶ谷自治会']), null)).toBeNull();
+    expect(orgFilterDecision({ orgName: '図書部' }, new Set(['図書部']), null)).toBe(true);
+  });
+
+  it('別名が他の団体の正式名と同じでも、正式名のほうを優先する', () => {
+    const d = buildOrgDirectory([
+      { id: 'a', name: '自治会', aliases: [] },
+      { id: 'b', name: '関ヶ谷自治会', aliases: ['自治会'] },
+    ]);
+    expect(resolveEventOrgName({ orgName: '自治会' }, d)).toBe('自治会');
   });
 });
