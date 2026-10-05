@@ -38,6 +38,7 @@ export interface DetailData {
   orgName?: string | null;
   description?: string | null;
   eventType?: string;
+  fromCircular?: boolean;
   isMajor?: boolean;
   displayTitle?: string | null;
   rooms?: string[];
@@ -385,9 +386,11 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                 data.eventType === 'facility'
                   ? 'bg-violet-100 text-violet-700'
-                  : 'bg-blue-100 text-blue-700'
+                  : data.fromCircular
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'bg-gray-100 text-gray-600'
               }`}>
-                {data.eventType === 'facility' ? '会館予約から自動作成' : '予定'}
+                {data.eventType === 'facility' ? '会館予約から自動作成' : data.fromCircular ? '回覧板から' : '手入力'}
               </span>
             )}
             {data.isMajor && (

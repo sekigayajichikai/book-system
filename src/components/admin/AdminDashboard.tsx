@@ -61,7 +61,7 @@ function EventListPopoverBody({ dateStr, anchorRect, onItemClick }: {
 }) {
   const [events, setEvents] = useState<EventSummary[]>([]);
   useEffect(() => {
-    supaFetch(`calendar_events?date=eq.${dateStr}&select=id,date,title,location,start_time,end_time,org_name,event_type,is_major,description&order=start_time.asc.nullsfirst,title.asc`)
+    supaFetch(`calendar_events?date=eq.${dateStr}&select=id,date,title,location,start_time,end_time,org_name,event_type,is_major,description,source_event_card_id&order=start_time.asc.nullsfirst,title.asc`)
       .then(r => r.json())
       .then((data: any[]) => {
         setEvents((data || []).map(e => ({
@@ -69,6 +69,7 @@ function EventListPopoverBody({ dateStr, anchorRect, onItemClick }: {
           startTime: e.start_time || '', endTime: e.end_time || '',
           orgName: e.org_name || '', eventType: e.event_type, isMajor: e.is_major,
           description: e.description || '',
+          fromCircular: !!e.source_event_card_id,
           visibility: e.visibility || 'public',
           rooms: e.rooms || [],
           slots: e.slots || [],
@@ -263,7 +264,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         type: 'event', id: event.id, title: event.title, date: event.date,
         location: event.location, startTime: event.startTime, endTime: event.endTime,
         orgName: event.orgName, description: event.description, eventType: event.eventType,
-        isMajor: event.isMajor, displayTitle: event.displayTitle, rooms: event.rooms,
+        isMajor: event.isMajor, displayTitle: event.displayTitle, rooms: event.rooms, fromCircular: event.fromCircular,
       },
     });
   };

@@ -113,7 +113,7 @@ function supabaseProxyPlugin(supabaseUrl: string, supabaseKey: string): Plugin {
             // 会館予約から自動作成された facility 型はカレンダーに出さない（本番 api/events.ts と同じ）
             let query = supabase
               .from('calendar_events')
-              .select('id,date,title,display_title,event_type,visibility,location,start_time,end_time,org_name,description,is_major,article_url')
+              .select('id,date,title,display_title,event_type,visibility,location,start_time,end_time,org_name,description,is_major,article_url,source_event_card_id')
               .gte('date', startDate)
               .lt('date', endDate)
               .eq('event_type', 'general')
@@ -137,6 +137,7 @@ function supabaseProxyPlugin(supabaseUrl: string, supabaseKey: string): Plugin {
               rooms: [], slots: [],
               isMajor: e.is_major || false,
               articleUrl: e.article_url || null,
+              fromCircular: !!e.source_event_card_id,
             }));
 
             res.setHeader('Content-Type', 'application/json');
