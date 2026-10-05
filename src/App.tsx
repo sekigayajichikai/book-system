@@ -22,6 +22,7 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { Booking, BookingStatus, RoomType, BookingRequest, CalendarEvent, OrgEntry } from './types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from './constants';
 import { supabase } from './lib/supabase';
+import { reconcileOrgFilter, orgNamesForSeen, OrgForFilter } from './utils/orgFilter';
 
 /** 日付文字列を YYYY-MM-DD で返す */
 function formatDate(d: Date): string {
@@ -85,21 +86,29 @@ function UserApp() {
   const [showMajor, setShowMajor] = useState(true);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
-  // フィルタ初期化: 全団体をデフォルトON
+  // フィルタ初期化: 初回は全団体をON。保存済みなら改名・新しい団体の分を直す（reconcileOrgFilter）
   useEffect(() => {
     if (filterInitialized) return;
     const sbUrl = import.meta.env.VITE_SUPABASE_URL;
     const sbKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
     if (!sbUrl || !sbKey) return;
     const saved = localStorage.getItem('filter_orgs');
-    if (saved) { setFilterInitialized(true); return; }
-    fetch(`${sbUrl}/rest/v1/booking_organizations?select=name&is_active=not.is.false`, {
+    const savedSeen = localStorage.getItem('filter_orgs_seen');
+    // aliases 列は DB 変更前には無いので * で取る
+    fetch(`${sbUrl}/rest/v1/booking_organizations?select=*&is_active=not.is.false`, {
       headers: { 'apikey': sbKey, 'Authorization': `Bearer ${sbKey}` },
-    }).then(r => r.json()).then(d => {
-      const all = new Set<string>((d || []).map((o: any) => o.name));
-      all.add('__未分類__');
-      setFilterOrgs(all);
-      localStorage.setItem('filter_orgs', JSON.stringify([...all]));
+    }).then(r => r.json()).then((d: OrgForFilter[]) => {
+      const orgs = Array.isArray(d) ? d : [];
+      let next: Set<string>;
+      if (saved) {
+        next = reconcileOrgFilter(new Set(JSON.parse(saved)), orgs, savedSeen ? new Set(JSON.parse(savedSeen)) : null);
+      } else {
+        next = new Set<string>(orgs.map(o => o.name));
+        next.add('__未分類__');
+      }
+      setFilterOrgs(next);
+      localStorage.setItem('filter_orgs', JSON.stringify([...next]));
+      localStorage.setItem('filter_orgs_seen', JSON.stringify(orgNamesForSeen(orgs)));
       setFilterInitialized(true);
     }).catch(() => setFilterInitialized(true));
   }, [isMobile, filterInitialized]);

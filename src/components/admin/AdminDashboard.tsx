@@ -11,6 +11,7 @@ import Popover from './Popover';
 import { Booking, BookingStatus, RoomType, CalendarEvent, EventSummary, OrgEntry } from '../../types';
 import { ROOMS, TIME_SLOTS, shortRoomName } from '../../constants';
 import { SUPABASE_URL, SUPABASE_ANON_KEY as SUPABASE_KEY, supaFetch, supaRpc, supaWrite, writeErrorMessage } from '../../lib/supabase';
+import { reconcileOrgFilter, orgNamesForSeen, OrgForFilter } from '../../utils/orgFilter';
 
 type Tab = 'calendar' | 'import' | 'approvals' | 'organizations' | 'settings';
 
@@ -104,15 +105,21 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const [adminFilterInit, setAdminFilterInit] = useState(false);
   const [adminShowMajor, setAdminShowMajor] = useState(true);
 
+  // 初回は全団体をON。保存済みなら改名・新しい団体の分を直す（reconcileOrgFilter）
   useEffect(() => {
     if (adminFilterInit) return;
     const saved = localStorage.getItem('admin_filter_orgs');
-    if (saved) { setAdminFilterInit(true); return; }
-    supaFetch('booking_organizations?select=name&is_active=not.is.false')
-      .then(r => r.json()).then(d => {
-        const all = new Set<string>((d || []).map((o: any) => o.name));
-        setAdminFilterOrgs(all);
-        localStorage.setItem('admin_filter_orgs', JSON.stringify([...all]));
+    const savedSeen = localStorage.getItem('admin_filter_orgs_seen');
+    // aliases 列は DB 変更前には無いので * で取る
+    supaFetch('booking_organizations?select=*&is_active=not.is.false')
+      .then(r => r.json()).then((d: OrgForFilter[]) => {
+        const orgs = Array.isArray(d) ? d : [];
+        const next = saved
+          ? reconcileOrgFilter(new Set(JSON.parse(saved)), orgs, savedSeen ? new Set(JSON.parse(savedSeen)) : null)
+          : new Set<string>(orgs.map(o => o.name));
+        setAdminFilterOrgs(next);
+        localStorage.setItem('admin_filter_orgs', JSON.stringify([...next]));
+        localStorage.setItem('admin_filter_orgs_seen', JSON.stringify(orgNamesForSeen(orgs)));
         setAdminFilterInit(true);
       }).catch(() => setAdminFilterInit(true));
   }, [adminFilterInit]);
