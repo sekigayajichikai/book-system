@@ -209,7 +209,7 @@ export default function ImportTab() {
           body: JSON.stringify({ year, month, rows: parsedRows }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.detail || data.error || `API error ${res.status}`);
+        if (!res.ok) throw new Error(data.detail || data.error || `サーバーが応答しませんでした（${res.status}）`);
         if (data.ok && data.stats) {
           totalStats.add += data.stats.add || 0;
           totalStats.update += data.stats.update || 0;
@@ -220,12 +220,12 @@ export default function ImportTab() {
 
       setMessage({
         type: warnings.length > 0 ? 'warning' : 'success',
-        text: [`${parsed.length}ヶ月分を取込みました（新規${totalStats.add} / 変更${totalStats.update} / 削除${totalStats.delete}）`, ...warnings].join('\n'),
+        text: [`${parsed.length}ヶ月分を取り込みました（新規${totalStats.add} / 変更${totalStats.update} / 削除${totalStats.delete}）`, ...warnings].join('\n'),
       });
       await fetchImport();
     } catch (err: any) {
       console.error('Excel import error:', err);
-      setMessage({ type: 'error', text: `インポートに失敗しました: ${err?.message || String(err)}` });
+      setMessage({ type: 'error', text: `取り込めませんでした: ${err?.message || String(err)}` });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -257,14 +257,14 @@ export default function ImportTab() {
         const warnings: string[] = data.warnings || [];
         setMessage({
           type: warnings.length > 0 ? 'warning' : 'success',
-          text: [`Googleドライブから${data.months}ヶ月分を取込みました（新規${data.stats.add} / 変更${data.stats.update} / 削除${data.stats.delete}）`, ...warnings].join('\n'),
+          text: [`Googleドライブから${data.months}ヶ月分を取り込みました（新規${data.stats.add} / 変更${data.stats.update} / 削除${data.stats.delete}）`, ...warnings].join('\n'),
         });
         await fetchImport();
       } else {
-        setMessage({ type: 'error', text: data.error || '取込に失敗しました' });
+        setMessage({ type: 'error', text: data.error || '取り込めませんでした' });
       }
     } catch {
-      setMessage({ type: 'error', text: 'Googleドライブからの取込に失敗しました' });
+      setMessage({ type: 'error', text: 'Googleドライブから取り込めませんでした' });
     } finally {
       setSyncing(false);
     }
@@ -284,13 +284,13 @@ export default function ImportTab() {
       if (data.ok) {
         setMessage({
           type: 'success',
-          text: `予定を取込みました（新規${data.imported} / 更新${data.updated} / 休館${data.closures || 0}）`,
+          text: `予定を取り込みました（新規${data.imported} / 更新${data.updated} / 休館${data.closures || 0}）`,
         });
       } else {
-        setMessage({ type: 'error', text: data.error || '取込に失敗しました' });
+        setMessage({ type: 'error', text: data.error || '取り込めませんでした' });
       }
     } catch {
-      setMessage({ type: 'error', text: '予定スプレッドシートの取込に失敗しました' });
+      setMessage({ type: 'error', text: '予定スプレッドシートから取り込めませんでした' });
     } finally {
       setSyncingGeneral(false);
     }
@@ -410,7 +410,7 @@ export default function ImportTab() {
     }
     if (!ok) {
       setRows(prev => prev.map(r => (r.id === row.id ? { ...r, title: row.title } : r)));
-      setMessage({ type: 'error', text: '題名を保存できませんでした。通信を確かめて、もう一度直してください。' });
+      setMessage({ type: 'error', text: 'タイトルを保存できませんでした。通信を確かめて、もう一度お試しください。' });
     }
   };
 
@@ -442,15 +442,15 @@ export default function ImportTab() {
 
   // 全て取消（バッチごとDBから削除）
   const rejectAll = async () => {
-    if (!confirm('インポートデータを全て取消しますか？')) return;
+    if (!confirm('取り込んだ内容をすべて取り消しますか？')) return;
     try {
       const res = await apiFetch('/api/import', { method: 'DELETE' });
       if (!res.ok) throw new Error(String(res.status));
       setBatches([]);
       setRows([]);
-      setMessage({ type: 'success', text: 'インポートデータを取消しました' });
+      setMessage({ type: 'success', text: '取り込んだ内容を取り消しました' });
     } catch {
-      setMessage({ type: 'error', text: '取消に失敗しました' });
+      setMessage({ type: 'error', text: '取り消せませんでした。時間をおいてもう一度お試しください。' });
     }
   };
 
@@ -494,7 +494,7 @@ export default function ImportTab() {
     }
   };
 
-  if (loading) return <div className="text-gray-400 text-sm py-12 text-center">読み込み中...</div>;
+  if (loading) return <div className="text-gray-400 text-sm py-12 text-center">読み込み中…</div>;
 
   const driveModifiedStr = driveLastModified
     ? new Date(driveLastModified).toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -506,7 +506,7 @@ export default function ImportTab() {
 
     {/* ===== 会館予約のインポート ===== */}
     <div className="bg-white rounded-xl border border-blue-200 p-4 space-y-3">
-      <h3 className="text-sm font-bold text-blue-700">会館予約のインポート</h3>
+      <h3 className="text-sm font-bold text-blue-700">会館予約の取り込み</h3>
       <div className="flex gap-3">
         {/* Googleドライブから取込 */}
         <div className="flex-1 space-y-2">
@@ -517,13 +517,13 @@ export default function ImportTab() {
           >
             <Cloud size={24} className="mx-auto text-blue-300 mb-1" />
             {syncing ? (
-              <p className="text-blue-600 font-bold text-sm">取込中...</p>
+              <p className="text-blue-600 font-bold text-sm">取り込み中…</p>
             ) : (
               <>
-                <p className="text-blue-500 text-sm font-bold">Googleドライブから取込</p>
+                <p className="text-blue-500 text-sm font-bold">Googleドライブから取り込む</p>
                 <div className="text-left inline-block mt-1.5 text-xs text-gray-400">
-                  <p><span className="text-gray-500">アカウント：</span>{driveOwnerName || '取得中...'}</p>
-                  <p><span className="text-gray-500">ファイル　：</span>{driveFileName || '取得中...'}</p>
+                  <p><span className="text-gray-500">アカウント：</span>{driveOwnerName || '取得中…'}</p>
+                  <p><span className="text-gray-500">ファイル　：</span>{driveFileName || '取得中…'}</p>
                   {driveModifiedStr && <p><span className="text-gray-500">最終更新　：</span>{driveModifiedStr}</p>}
                 </div>
               </>
@@ -557,11 +557,11 @@ export default function ImportTab() {
                   disabled={savingFileId || !fileUrlInput.trim()}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold hover:bg-blue-700 disabled:opacity-50 whitespace-nowrap"
                 >
-                  {savingFileId ? '保存中...' : '変更'}
+                  {savingFileId ? '保存中…' : '変更'}
                 </button>
               </div>
               {driveFileId && (
-                <p className="text-xs text-gray-400">現在のID: <code className="bg-white px-1 rounded">{driveFileId.slice(0, 20)}...</code></p>
+                <p className="text-xs text-gray-400">現在のID: <code className="bg-white px-1 rounded">{driveFileId.slice(0, 20)}…</code></p>
               )}
             </div>
           )}
@@ -586,7 +586,7 @@ export default function ImportTab() {
           />
           <Upload size={24} className="mx-auto text-gray-300 mb-1" />
           {uploading ? (
-            <p className="text-emerald-600 font-bold text-sm">読み取り中...</p>
+            <p className="text-emerald-600 font-bold text-sm">読み取り中…</p>
           ) : (
             <>
               <p className="text-gray-500 text-sm font-bold">Excelファイルをアップロード</p>
@@ -599,17 +599,17 @@ export default function ImportTab() {
 
     {/* ===== 一般予定のインポート ===== */}
     <div className="bg-white rounded-xl border border-violet-200 p-4">
-      <h3 className="text-sm font-bold text-violet-700 mb-3">一般予定・休館日のインポート</h3>
+      <h3 className="text-sm font-bold text-violet-700 mb-3">一般予定・休館日の取り込み</h3>
       <button
         onClick={handleSyncGeneral}
         disabled={syncingGeneral}
         className="w-full border-2 border-dashed border-violet-200 rounded-xl p-4 text-center hover:border-violet-400 hover:bg-violet-50/30 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {syncingGeneral ? (
-          <p className="text-violet-600 font-bold text-sm">取込中...</p>
+          <p className="text-violet-600 font-bold text-sm">取り込み中…</p>
         ) : (
           <>
-            <p className="text-violet-500 text-sm font-bold">予定スプレッドシートから取込</p>
+            <p className="text-violet-500 text-sm font-bold">予定スプレッドシートから取り込む</p>
             <div className="text-left inline-block mt-1.5 text-xs text-gray-400">
               <p><span className="text-gray-500">アカウント：</span>関ヶ谷自治会DX委員会</p>
               <p><span className="text-gray-500">ファイル　：</span>カレンダー &gt; 予定スプレッドシート</p>
@@ -636,7 +636,7 @@ export default function ImportTab() {
         )}
         <div className="text-center py-6">
           <AlertTriangle size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-400 text-sm">インポートデータがありません</p>
+          <p className="text-gray-400 text-sm">取り込んだ内容はありません</p>
           <p className="text-gray-300 text-xs mt-1">上のエリアからExcelファイルをアップロードしてください</p>
         </div>
       </div>
@@ -680,7 +680,7 @@ export default function ImportTab() {
             disabled={pendingCount === 0 && approvedCount === 0}
             className="px-3 py-1.5 bg-gray-500 text-white rounded-lg text-xs font-bold hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            全て取消
+            すべて取り消す
           </button>
           <button
             onClick={approveAll}
@@ -761,7 +761,7 @@ export default function ImportTab() {
                           )}
                           </div>
                           {editingRowId !== row.id && row.diff_type !== 'delete' && (
-                            <button onClick={() => startEditTitle(row)} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded shrink-0" title="題名を直す">
+                            <button onClick={() => startEditTitle(row)} className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded shrink-0" title="タイトルを編集">
                               <Pencil size={13} />
                             </button>
                           )}
@@ -812,7 +812,7 @@ export default function ImportTab() {
                               <button onClick={() => updateRowStatus(row.id, 'rejected')} className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200" title="却下"><X size={14} /></button>
                             </div>
                           ) : row.review_status === 'approved' ? (
-                            <span className="text-xs text-emerald-600 font-bold">承認済</span>
+                            <span className="text-xs text-emerald-600 font-bold">承認済み</span>
                           ) : row.review_status === 'skipped' && row.diff_type === 'title_diff' ? (
                             <button onClick={() => updateRowStatus(row.id, 'approved')} className="text-xs text-yellow-600 hover:text-emerald-600" title="承認して上書き">適用する</button>
                           ) : (

@@ -251,7 +251,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   };
 
   const handleDelete = async () => {
-    if (!confirm(`「${data.title}」を削除しますか？\n間違えたときは、回覧板ポータルの管理画面「ゴミ箱」から元に戻せます。`)) return;
+    if (!confirm(`「${data.title}」を削除しますか？\n間違えたときは、回覧板の管理画面の「ゴミ箱」から元に戻せます。`)) return;
 
     try {
       await deleteTarget();

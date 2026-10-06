@@ -220,7 +220,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse, supabase: any
     return res.status(200).json({ ok: true, batch_id: batch.id, stats });
   } catch (err: any) {
     console.error('Import error:', err);
-    return res.status(500).json({ error: 'インポートに失敗しました', detail: err?.message });
+    return res.status(500).json({ error: '取り込めませんでした', detail: err?.message });
   }
 }
 
@@ -284,7 +284,7 @@ async function handlePatch(req: VercelRequest, res: VercelResponse, supabase: an
       if (row.title !== undefined) {
         // 反映前に題名を直せる（取込の確認画面から）。空にはできない
         const title = String(row.title).trim();
-        if (!title) return res.status(400).json({ error: '題名を空にはできません' });
+        if (!title) return res.status(400).json({ error: 'タイトルを空にはできません' });
         update.title = title;
       }
       if (row.org_id !== undefined) update.org_id = row.org_id;

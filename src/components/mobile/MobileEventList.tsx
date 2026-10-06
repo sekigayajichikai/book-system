@@ -111,7 +111,7 @@ export default function MobileEventList({ holidays, closures, filterOrgs, refres
       </div>
 
       {loading ? (
-        <div className="py-12 text-center text-gray-400">読み込み中...</div>
+        <div className="py-12 text-center text-gray-400">読み込み中…</div>
       ) : (
         /* === 月ビュー === */
         <div className="space-y-3">

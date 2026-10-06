@@ -76,7 +76,7 @@ export default function AdminLogin({ onLogin }: AdminLoginProps) {
             disabled={loading || !password}
             className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 disabled:opacity-50 transition-colors text-base"
           >
-            {loading ? 'ログイン中...' : 'ログイン'}
+            {loading ? 'ログイン中…' : 'ログイン'}
           </button>
         </form>
       </div>

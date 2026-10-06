@@ -32,12 +32,12 @@ export default function MyPage({ orgId, orgName }: MyPageProps) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold text-gray-800">{orgName} の申請一覧</h2>
+      <h2 className="text-lg font-bold text-gray-800">{orgName} の予約一覧</h2>
 
       {loading ? (
-        <p className="text-gray-400 text-sm">読み込み中...</p>
+        <p className="text-gray-400 text-sm">読み込み中…</p>
       ) : bookings.length === 0 ? (
-        <p className="text-gray-400 text-sm">申請はまだありません</p>
+        <p className="text-gray-400 text-sm">予約はまだありません</p>
       ) : (
         <div className="space-y-2">
           {bookings.map((b: any) => {

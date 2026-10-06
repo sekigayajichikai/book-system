@@ -72,7 +72,7 @@ export default function MobileCalendarView({
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-pink-400" />図書室</span>
       </div>
 
-      {loading && <div className="text-center text-sm text-gray-400 py-4">読み込み中...</div>}
+      {loading && <div className="text-center text-sm text-gray-400 py-4">読み込み中…</div>}
 
       {/* Day cards */}
       {days.map(date => {

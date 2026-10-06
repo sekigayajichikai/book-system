@@ -97,7 +97,7 @@ export default function OrgLogin({ onLogin, onClose }: OrgLoginProps) {
             className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2 text-base"
           >
             <LogIn size={18} />
-            {loading ? 'ログイン中...' : 'ログイン'}
+            {loading ? 'ログイン中…' : 'ログイン'}
           </button>
         </form>
 

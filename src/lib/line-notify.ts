@@ -13,7 +13,7 @@ export async function sendLineNotification(
   booking: BookingRequest,
 ): Promise<void> {
   const lines = [
-    '📋 予約リクエストが届きました',
+    '📋 予約の申し込みが届きました',
     '',
     `📅 ${booking.date}`,
     `🕐 ${booking.slot}`,

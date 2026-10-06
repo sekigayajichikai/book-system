@@ -234,7 +234,7 @@ export default function SettingsTab({ categories, onCategoriesChange }: Settings
         <h3 className="text-sm font-bold text-emerald-700">予定</h3>
 
         <MasterSection
-          title="場所マスタ"
+          title="会場マスタ"
           table="event_locations"
           items={locations}
           setItems={setLocations}

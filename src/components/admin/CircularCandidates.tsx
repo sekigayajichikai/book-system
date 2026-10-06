@@ -82,7 +82,7 @@ export default function CircularCandidates() {
         body: JSON.stringify({ rows: rowsToSend }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'API error');
+      if (!res.ok) throw new Error(data.error || `サーバーが応答しませんでした（${res.status}）`);
       setMessage({
         type: 'success',
         text: `候補を受け付けました（追加${data.added} / 既出スキップ${data.skipped}${data.invalid ? ` / 無効${data.invalid}` : ''}）`,
@@ -109,7 +109,7 @@ export default function CircularCandidates() {
         body: JSON.stringify({ ids, action }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'API error');
+      if (!res.ok) throw new Error(data.error || `サーバーが応答しませんでした（${res.status}）`);
       if (action === 'apply') {
         setMessage({
           type: data.errors?.length ? 'error' : 'success',
@@ -140,7 +140,7 @@ export default function CircularCandidates() {
             onClick={() => setShowPaste(v => !v)}
             className="text-xs text-sky-600 hover:text-sky-800 font-bold flex items-center gap-1"
           >
-            <ClipboardPaste size={13} /> JSONを貼り付け
+            <ClipboardPaste size={13} /> JSONを貼り付け（旧方式）
           </button>
           <button
             onClick={handleRefresh}
@@ -157,7 +157,7 @@ export default function CircularCandidates() {
           <textarea
             value={pasteText}
             onChange={e => setPasteText(e.target.value)}
-            placeholder='回覧板アプリの「カレンダー用JSONをコピー」で取得したJSONを貼り付け'
+            placeholder='旧方式の貼り付け欄です。いまは回覧板の管理画面の予定タブ →「カレンダーに反映」で、カレンダーに直接載ります'
             className="w-full h-28 border border-gray-200 rounded-lg p-2 text-xs font-mono"
           />
           <button
@@ -178,7 +178,7 @@ export default function CircularCandidates() {
 
       {rows.length === 0 ? (
         <p className="text-xs text-gray-400 text-center py-3">
-          確認待ちの候補はありません（回覧板アプリから届くとここに表示されます）
+          確認待ちの候補はありません（いまは回覧板の管理画面の予定タブ →「カレンダーに反映」で、カレンダーに直接載ります）
         </p>
       ) : (
         <>

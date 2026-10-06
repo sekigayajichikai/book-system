@@ -145,7 +145,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (err: any) {
     console.error('sync-general error:', err);
-    return res.status(500).json({ error: '取込に失敗しました', detail: err?.message });
+    return res.status(500).json({ error: '取り込めませんでした', detail: err?.message });
   }
 }
 

@@ -82,6 +82,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json(result);
   } catch (err: any) {
     console.error('Events fetch error:', err);
-    return res.status(500).json({ error: 'イベントデータの取得に失敗しました', detail: err?.message || String(err) });
+    return res.status(500).json({ error: '予定を読み込めませんでした', detail: err?.message || String(err) });
   }
 }

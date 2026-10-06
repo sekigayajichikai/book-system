@@ -572,8 +572,8 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'calendar', label: '予定', icon: <CalendarDays size={18} /> },
-    { id: 'import', label: 'インポート', icon: <Upload size={18} /> },
-    { id: 'approvals', label: `申請${pendingBookings.length > 0 ? ` (${pendingBookings.length})` : ''}`, icon: <ClipboardList size={18} /> },
+    { id: 'import', label: '取り込み', icon: <Upload size={18} /> },
+    { id: 'approvals', label: `承認待ちの予約${pendingBookings.length > 0 ? ` (${pendingBookings.length})` : ''}`, icon: <ClipboardList size={18} /> },
     { id: 'organizations', label: '団体マスタ', icon: <Users size={18} /> },
     { id: 'settings', label: '設定', icon: <Settings size={18} /> },
   ];
@@ -664,9 +664,9 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
         {/* === 申請管理 === */}
         {tab === 'approvals' && (
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-gray-800">申請管理</h2>
-            {loading ? <p className="text-gray-400 text-sm">読み込み中...</p> : pendingBookings.length === 0 ? (
-              <p className="text-gray-400 text-sm">承認待ちの申請はありません</p>
+            <h2 className="text-lg font-bold text-gray-800">承認待ちの予約</h2>
+            {loading ? <p className="text-gray-400 text-sm">読み込み中…</p> : pendingBookings.length === 0 ? (
+              <p className="text-gray-400 text-sm">承認待ちの予約はありません</p>
             ) : (
               <div className="space-y-3">
                 {pendingBookings.map((b: any) => (
@@ -737,11 +737,11 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                   type="text"
                   value={orgSearch}
                   onChange={e => setOrgSearch(e.target.value)}
-                  placeholder="団体名で検索..."
+                  placeholder="団体名で検索…"
                   className="w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-blue-300"
                 />
               </div>
-              {loading ? <p className="text-gray-400 text-sm">読み込み中...</p> : orgs.length === 0 ? <p className="text-gray-400 text-sm">団体はありません</p> : (() => {
+              {loading ? <p className="text-gray-400 text-sm">読み込み中…</p> : orgs.length === 0 ? <p className="text-gray-400 text-sm">団体はありません</p> : (() => {
                 const sixMonthsAgo = new Date();
                 sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
                 const cutoff = `${sixMonthsAgo.getFullYear()}-${String(sixMonthsAgo.getMonth() + 1).padStart(2, '0')}-${String(sixMonthsAgo.getDate()).padStart(2, '0')}`;
@@ -1022,7 +1022,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                           placeholder="例: カラオケ, からおけ"
                         />
-                        <p className="text-xs text-gray-400 mt-0.5">インポート時にタイトルとマッチして自動紐づけされます</p>
+                        <p className="text-xs text-gray-400 mt-0.5">取り込みのとき、タイトルにこの語が含まれていれば自動で紐づけます</p>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-500 mb-1">パスコード</label>

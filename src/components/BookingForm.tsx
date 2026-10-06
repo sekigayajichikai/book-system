@@ -149,7 +149,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
               ) : (
                 /* マスタがない場合はフリー入力 */
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">団体名・イベント名</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">団体名・予定名</label>
                   <input
                     type="text"
                     name="orgName"
@@ -304,7 +304,7 @@ const BookingForm: React.FC<BookingFormProps> = ({
               disabled={submitting}
               className="flex-1 px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-bold shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95"
             >
-              {submitting ? '保存中...' : step === 1 ? '確認へ進む' : '保存'}
+              {submitting ? '保存中…' : step === 1 ? '確認へ進む' : '保存'}
             </button>
           </div>
         </form>
