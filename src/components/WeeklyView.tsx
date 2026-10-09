@@ -39,8 +39,8 @@ const SLOT_LABEL_COLOR = 'bg-gray-100';
 
 const ROOM_COLORS: Record<string, { bg: string; bgBooked: string; text: string; bar: string }> = {
   '会議室':       { bg: 'bg-[var(--room-kaigi)]',  bgBooked: 'bg-[var(--room-kaigi-strong)]', text: 'text-[var(--md-on-surface)]', bar: 'bg-yellow-400' },
-  '和室（畳側）':  { bg: 'bg-[var(--room-washi)]',  bgBooked: 'bg-[var(--room-washi-strong)]', text: 'text-[var(--md-on-surface)]', bar: 'bg-sky-400' },
-  '和室（椅子側）': { bg: 'bg-[var(--room-washi)]',  bgBooked: 'bg-[var(--room-washi-strong)]', text: 'text-[var(--md-on-surface)]', bar: 'bg-sky-400' },
+  '和室（右）':  { bg: 'bg-[var(--room-washi)]',  bgBooked: 'bg-[var(--room-washi-strong)]', text: 'text-[var(--md-on-surface)]', bar: 'bg-sky-400' },
+  '和室（左）': { bg: 'bg-[var(--room-washi)]',  bgBooked: 'bg-[var(--room-washi-strong)]', text: 'text-[var(--md-on-surface)]', bar: 'bg-sky-400' },
   '図書室':       { bg: 'bg-[var(--room-tosho)]',  bgBooked: 'bg-[var(--room-tosho-strong)]', text: 'text-[var(--md-on-surface)]', bar: 'bg-pink-400' },
 };
 

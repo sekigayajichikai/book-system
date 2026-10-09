@@ -8,8 +8,8 @@ const DOW = ['日', '月', '火', '水', '木', '金', '土'];
 
 const ROOM_DOT: Record<string, string> = {
   '会議室':       'bg-yellow-400',
-  '和室（畳側）':  'bg-sky-400',
-  '和室（椅子側）': 'bg-sky-400',
+  '和室（右）':  'bg-sky-400',
+  '和室（左）': 'bg-sky-400',
   '図書室':       'bg-pink-400',
 };
 

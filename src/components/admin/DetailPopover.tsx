@@ -15,8 +15,8 @@ for (let h = 7; h <= 21; h++) {
 
 const ROOM_COLORS: Record<string, string> = {
   '会議室': 'bg-yellow-400',
-  '和室（畳側）': 'bg-sky-400',
-  '和室（椅子側）': 'bg-sky-400',
+  '和室（右）': 'bg-sky-400',
+  '和室（左）': 'bg-sky-400',
   '図書室': 'bg-pink-400',
 };
 
@@ -313,7 +313,7 @@ export default function DetailPopover({ anchorRect, data, onClose, onEdit, onRef
   if (data.type === 'booking') {
     locationLabel = data.room;
   } else if (data.location && data.rooms && data.rooms.length > 0) {
-    locationLabel = `${data.location}（${data.rooms.map(r => { const m: Record<string,string> = {'会議室':'会議室','和室（畳側）':'和室(畳)','和室（椅子側）':'和室(椅子)','図書室':'図書室'}; return m[r] || r; }).join('・')}）`;
+    locationLabel = `${data.location}（${data.rooms.map(r => { const m: Record<string,string> = {'会議室':'会議室','和室（右）':'和室(右)','和室（左）':'和室(左)','図書室':'図書室'}; return m[r] || r; }).join('・')}）`;
   } else {
     locationLabel = data.location || undefined;
   }

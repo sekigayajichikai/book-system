@@ -9,8 +9,8 @@ interface BookingDetailModalProps {
 
 const ROOM_COLORS: Record<string, string> = {
   '会議室':       'bg-yellow-100 text-yellow-900 border-yellow-200',
-  '和室（畳側）':  'bg-sky-100 text-sky-900 border-sky-200',
-  '和室（椅子側）': 'bg-sky-100 text-sky-900 border-sky-200',
+  '和室（右）':  'bg-sky-100 text-sky-900 border-sky-200',
+  '和室（左）': 'bg-sky-100 text-sky-900 border-sky-200',
   '図書室':       'bg-pink-100 text-pink-900 border-pink-200',
 };
 

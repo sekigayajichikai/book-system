@@ -11,8 +11,8 @@ interface DailyScheduleGridProps {
 
 const ROOM_COLORS: Record<string, { bg: string; bgBooked: string; text: string; header: string }> = {
   '会議室':       { bg: 'bg-yellow-50',  bgBooked: 'bg-yellow-100', text: 'text-yellow-900', header: 'bg-yellow-200 text-yellow-900' },
-  '和室（畳側）':  { bg: 'bg-sky-50',     bgBooked: 'bg-sky-100',    text: 'text-sky-900',    header: 'bg-sky-200 text-sky-900' },
-  '和室（椅子側）': { bg: 'bg-sky-50',     bgBooked: 'bg-sky-100',    text: 'text-sky-900',    header: 'bg-sky-200 text-sky-900' },
+  '和室（右）':  { bg: 'bg-sky-50',     bgBooked: 'bg-sky-100',    text: 'text-sky-900',    header: 'bg-sky-200 text-sky-900' },
+  '和室（左）': { bg: 'bg-sky-50',     bgBooked: 'bg-sky-100',    text: 'text-sky-900',    header: 'bg-sky-200 text-sky-900' },
   '図書室':       { bg: 'bg-pink-50',    bgBooked: 'bg-pink-100',   text: 'text-pink-900',   header: 'bg-pink-200 text-pink-900' },
 };
 

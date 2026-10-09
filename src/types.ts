@@ -1,8 +1,8 @@
 /** 自治会館の部屋（GASの確定シート・Googleカレンダーと一致させること） */
 export enum RoomType {
   KAIGISHITSU = '会議室',
-  WASHITSU_TATAMI = '和室（畳側）',
-  WASHITSU_ISU = '和室（椅子側）',
+  WASHITSU_RIGHT = '和室（右）',
+  WASHITSU_LEFT = '和室（左）',
   TOSHOSHITSU = '図書室',
 }
 

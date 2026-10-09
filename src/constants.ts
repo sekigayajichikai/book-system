@@ -2,8 +2,8 @@ import { RoomType } from './types';
 
 export const ROOMS = [
   { id: RoomType.KAIGISHITSU, name: '会議室', shortName: '会議室', capacity: 40, description: '大会議や集会に。' },
-  { id: RoomType.WASHITSU_TATAMI, name: '和室（畳側）', shortName: '和室(畳)', capacity: 15, description: '床の間付き。' },
-  { id: RoomType.WASHITSU_ISU, name: '和室（椅子側）', shortName: '和室(椅子)', capacity: 15, description: '' },
+  { id: RoomType.WASHITSU_RIGHT, name: '和室（右）', shortName: '和室(右)', capacity: 15, description: '床の間付き。' },
+  { id: RoomType.WASHITSU_LEFT, name: '和室（左）', shortName: '和室(左)', capacity: 15, description: '' },
   { id: RoomType.TOSHOSHITSU, name: '図書室', shortName: '図書室', capacity: 10, description: '少人数の打ち合わせに。' },
 ];
 

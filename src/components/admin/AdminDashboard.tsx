@@ -1172,7 +1172,7 @@ export default function AdminDashboard({ onLogout }: AdminDashboardProps) {
       {popover?.type === 'list' && popover.date && (() => {
         const dateStr = `${popover.date.getFullYear()}-${String(popover.date.getMonth() + 1).padStart(2, '0')}-${String(popover.date.getDate()).padStart(2, '0')}`;
         const dow = ['日', '月', '火', '水', '木', '金', '土'][popover.date.getDay()];
-        const ROOM_COLORS: Record<string, string> = { '会議室': 'bg-yellow-400', '和室（畳側）': 'bg-sky-400', '和室（椅子側）': 'bg-sky-400', '図書室': 'bg-pink-400' };
+        const ROOM_COLORS: Record<string, string> = { '会議室': 'bg-yellow-400', '和室（右）': 'bg-sky-400', '和室（左）': 'bg-sky-400', '図書室': 'bg-pink-400' };
 
         if (calendarSubView === 'schedule') {
           return (

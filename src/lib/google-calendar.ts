@@ -1,6 +1,6 @@
 import type { CalendarEvent, RoomType } from '../types';
 
-const ROOM_NAMES: RoomType[] = ['会議室', '和室（畳側）', '和室（椅子側）', '図書室'] as RoomType[];
+const ROOM_NAMES: RoomType[] = ['会議室', '和室（右）', '和室（左）', '図書室'] as RoomType[];
 
 /**
  * Googleカレンダーのイベントタイトルから部屋名とイベント名を分離する。

@@ -7,14 +7,14 @@ import { RoomType } from './types';
 describe('shortRoomName', () => {
   it('正式名称を短縮名に変換する', () => {
     expect(shortRoomName('会議室')).toBe('会議室');
-    expect(shortRoomName('和室（畳側）')).toBe('和室(畳)');
-    expect(shortRoomName('和室（椅子側）')).toBe('和室(椅子)');
+    expect(shortRoomName('和室（右）')).toBe('和室(右)');
+    expect(shortRoomName('和室（左）')).toBe('和室(左)');
     expect(shortRoomName('図書室')).toBe('図書室');
   });
 
   it('RoomType enum の値を渡しても短縮名を返す', () => {
     // ROOMS の id は RoomType の値（＝正式名称）。enum 経由でも引けることを確認する。
-    expect(shortRoomName(RoomType.WASHITSU_TATAMI)).toBe('和室(畳)');
+    expect(shortRoomName(RoomType.WASHITSU_RIGHT)).toBe('和室(右)');
   });
 
   it('未知の名前はそのまま返す（フォールバック）', () => {

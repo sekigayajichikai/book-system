@@ -106,7 +106,7 @@ graph LR
 
 Table booking_rooms {
   id uuid [pk]
-  name text [unique, not null, note: '会議室 / 和室（畳側）/ 和室（椅子側）/ 図書室']
+  name text [unique, not null, note: '会議室 / 和室（右）/ 和室（左）/ 図書室']
   short_name text [not null]
   capacity integer
   description text

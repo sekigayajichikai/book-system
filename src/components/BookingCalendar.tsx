@@ -35,8 +35,8 @@ interface CalendarProps {
 
 const ROOM_COLORS: Record<string, { bg: string; bar: string }> = {
   '会議室':       { bg: 'bg-[var(--room-kaigi)]', bar: 'bg-yellow-400' },
-  '和室（畳側）':  { bg: 'bg-[var(--room-washi)]', bar: 'bg-sky-400' },
-  '和室（椅子側）': { bg: 'bg-[var(--room-washi)]', bar: 'bg-sky-400' },
+  '和室（右）':  { bg: 'bg-[var(--room-washi)]', bar: 'bg-sky-400' },
+  '和室（左）': { bg: 'bg-[var(--room-washi)]', bar: 'bg-sky-400' },
   '図書室':       { bg: 'bg-[var(--room-tosho)]', bar: 'bg-pink-400' },
 };
 

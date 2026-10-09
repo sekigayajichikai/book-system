@@ -17,8 +17,8 @@ const DOW = ['月', '火', '水', '木', '金', '土', '日'];
 
 const ROOM_COLORS: Record<string, { light: string; booked: string; text: string }> = {
   '会議室':       { light: 'bg-yellow-50',  booked: 'bg-yellow-100', text: 'text-yellow-800' },
-  '和室（畳側）':  { light: 'bg-sky-50',     booked: 'bg-sky-100',    text: 'text-sky-800' },
-  '和室（椅子側）': { light: 'bg-sky-50',     booked: 'bg-sky-100',    text: 'text-sky-800' },
+  '和室（右）':  { light: 'bg-sky-50',     booked: 'bg-sky-100',    text: 'text-sky-800' },
+  '和室（左）': { light: 'bg-sky-50',     booked: 'bg-sky-100',    text: 'text-sky-800' },
   '図書室':       { light: 'bg-pink-50',    booked: 'bg-pink-100',   text: 'text-pink-800' },
 };
 
